@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Wine } from '@/domain/types';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, Pencil, Trash2 } from 'lucide-react';
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
   loading: boolean;
   onEdit: (wine: Wine) => void;
   onDelete: (wineId: string) => void;
+  onUpdateQty: (wine: Wine, nextQty: number) => Promise<boolean>;
 };
 
 const TOTAL_COLUMNS = 12;
@@ -43,9 +45,17 @@ function computeMargin(wine: Wine) {
   return Number((wine.salePrice - wine.purchasePrice).toFixed(2));
 }
 
-export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
+export function AdminArchiveTable({ wines, loading, onEdit, onDelete, onUpdateQty }: Props) {
   const [targetRows, setTargetRows] = useState(BASE_ROWS);
   const [notePreview, setNotePreview] = useState<{ wineName: string; note: string } | null>(null);
+  const [editingQtyWineId, setEditingQtyWineId] = useState<string | null>(null);
+  const [editingQtyValue, setEditingQtyValue] = useState<string>('');
+  const [savingQtyWineId, setSavingQtyWineId] = useState<string | null>(null);
+  const [qtyConfirmModal, setQtyConfirmModal] = useState<{
+    wine: Wine;
+    currentQty: number;
+    nextQty: number;
+  } | null>(null);
   const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({
     key: 'name',
     dir: 'az'
@@ -108,6 +118,45 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
     if (loading) return 0;
     return Math.max(0, targetRows - sortedWines.length);
   }, [loading, sortedWines.length, targetRows]);
+
+  const beginQtyEdit = (wine: Wine) => {
+    if (savingQtyWineId) return;
+    setEditingQtyWineId(wine.id);
+    setEditingQtyValue(String(Math.max(0, Math.min(99, Math.round(wine.qty)))));
+  };
+
+  const cancelQtyEdit = () => {
+    if (savingQtyWineId) return;
+    setEditingQtyWineId(null);
+    setEditingQtyValue('');
+  };
+
+  const requestQtyEditConfirm = (wine: Wine) => {
+    if (savingQtyWineId) return;
+    const parsed = Number(editingQtyValue);
+    if (!Number.isFinite(parsed)) return;
+    const nextQty = Math.max(0, Math.min(99, Math.round(parsed)));
+    const currentQty = Math.max(0, Math.min(99, Math.round(wine.qty)));
+    if (nextQty === currentQty) {
+      cancelQtyEdit();
+      return;
+    }
+    setQtyConfirmModal({ wine, currentQty, nextQty });
+  };
+
+  const confirmQtyEdit = async () => {
+    if (!qtyConfirmModal) return;
+    const { wine, nextQty } = qtyConfirmModal;
+
+    setSavingQtyWineId(wine.id);
+    const updated = await onUpdateQty(wine, nextQty);
+    setSavingQtyWineId(null);
+    setQtyConfirmModal(null);
+    if (updated) {
+      setEditingQtyWineId(null);
+      setEditingQtyValue('');
+    }
+  };
 
   return (
     <section className="archiveTableSection">
@@ -277,7 +326,52 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
                   <td className="archiveColCenter">{formatMoney(wine.purchasePrice)}</td>
                   <td className="archiveColCenter">{formatMoney(wine.salePrice)}</td>
                   <td className={`archiveColCenter ${qtyClass}`}>
-                    {wine.qty}
+                    {editingQtyWineId === wine.id ? (
+                      <div className="archiveQtyInlineBox">
+                        <input
+                          className="archiveQtyInlineInput"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={editingQtyValue}
+                          onChange={(e) => {
+                            const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 2);
+                            setEditingQtyValue(onlyDigits);
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key.length === 1 &&
+                              !/[0-9]/.test(e.key) &&
+                              !e.ctrlKey &&
+                              !e.metaKey &&
+                              !e.altKey
+                            ) {
+                              e.preventDefault();
+                            }
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              requestQtyEditConfirm(wine);
+                            }
+                            if (e.key === 'Escape') {
+                              e.preventDefault();
+                              cancelQtyEdit();
+                            }
+                          }}
+                          aria-label={`Modifica quantità ${wine.name}`}
+                          disabled={savingQtyWineId === wine.id}
+                          autoFocus
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        className="archiveQtyValueButton"
+                        type="button"
+                        onClick={() => beginQtyEdit(wine)}
+                        aria-label={`Modifica quantità di ${wine.name}`}
+                      >
+                        {wine.qty}
+                      </button>
+                    )}
                   </td>
                   <td className="archiveColCenter">{formatMoney(computeWarehouse(wine))}</td>
                   <td className="archiveColCenter">{formatMoney(computeMargin(wine))}</td>
@@ -342,6 +436,22 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
           </div>
         </div>
       ) : null}
+      <ConfirmModal
+        open={qtyConfirmModal !== null}
+        title="Confermare modifica quantità?"
+        description={
+          qtyConfirmModal
+            ? `Vuoi aggiornare "${qtyConfirmModal.wine.name}" da ${qtyConfirmModal.currentQty} a ${qtyConfirmModal.nextQty}?`
+            : undefined
+        }
+        confirmLabel={savingQtyWineId ? 'Confermo…' : 'Conferma'}
+        cancelLabel="Annulla modifica"
+        onConfirm={() => void confirmQtyEdit()}
+        onCancel={() => {
+          setQtyConfirmModal(null);
+          cancelQtyEdit();
+        }}
+      />
     </section>
   );
 }

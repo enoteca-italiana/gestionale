@@ -241,6 +241,8 @@
 .archiveTable th:nth-child(9),
 .archiveTable td:nth-child(9) {
   width: 4%;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .archiveTable th:nth-child(12),
@@ -354,6 +356,44 @@
 .archiveTable tbody td.archiveQtyZero {
   color: #ff0000;
   font-weight: 400;
+}
+
+.archiveQtyValueButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.archiveQtyInlineBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 42px;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 1.5px solid #7c164a;
+  border-radius: 8px;
+  background: #ffffff;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.archiveQtyInlineInput {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font: inherit;
+  color: #111827;
+  outline: none;
+  line-height: 1;
 }
 
 .archiveRowActions {

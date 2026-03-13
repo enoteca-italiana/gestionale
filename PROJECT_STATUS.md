@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **13/03/2026 14:33 CET**.
+Ultimo aggiornamento: **13/03/2026 15:03 CET**.
 
 ## Scopo di questo file
 
@@ -148,6 +148,13 @@ Comandi root:
   - provenienze gestite da lista precompilata (niente input manuale libero)
   - fornitori gestiti da lista precompilata (niente input manuale libero)
   - in tutti i menu gestiti: `+ Aggiungi ...` con suggerimenti di valori uguali/simili e conferma libera
+  - categorie archivio allineate al registry Supabase `public.categories`
+  - fornitori archivio allineati al registry Supabase `public.suppliers`
+  - in modifica vino: fornitore non più bloccante in edit su record legacy (resta obbligatorio in create)
+  - colonna `Q.tà` con modifica inline:
+    - click sul valore per edit rapido nella cella
+    - input solo numerico da tastiera (niente lettere/simboli/selector)
+    - su `Invio` apertura modale conferma prima del salvataggio
   - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore` con bottone nell'header
   - formule automatiche:
     - `Magazzino = Acquisto × Q.tà`
@@ -213,7 +220,7 @@ Comandi root:
 - Documentazione:
   - mantenuta una sola scheda tecnica (`SCHEDA TECNICA ENOTECA ITALIANA.md` in root)
 - Backup:
-  - creato nuovo archivio: `backup/backup_13 Venerdi_14.33.tar.gz`
+  - creato nuovo archivio: `backup/backup_13 Venerdi_15.03.tar.gz`
 - GitHub / Deploy hygiene:
   - push su `main` completato con `gh auth login` (device flow) e script `./scripts/commit_github.sh`
   - rimossi dal tracking i file pesanti non necessari al deploy:
@@ -222,7 +229,7 @@ Comandi root:
     - `*.tsbuildinfo`
   - `.gitignore` aggiornato per prevenire re-upload in futuro
 
-### Verifica qualità (13/03/2026 14:33 CET)
+### Verifica qualità (13/03/2026 15:03 CET)
 
 - `npm run lint` ✅
 - `npm run typecheck` ✅

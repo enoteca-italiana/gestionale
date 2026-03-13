@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **13/03/2026 14:33 CET**.
+Ultimo aggiornamento: **13/03/2026 15:03 CET**.
 
 ## Quick Start
 
@@ -47,6 +47,13 @@ Comandi utili:
   - categoria selezionabile solo da lista gestita, con `+ Aggiungi categoria…` e suggerimenti anti-duplicato
   - provenienza selezionabile solo da lista gestita, con `+ Aggiungi provenienza…` e suggerimenti anti-duplicato
   - fornitore selezionabile solo da lista gestita, con `+ Aggiungi fornitore…` e suggerimenti anti-duplicato
+  - allineamento registry da Supabase:
+    - categorie lette da `public.categories`
+    - fornitori letti da `public.suppliers`
+  - colonna `Q.tà` con edit inline:
+    - click sul valore per entrare in edit
+    - input solo numerico da tastiera (senza selector)
+    - conferma via modale su tasto `Invio`
   - ordinamento `A-Z / Z-A` su colonne `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
   - calcoli automatici:
     - `Magazzino = Acquisto × Q.tà`

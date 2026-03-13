@@ -1,9 +1,15 @@
 import type { Wine } from '@/domain/types';
+import { supabase } from '@/lib/supabase';
 
 const SUPPLIER_STORAGE_KEY = 'scarichi.suppliers.v1';
 
 function normalizeSupplier(value: string) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function isSchemaColumnError(error: unknown): boolean {
+  const message = String((error as { message?: unknown } | null | undefined)?.message ?? '').toLowerCase();
+  return message.includes('column') && message.includes('does not exist');
 }
 
 export function loadManagedSuppliers(): string[] {
@@ -63,4 +69,59 @@ export function upsertManagedSupplier(
   const managedNext = [...managedSuppliers, normalized];
   saveManagedSuppliers(managedNext);
   return { created: normalized, managedNext, changed: true };
+}
+
+type SupplierRow = {
+  name?: string | null;
+};
+
+export async function listSupabaseSuppliers(): Promise<string[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase.from('suppliers').select('name').order('name', { ascending: true });
+  if (error) {
+    if (!isSchemaColumnError(error)) {
+      console.error('[supplierRepository] listSupabaseSuppliers error', error);
+    }
+    return [];
+  }
+
+  const seen = new Map<string, string>();
+  for (const row of (data ?? []) as SupplierRow[]) {
+    const normalized = normalizeSupplier(row.name ?? '');
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (!seen.has(key)) seen.set(key, normalized);
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+}
+
+export async function upsertSupabaseSupplier(rawValue: string): Promise<void> {
+  if (!supabase) return;
+  const normalized = normalizeSupplier(rawValue);
+  if (!normalized) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from('suppliers')
+    .select('id')
+    .ilike('name', normalized)
+    .limit(1);
+
+  if (existingError) {
+    if (!isSchemaColumnError(existingError)) {
+      console.error('[supplierRepository] lookup supplier error', existingError);
+    }
+    return;
+  }
+
+  if (existing && existing.length > 0) return;
+
+  const { error: insertError } = await supabase.from('suppliers').insert({ name: normalized });
+  if (insertError) {
+    const code = (insertError as { code?: string } | null)?.code;
+    if (code === '23505') return;
+    if (!isSchemaColumnError(insertError)) {
+      console.error('[supplierRepository] insert supplier error', insertError);
+    }
+  }
 }

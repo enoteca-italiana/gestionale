@@ -3,13 +3,17 @@ import type { Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import {
   listCategoryOptions,
+  listSupabaseCategories,
   loadManagedCategories,
+  upsertSupabaseCategory,
   upsertManagedCategory
 } from '@/data/categoryRepository';
 import { listOriginOptions, loadManagedOrigins, upsertManagedOrigin } from '@/data/originRepository';
 import {
   listSupplierOptions,
+  listSupabaseSuppliers,
   loadManagedSuppliers,
+  upsertSupabaseSupplier,
   upsertManagedSupplier
 } from '@/data/supplierRepository';
 import { createWine, deleteWine, listWines, updateWine } from '@/data/wineRepository';
@@ -38,8 +42,10 @@ export function WineAdminPage() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [managedCategories, setManagedCategories] = useState<string[]>(() => loadManagedCategories());
+  const [supabaseCategories, setSupabaseCategories] = useState<string[]>([]);
   const [managedOrigins, setManagedOrigins] = useState<string[]>(() => loadManagedOrigins());
   const [managedSuppliers, setManagedSuppliers] = useState<string[]>(() => loadManagedSuppliers());
+  const [supabaseSuppliers, setSupabaseSuppliers] = useState<string[]>([]);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryResultHandler, setCategoryResultHandler] =
     useState<((created: string | null) => void) | null>(null);
@@ -67,14 +73,40 @@ export function WineAdminPage() {
     void loadWines();
   }, [loadWines]);
 
+  useEffect(() => {
+    let alive = true;
+    const loadCategoryRegistry = async () => {
+      const values = await listSupabaseCategories();
+      if (!alive) return;
+      setSupabaseCategories(values);
+    };
+    void loadCategoryRegistry();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const loadSupplierRegistry = async () => {
+      const values = await listSupabaseSuppliers();
+      if (!alive) return;
+      setSupabaseSuppliers(values);
+    };
+    void loadSupplierRegistry();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const categories = useMemo(
-    () => listCategoryOptions(wines, managedCategories),
-    [wines, managedCategories]
+    () => listCategoryOptions(wines, [...managedCategories, ...supabaseCategories]),
+    [wines, managedCategories, supabaseCategories]
   );
   const origins = useMemo(() => listOriginOptions(wines, managedOrigins), [wines, managedOrigins]);
   const suppliers = useMemo(
-    () => listSupplierOptions(wines, managedSuppliers),
-    [wines, managedSuppliers]
+    () => listSupplierOptions(wines, [...managedSuppliers, ...supabaseSuppliers]),
+    [wines, managedSuppliers, supabaseSuppliers]
   );
 
   const filteredWines = useMemo(
@@ -90,7 +122,14 @@ export function WineAdminPage() {
   const handleAddCategory = useCallback(
     (rawValue: string) => {
       const result = upsertManagedCategory(rawValue, categories, managedCategories);
-      if (result.changed) setManagedCategories(result.managedNext);
+      if (result.changed) {
+        setManagedCategories(result.managedNext);
+      }
+      const createdCategory = result.created;
+      if (createdCategory) {
+        void upsertSupabaseCategory(createdCategory);
+        setSupabaseCategories((prev) => listCategoryOptions([], [...prev, createdCategory]));
+      }
       return result.created;
     },
     [categories, managedCategories]
@@ -106,7 +145,14 @@ export function WineAdminPage() {
   const handleAddSupplier = useCallback(
     (rawValue: string) => {
       const result = upsertManagedSupplier(rawValue, suppliers, managedSuppliers);
-      if (result.changed) setManagedSuppliers(result.managedNext);
+      if (result.changed) {
+        setManagedSuppliers(result.managedNext);
+      }
+      const createdSupplier = result.created;
+      if (createdSupplier) {
+        void upsertSupabaseSupplier(createdSupplier);
+        setSupabaseSuppliers((prev) => listSupplierOptions([], [...prev, createdSupplier]));
+      }
       return result.created;
     },
     [managedSuppliers, suppliers]
@@ -229,6 +275,36 @@ export function WineAdminPage() {
     }
   };
 
+  const handleQuickQtyUpdate = async (wine: Wine, nextQty: number) => {
+    setBusy(true);
+    try {
+      await updateWine({
+        id: wine.id,
+        category: wine.category ?? '',
+        name: wine.name,
+        age: wine.age ?? '',
+        producer: wine.producer,
+        origin: wine.origin,
+        supplier: wine.supplier ?? '',
+        threshold: wine.threshold,
+        purchasePrice: wine.purchasePrice,
+        salePrice: wine.salePrice,
+        vintage: wine.vintage,
+        qty: nextQty,
+        notes: wine.notes
+      });
+      await loadWines();
+      showToast('Q.tà aggiornata');
+      return true;
+    } catch (err) {
+      console.error('[WineAdminPage] quick qty update error', err);
+      setError('Aggiornamento quantità non riuscito.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="container archiveDesktopContainer">
       <div className="archiveLogoTop">
@@ -265,6 +341,7 @@ export function WineAdminPage() {
         loading={loading}
         onEdit={openEdit}
         onDelete={setDeleteId}
+        onUpdateQty={handleQuickQtyUpdate}
       />
 
       <WineArchiveFormModal

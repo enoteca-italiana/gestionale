@@ -78,13 +78,14 @@ export function WineArchiveFormModal({
   }, [open, initial]);
 
   const canSubmit = useMemo(() => {
+    const supplierRequired = mode === 'create';
     return (
       state.name.trim().length > 0 &&
       state.producer.trim().length > 0 &&
       state.origin.trim().length > 0 &&
-      state.supplier.trim().length > 0
+      (!supplierRequired || state.supplier.trim().length > 0)
     );
-  }, [state.name, state.origin, state.producer, state.supplier]);
+  }, [mode, state.name, state.origin, state.producer, state.supplier]);
 
   if (!open) return null;
 
