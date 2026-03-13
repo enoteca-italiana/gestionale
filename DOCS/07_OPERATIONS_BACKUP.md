@@ -1,6 +1,6 @@
 # Operatività (dev) + Backup
 
-Ultimo aggiornamento: **13/03/2026 01:09 CET**.
+Ultimo aggiornamento: **13/03/2026 01:48 CET**.
 
 ## Dev server
 
@@ -45,6 +45,22 @@ Porte usate in progetto:
 3. Se l’autenticazione è ok, fa push su `origin main`.
 4. In caso di errori (remote mancante, credenziali non configurate) lo script blocca il push con messaggio chiaro.
 
+### Stato autenticazione e push (13/03/2026)
+
+- `gh auth login -h github.com -p https -w` usato con successo (device flow sicuro).
+- push su `main` confermato.
+- policy attiva: repository snello per deploy Render.
+
+### Regole anti-file pesanti (tracking Git)
+
+- File esclusi e non più pushabili:
+  - `backup/*.tar.gz`
+  - `backup/*.zip`
+  - `apps/scarichi-vini/dev-dist/`
+  - `*.tsbuildinfo`
+- Cartella `backup/` resta nel repo solo per script (`backup/make_backup.sh`).
+- Se servono backup locali, mantenerli fuori tracking (regole `.gitignore` già impostate).
+
 ## Backup
 
 Cartella:
@@ -54,7 +70,7 @@ Cartella:
 Naming richiesto dall’utente:
 
 - es: `backup_13 Giovedi_15.40.tar.gz`
-- ultimo backup creato: `backup_13 Venerdi_00.29.tar.gz`
+- ultimo backup creato: `backup_13 Venerdi_01.48.tar.gz`
 
 Script:
 
@@ -90,7 +106,7 @@ tar -czf "backup/backup_13 Giovedi_15.40.tar.gz" \
 Comando usato per l'ultimo backup:
 
 ```bash
-tar -czf "backup/backup_13 Venerdi_00.29.tar.gz" \
+tar -czf "backup/backup_13 Venerdi_01.48.tar.gz" \
   --exclude="./backup" \
   --exclude="./.git" \
   --exclude="./node_modules" \

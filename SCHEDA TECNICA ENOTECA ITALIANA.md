@@ -1,6 +1,6 @@
 # SCHEDA TECNICA — APP GESTIONE SCARICHI VINI ENOTECA
 
-Ultimo aggiornamento: **13/03/2026 01:09 CET**.
+Ultimo aggiornamento: **13/03/2026 01:48 CET**.
 
 ## Introduzione
 
@@ -850,4 +850,13 @@ Quick steps:
 
 ### Backup
 
-- Creato nuovo backup: `backup/backup_13 Venerdi_00.29.tar.gz`.
+- Creato nuovo backup: `backup/backup_13 Venerdi_01.48.tar.gz`.
+
+### Regola repository leggero (nuova logica)
+
+- Per deploy Render, su GitHub `main` devono restare solo file utili al runtime.
+- Esclusi dal tracking:
+  - `backup/*.tar.gz`, `backup/*.zip`
+  - `apps/scarichi-vini/dev-dist/`
+  - `*.tsbuildinfo`
+- La cartella `backup/` resta nel repo solo per script operativi (`backup/make_backup.sh`).

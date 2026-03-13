@@ -1,5 +1,4 @@
 import type { Wine } from '@/domain/types';
-import { mockWines } from '@/data/mockWines';
 
 export type LocalSessionItem = {
   wineId: string;
@@ -21,6 +20,7 @@ export type LocalDbState = {
 };
 
 const DB_KEY = 'scarichi.localDb.v1';
+const SUPABASE_BOOTSTRAP_FLAG = 'scarichi.inventory.supabaseBootstrap.v1';
 export const dbChangedEvent = 'scarichi:dbChanged';
 
 function safeParse<T>(raw: string | null): T | null {
@@ -34,27 +34,10 @@ function safeParse<T>(raw: string | null): T | null {
 
 function seed(): LocalDbState {
   return {
-    inventory: mockWines,
+    inventory: [],
     history: [],
     pending: []
   };
-}
-
-function migrateInventoryWithSeed(inventory: Wine[]): Wine[] {
-  const seedById = new Map(mockWines.map((w) => [w.id, w]));
-  const existingById = new Map(inventory.map((w) => [w.id, w]));
-
-  const mergedExisting = inventory.map((w) => {
-    const seedWine = seedById.get(w.id);
-    if (!seedWine) return w;
-    return {
-      ...seedWine,
-      ...w
-    };
-  });
-
-  const missingFromSeed = mockWines.filter((w) => !existingById.has(w.id));
-  return [...mergedExisting, ...missingFromSeed];
 }
 
 export function loadDb(): LocalDbState {
@@ -69,10 +52,12 @@ export function loadDb(): LocalDbState {
     saveDb(s);
     return s;
   }
-  const migratedInventory = migrateInventoryWithSeed(parsed.inventory);
-  if (migratedInventory.length !== parsed.inventory.length) {
-    const migrated = { ...parsed, inventory: migratedInventory };
+  // One-shot migration: remove legacy local seeded inventory.
+  // Home page will repopulate from Supabase via refreshInventory().
+  if (!localStorage.getItem(SUPABASE_BOOTSTRAP_FLAG)) {
+    const migrated = { ...parsed, inventory: [] };
     saveDb(migrated);
+    localStorage.setItem(SUPABASE_BOOTSTRAP_FLAG, '1');
     return migrated;
   }
   return parsed;

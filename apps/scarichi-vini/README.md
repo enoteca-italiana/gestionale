@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **13/03/2026 01:09 CET**.
+Ultimo aggiornamento: **13/03/2026 01:48 CET**.
 
 ## Quick Start
 
@@ -62,3 +62,11 @@ Comandi utili:
 
 - Crea `.env` da `.env.example`.
 - In assenza di configurazione Supabase, l’app resta operativa in modalità locale (localStorage + seed vini).
+
+## Regole Deploy (Render)
+
+- Repository mantenuto leggero: esclusi dal tracking i file pesanti/temporanei.
+- Non versionare:
+  - `backup/*.tar.gz`, `backup/*.zip`
+  - `apps/scarichi-vini/dev-dist/`
+  - `*.tsbuildinfo`

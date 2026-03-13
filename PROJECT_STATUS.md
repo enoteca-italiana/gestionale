@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **13/03/2026 01:09 CET**.
+Ultimo aggiornamento: **13/03/2026 01:48 CET**.
 
 ## Scopo di questo file
 
@@ -181,9 +181,16 @@ Comandi root:
   - campo `Soglia` sulla stessa riga di `Provenienza` e convertito a selector standard (`Vuoto`, `1..99`)
   - regola validazione: `Soglia` mai `0`
 - Backup:
-  - creato nuovo archivio: `backup/backup_13 Venerdi_00.29.tar.gz`
+  - creato nuovo archivio: `backup/backup_13 Venerdi_01.48.tar.gz`
+- GitHub / Deploy hygiene:
+  - push su `main` completato con `gh auth login` (device flow) e script `./scripts/commit_github.sh`
+  - rimossi dal tracking i file pesanti non necessari al deploy:
+    - `backup/*.tar.gz`
+    - `apps/scarichi-vini/dev-dist/*`
+    - `*.tsbuildinfo`
+  - `.gitignore` aggiornato per prevenire re-upload in futuro
 
-### Verifica qualità (13/03/2026 00:28 CET)
+### Verifica qualità (13/03/2026 01:48 CET)
 
 - `npm run lint` ✅
 - `npm run typecheck` ✅
@@ -312,5 +319,11 @@ Workflow previsto quando chiedi "**commit github**":
    - fa `git add -A`, `git commit` e `git push origin main`.
 
 Se l'autenticazione GitHub non è configurata o la porta è bloccata, il push fallirà: sistemare le credenziali e rilanciare.
+
+### Regola repository leggero (Render)
+
+- Non versionare artefatti temporanei o backup compressi.
+- In `main` devono restare solo sorgenti e file necessari al deploy.
+- Cartella `backup/` consentita solo per script/tooling (`make_backup.sh`), non per archivi `.tar.gz/.zip`.
 
 Dettaglio operativo anche in `DOCS/07_OPERATIONS_BACKUP.md#github`.

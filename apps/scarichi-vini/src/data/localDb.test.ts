@@ -14,14 +14,32 @@ describe('localDb', () => {
     expect(typeof id).toBe('string');
   });
 
-  it('loadDb seeds and persists when empty', () => {
+  it('loadDb seeds empty inventory and persists when empty', () => {
     const db = loadDb();
     expect(Array.isArray(db.inventory)).toBe(true);
-    expect(db.inventory.length).toBeGreaterThan(0);
+    expect(db.inventory.length).toBe(0);
     expect(Array.isArray(db.history)).toBe(true);
     expect(Array.isArray(db.pending)).toBe(true);
 
     const persisted = localStorage.getItem('scarichi.localDb.v1');
     expect(persisted).toBeTruthy();
+  });
+
+  it('clears legacy local inventory once via supabase bootstrap migration', () => {
+    localStorage.setItem(
+      'scarichi.localDb.v1',
+      JSON.stringify({
+        inventory: [{ id: 'legacy-1', name: 'Legacy' }],
+        history: [],
+        pending: []
+      })
+    );
+
+    const db = loadDb();
+    expect(db.inventory).toEqual([]);
+
+    const parsed = JSON.parse(localStorage.getItem('scarichi.localDb.v1') ?? '{}');
+    expect(parsed.inventory).toEqual([]);
+    expect(localStorage.getItem('scarichi.inventory.supabaseBootstrap.v1')).toBe('1');
   });
 });

@@ -2,7 +2,7 @@
 
 Questa cartella contiene la documentazione operativa allineata allo stato reale del progetto.
 
-Ultimo aggiornamento: **13/03/2026 01:09 CET**.
+Ultimo aggiornamento: **13/03/2026 01:48 CET**.
 
 ## Documenti
 
@@ -20,6 +20,8 @@ Ultimo aggiornamento: **13/03/2026 01:09 CET**.
   - comportamento offline e Service Worker.
 - `07_OPERATIONS_BACKUP.md`
   - operatività dev, backup e handover su altro PC.
+- `08_SUPABASE_SETUP.md`
+  - setup Supabase eseguito, ordine script SQL e checklist verifiche.
 
 Documenti root correlati:
 

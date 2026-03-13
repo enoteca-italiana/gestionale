@@ -5,7 +5,6 @@ import { useAppSettings } from '@/app/useAppSettings';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import { newId } from '@/data/localDb';
 import { useLocalDb } from '@/data/useLocalDb';
-import { mockWines } from '@/data/mockWines';
 import { ResultsList } from '@/pages/home/ResultsList';
 import { SessionConfirmModal } from '@/pages/home/SessionConfirmModal';
 import { SummaryList } from '@/pages/home/SummaryList';
@@ -20,7 +19,8 @@ export function HomePage() {
   const settings = useAppSettings();
   const online = useOnlineStatus();
 
-  const { inventory, setInventory, addHistory, addPending, flushPendingToHistory } = useLocalDb();
+  const { inventory, setInventory, addHistory, addPending, flushPendingToHistory, refreshInventory } =
+    useLocalDb();
 
   const {
     sessionOpen,
@@ -53,9 +53,8 @@ export function HomePage() {
   }, [flushPendingToHistory, online]);
 
   useEffect(() => {
-    if (inventory.length > 0) return;
-    setInventory(mockWines);
-  }, [inventory.length, setInventory]);
+    void refreshInventory();
+  }, [refreshInventory]);
 
   const confirmSubmit = () => {
     if (sessionCount <= 0) return;
