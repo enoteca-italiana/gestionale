@@ -7,6 +7,11 @@ import {
   upsertManagedCategory
 } from '@/data/categoryRepository';
 import { listOriginOptions, loadManagedOrigins, upsertManagedOrigin } from '@/data/originRepository';
+import {
+  listSupplierOptions,
+  loadManagedSuppliers,
+  upsertManagedSupplier
+} from '@/data/supplierRepository';
 import { createWine, deleteWine, listWines, updateWine } from '@/data/wineRepository';
 import { AdminArchiveToolbar } from '@/pages/admina/components/AdminArchiveToolbar';
 import { AdminArchiveTable } from '@/pages/admina/components/AdminArchiveTable';
@@ -37,6 +42,7 @@ function matchesFilters(wine: Wine, filters: Filters) {
       wine.age,
       wine.producer,
       wine.origin,
+      wine.supplier,
       wine.notes,
       wine.warehouse
     ]
@@ -69,11 +75,15 @@ export function WineAdminPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [managedCategories, setManagedCategories] = useState<string[]>(() => loadManagedCategories());
   const [managedOrigins, setManagedOrigins] = useState<string[]>(() => loadManagedOrigins());
+  const [managedSuppliers, setManagedSuppliers] = useState<string[]>(() => loadManagedSuppliers());
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryResultHandler, setCategoryResultHandler] =
     useState<((created: string | null) => void) | null>(null);
   const [originModalOpen, setOriginModalOpen] = useState(false);
   const [originResultHandler, setOriginResultHandler] =
+    useState<((created: string | null) => void) | null>(null);
+  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
+  const [supplierResultHandler, setSupplierResultHandler] =
     useState<((created: string | null) => void) | null>(null);
 
   const loadWines = useCallback(async () => {
@@ -98,6 +108,10 @@ export function WineAdminPage() {
     [wines, managedCategories]
   );
   const origins = useMemo(() => listOriginOptions(wines, managedOrigins), [wines, managedOrigins]);
+  const suppliers = useMemo(
+    () => listSupplierOptions(wines, managedSuppliers),
+    [wines, managedSuppliers]
+  );
 
   const filteredWines = useMemo(
     () => wines.filter((w) => matchesFilters(w, filters)),
@@ -125,6 +139,14 @@ export function WineAdminPage() {
     },
     [managedOrigins, origins]
   );
+  const handleAddSupplier = useCallback(
+    (rawValue: string) => {
+      const result = upsertManagedSupplier(rawValue, suppliers, managedSuppliers);
+      if (result.changed) setManagedSuppliers(result.managedNext);
+      return result.created;
+    },
+    [managedSuppliers, suppliers]
+  );
 
   const handleRequestAddCategory = useCallback((onResult: (created: string | null) => void) => {
     setCategoryResultHandler(() => onResult);
@@ -134,6 +156,10 @@ export function WineAdminPage() {
     setOriginResultHandler(() => onResult);
     setOriginModalOpen(true);
   }, []);
+  const handleRequestAddSupplier = useCallback((onResult: (created: string | null) => void) => {
+    setSupplierResultHandler(() => onResult);
+    setSupplierModalOpen(true);
+  }, []);
 
   const closeCategoryModal = useCallback(() => {
     setCategoryModalOpen(false);
@@ -142,6 +168,10 @@ export function WineAdminPage() {
   const closeOriginModal = useCallback(() => {
     setOriginModalOpen(false);
     setOriginResultHandler(null);
+  }, []);
+  const closeSupplierModal = useCallback(() => {
+    setSupplierModalOpen(false);
+    setSupplierResultHandler(null);
   }, []);
 
   const confirmAddCategory = useCallback(
@@ -169,6 +199,18 @@ export function WineAdminPage() {
     if (originResultHandler) originResultHandler(null);
     closeOriginModal();
   }, [originResultHandler, closeOriginModal]);
+  const confirmAddSupplier = useCallback(
+    (rawValue: string) => {
+      const created = handleAddSupplier(rawValue);
+      if (supplierResultHandler) supplierResultHandler(created);
+      closeSupplierModal();
+    },
+    [closeSupplierModal, handleAddSupplier, supplierResultHandler]
+  );
+  const cancelAddSupplier = useCallback(() => {
+    if (supplierResultHandler) supplierResultHandler(null);
+    closeSupplierModal();
+  }, [closeSupplierModal, supplierResultHandler]);
 
   const openCreate = () => {
     setModalMode('create');
@@ -178,7 +220,7 @@ export function WineAdminPage() {
 
   const openEdit = (wine: Wine) => {
     setModalMode('edit');
-    setFormState({ ...wine });
+    setFormState({ ...wine, supplier: wine.supplier ?? '' });
     setModalOpen(true);
   };
 
@@ -268,8 +310,10 @@ export function WineAdminPage() {
         initial={formState}
         categories={categories}
         origins={origins}
+        suppliers={suppliers}
         onRequestAddCategory={handleRequestAddCategory}
         onRequestAddOrigin={handleRequestAddOrigin}
+        onRequestAddSupplier={handleRequestAddSupplier}
         onSubmit={handleSubmit}
         onCancel={closeForm}
       />
@@ -290,6 +334,17 @@ export function WineAdminPage() {
         ariaLabel="Nuova provenienza"
         onCancel={cancelAddOrigin}
         onConfirm={confirmAddOrigin}
+      />
+      <CategoryCreateModal
+        open={supplierModalOpen}
+        existingValues={suppliers}
+        title="Nuovo fornitore"
+        inputPlaceholder="Inserisci fornitore"
+        similarTitle="Fornitori già presenti simili"
+        duplicateMessage="Fornitore già esistente: se confermi, verrà riusato quello esistente."
+        ariaLabel="Nuovo fornitore"
+        onCancel={cancelAddSupplier}
+        onConfirm={confirmAddSupplier}
       />
 
       <ConfirmModal

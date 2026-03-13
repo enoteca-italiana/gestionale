@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **13/03/2026 03:12 CET**.
+Ultimo aggiornamento: **13/03/2026 13:40 CET**.
 
 ## Accesso
 
@@ -83,6 +83,7 @@ Funzioni:
 - rimosso il vecchio filtro `Tutte le giacenze`
 - CRUD vini
 - categoria e provenienza selezionabili solo da liste gestite
+- fornitore selezionabile solo da lista gestita
 - opzione `+ Aggiungi ...` in dropdown con suggerimenti valori uguali/simili
 - tabella estesa con header sticky
 - righe alternate + separatori verticali
@@ -90,8 +91,9 @@ Funzioni:
 - box statistiche: `Totale` verde, `Soglia` ambra, `Esauriti` rosso
 - pulsanti statistiche selezionati con colori invertiti (testo bianco)
 - colonna `ANNO`: mostra cella vuota quando il valore è assente
+- colonna `FORNITORE`: posizionata subito dopo `PROVENIENZA`
 - colonna note rimossa dalla tabella; note consultabili da icona dedicata in `Azioni`
-- ordinamento `A-Z / Z-A` su colonne `Categoria`, `Nome`, `Produttore`, `Provenienza`
+- ordinamento `A-Z / Z-A` su colonne `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
 
 Regole business:
 

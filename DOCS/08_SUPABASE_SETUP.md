@@ -1,6 +1,6 @@
 # Supabase Setup
 
-Ultimo aggiornamento: **13/03/2026 03:12 CET**.
+Ultimo aggiornamento: **13/03/2026 13:40 CET**.
 
 ## Stato attuale
 
@@ -46,6 +46,7 @@ Riferimento codice:
 File consigliato per esecuzione uno-a-uno in SQL Editor:
 
 - `sql_subase_copia.sql`
+- `sql/supabase_add_supplier.sql` (migrazione campo `supplier` + archivio `public.suppliers`)
 
 Ordine esecuzione:
 
@@ -60,6 +61,14 @@ Ordine esecuzione:
 9. `SCRIPT 07` indexes
 10. `SCRIPT 08` seed upsert
 11. `SCRIPT 09A/09B` check finale
+
+### Migrazione Fornitore (nuova)
+
+Per attivare il nuovo campo `Fornitore` lato archivio vini:
+
+1. eseguire `sql/supabase_add_supplier.sql` in SQL Editor;
+2. verificare presenza colonna `public.wines.supplier`;
+3. verificare tabella `public.suppliers` popolata con i valori distinti già presenti.
 
 ## Verifica finale attesa
 

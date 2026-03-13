@@ -9,8 +9,10 @@ type Props = {
   initial: WineFormState;
   categories: string[];
   origins: string[];
+  suppliers: string[];
   onRequestAddCategory: (onResult: (created: string | null) => void) => void;
   onRequestAddOrigin: (onResult: (created: string | null) => void) => void;
+  onRequestAddSupplier: (onResult: (created: string | null) => void) => void;
   onSubmit: (wine: WineFormState) => Promise<void>;
   onCancel: () => void;
 };
@@ -36,8 +38,10 @@ export function WineArchiveFormModal({
   initial,
   categories,
   origins,
+  suppliers,
   onRequestAddCategory,
   onRequestAddOrigin,
+  onRequestAddSupplier,
   onSubmit,
   onCancel
 }: Props) {
@@ -77,9 +81,10 @@ export function WineArchiveFormModal({
     return (
       state.name.trim().length > 0 &&
       state.producer.trim().length > 0 &&
-      state.origin.trim().length > 0
+      state.origin.trim().length > 0 &&
+      state.supplier.trim().length > 0
     );
-  }, [state.name, state.origin, state.producer]);
+  }, [state.name, state.origin, state.producer, state.supplier]);
 
   if (!open) return null;
 
@@ -222,6 +227,31 @@ export function WineArchiveFormModal({
               </select>
             </label>
           </div>
+          <label className="modalLabel archiveFormSpan2">
+            Fornitore
+            <select
+              className="input mt4"
+              value={state.supplier}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '__add_supplier__') {
+                  onRequestAddSupplier((created) => {
+                    if (created) setField('supplier', created);
+                  });
+                  return;
+                }
+                setField('supplier', value);
+              }}
+            >
+              <option value="">Seleziona fornitore</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier} value={supplier}>
+                  {supplier}
+                </option>
+              ))}
+              <option value="__add_supplier__">+ Aggiungi fornitore…</option>
+            </select>
+          </label>
           <div className="archiveFormInline3">
             <label className="modalLabel archiveFormQtyLabel">
               Q.tà

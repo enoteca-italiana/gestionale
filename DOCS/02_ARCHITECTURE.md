@@ -1,6 +1,6 @@
 # Architettura
 
-Ultimo aggiornamento: **13/03/2026 03:12 CET**.
+Ultimo aggiornamento: **13/03/2026 13:40 CET**.
 
 ## Workspace
 
@@ -77,7 +77,8 @@ Toolbar archivio:
 - stato selezionato dei tre pulsanti con colori invertiti (testo bianco su sfondo colorato).
 - colonna `ANNO`: se dato assente, cella vuota (senza placeholder).
 - colonna `Azioni`: include icona note (gialla se presenti, grigia/disabilitata se assenti) con preview note in modale.
-- ordinamento `A-Z / Z-A` su header `Categoria`, `Nome`, `Produttore`, `Provenienza`.
+- nuova colonna `Fornitore` (subito dopo `Provenienza`, spazio ricavato da `Nome`).
+- ordinamento `A-Z / Z-A` su header `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`.
 
 ### Dati locali
 
@@ -87,6 +88,7 @@ Toolbar archivio:
 - `src/data/wineRepository.ts` (CRUD locale/Supabase con fallback schema legacy)
 - `src/data/categoryRepository.ts` (lista categorie gestite + upsert controllato)
 - `src/data/originRepository.ts` (lista provenienze gestite + upsert controllato)
+- `src/data/supplierRepository.ts` (lista fornitori gestiti + upsert controllato)
 
 ### Sessioni scarico (Supabase)
 
@@ -123,6 +125,6 @@ Toolbar archivio:
   - Home/Admin settings con persistenza locale per runtime/UI.
   - `/admina` predisposta per CRUD su Supabase con fallback locale.
   - storico/sospesi admin integrati su Supabase.
-- Modello vino esteso (`purchasePrice`, `salePrice`, `warehouse`, `margin`, `notes`):
+- Modello vino esteso (`supplier`, `purchasePrice`, `salePrice`, `warehouse`, `margin`, `notes`):
   - `warehouse` e `margin` sono calcolati automaticamente.
   - `threshold` gestisce la soglia bottiglie (`Vuoto` oppure `>=1`, mai `0`).

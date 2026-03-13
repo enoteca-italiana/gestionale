@@ -15,6 +15,7 @@ export type WineFormState = {
   age?: string;
   producer: string;
   origin: string;
+  supplier: string;
   threshold?: number;
   purchasePrice?: number;
   salePrice?: number;
@@ -35,6 +36,7 @@ export const emptyWine: WineFormState = {
   age: '',
   producer: '',
   origin: '',
+  supplier: '',
   threshold: undefined,
   purchasePrice: undefined,
   salePrice: undefined,

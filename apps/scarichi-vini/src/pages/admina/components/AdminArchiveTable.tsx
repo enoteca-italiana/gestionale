@@ -9,11 +9,11 @@ type Props = {
   onDelete: (wineId: string) => void;
 };
 
-const TOTAL_COLUMNS = 11;
+const TOTAL_COLUMNS = 12;
 const BASE_ROWS = 14;
 const ROW_HEIGHT_ESTIMATE = 33;
 const TABLE_OFFSET = 340;
-type SortKey = 'category' | 'name' | 'producer' | 'origin';
+type SortKey = 'category' | 'name' | 'producer' | 'origin' | 'supplier';
 type SortDir = 'az' | 'za';
 
 function formatMoney(value?: number) {
@@ -60,6 +60,8 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
             ? a.producer ?? ''
             : sortState.key === 'origin'
               ? a.origin ?? ''
+              : sortState.key === 'supplier'
+                ? a.supplier ?? ''
               : a.name ?? '';
       const bValue =
         sortState.key === 'category'
@@ -68,6 +70,8 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
             ? b.producer ?? ''
             : sortState.key === 'origin'
               ? b.origin ?? ''
+              : sortState.key === 'supplier'
+                ? b.supplier ?? ''
               : b.name ?? '';
       return aValue.localeCompare(bValue, 'it', { sensitivity: 'base' });
     });
@@ -200,6 +204,28 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
                   </button>
                 </div>
               </th>
+              <th>
+                <div className="archiveSortableHeaderCell">
+                  <span>FORNITORE</span>
+                  <button
+                    className="archiveSortButton"
+                    type="button"
+                    onClick={() => toggleSort('supplier')}
+                    aria-label={getSortAriaLabel('supplier')}
+                    title={
+                      sortState.key === 'supplier' && sortState.dir === 'za'
+                        ? 'Ordine Z-A'
+                        : 'Ordine A-Z'
+                    }
+                  >
+                    {sortState.key === 'supplier' && sortState.dir === 'za' ? (
+                      <ArrowDownWideNarrow size={14} strokeWidth={1.8} />
+                    ) : (
+                      <ArrowUpNarrowWide size={14} strokeWidth={1.8} />
+                    )}
+                  </button>
+                </div>
+              </th>
               <th>Acquisto</th>
               <th>Vendita</th>
               <th>Q.tà</th>
@@ -247,6 +273,7 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete }: Props) {
                   <td className="archiveColCenter">{formatYear(wine.age)}</td>
                   <td>{wine.producer}</td>
                   <td>{wine.origin}</td>
+                  <td>{formatText(wine.supplier)}</td>
                   <td className="archiveColCenter">{formatMoney(wine.purchasePrice)}</td>
                   <td className="archiveColCenter">{formatMoney(wine.salePrice)}</td>
                   <td className={`archiveColCenter ${qtyClass}`}>

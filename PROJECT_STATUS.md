@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **13/03/2026 13:07 CET**.
+Ultimo aggiornamento: **13/03/2026 13:42 CET**.
 
 ## Scopo di questo file
 
@@ -133,14 +133,15 @@ Comandi root:
   - anno vuoto quando non presente (nessun placeholder in cella `ANNO`)
   - regola soglia: valore `Vuoto` oppure `>= 1` (mai `0`)
   - sui vini esistenti senza soglia valida: assegnazione automatica random `1..12`
-  - colonne visibili: categoria, nome, anno, produttore, provenienza, acquisto, vendita, q.tà, magazzino, margine, azioni
+  - colonne visibili: categoria, nome, anno, produttore, provenienza, fornitore, acquisto, vendita, q.tà, magazzino, margine, azioni
   - note spostate in colonna `Azioni` tramite icona dedicata:
     - gialla e cliccabile se nota presente (apre modale note)
     - grigia e disabilitata se nota assente
   - categorie gestite da lista precompilata (niente input manuale libero)
   - provenienze gestite da lista precompilata (niente input manuale libero)
-  - in entrambi i menu: `+ Aggiungi ...` con suggerimenti di valori uguali/simili e conferma libera
-  - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza` con bottone nell'header
+  - fornitori gestiti da lista precompilata (niente input manuale libero)
+  - in tutti i menu gestiti: `+ Aggiungi ...` con suggerimenti di valori uguali/simili e conferma libera
+  - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore` con bottone nell'header
   - formule automatiche:
     - `Magazzino = Acquisto × Q.tà`
     - `Margine = Vendita − Acquisto`
@@ -183,12 +184,18 @@ Comandi root:
   - stato selezionato con colori invertiti (testo bianco su sfondo colorato)
 - Archivio (`/admina`) tabella:
   - quantità in soglia colorata ambra chiaro
-  - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza`
+  - nuova colonna `Fornitore` inserita subito dopo `Provenienza` (spazio ricavato da `Nome`)
+  - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
+  - icone `A/Z` allineate a destra nella rispettiva cella header
 - Modale vino:
   - sfondo allineato al colore base app (bianco crema)
   - campo `Soglia` sulla stessa riga di `Provenienza` e convertito a selector standard (`Vuoto`, `1..99`)
+  - campo `Fornitore` aggiunto come selector standard gestito (`+ Aggiungi fornitore…`)
   - campo `Q.tà` allineato a selector standard unico (`0..99`) come gli altri controlli
   - regola validazione: `Soglia` mai `0`
+- Supabase:
+  - predisposto script SQL dedicato: `sql/supabase_add_supplier.sql`
+  - aggiunta colonna `supplier` su `public.wines` + indice + tabella `public.suppliers`
 - Consistenza iPhone/Safari:
   - fix stile lista sessione su iOS (`button` ora eredita tipografia/colore) per allineare il design a desktop/local
 - Asset/public cleanup:
@@ -197,7 +204,7 @@ Comandi root:
 - Documentazione:
   - mantenuta una sola scheda tecnica (`SCHEDA TECNICA ENOTECA ITALIANA.md` in root)
 - Backup:
-  - creato nuovo archivio: `backup/backup_13 Venerdi_13.07.tar.gz`
+  - creato nuovo archivio: `backup/backup_13 Venerdi_13.42.tar.gz`
 - GitHub / Deploy hygiene:
   - push su `main` completato con `gh auth login` (device flow) e script `./scripts/commit_github.sh`
   - rimossi dal tracking i file pesanti non necessari al deploy:
@@ -206,11 +213,11 @@ Comandi root:
     - `*.tsbuildinfo`
   - `.gitignore` aggiornato per prevenire re-upload in futuro
 
-### Verifica qualità (13/03/2026 01:48 CET)
+### Verifica qualità (13/03/2026 13:40 CET)
 
 - `npm run lint` ✅
 - `npm run typecheck` ✅
-- `npm run test` ✅ (2 test passati)
+- `npm run test` ✅ (3 test passati)
 - `npm run build` ✅
 
 ---

@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **13/03/2026 13:07 CET**.
+Ultimo aggiornamento: **13/03/2026 13:40 CET**.
 
 ## Quick Start
 
@@ -25,7 +25,7 @@ Comandi utili:
 - Conferma sessione integrata su Supabase (RPC `submit_discharge_session`).
 - Admin impostazioni (`/admin`) con autenticazione locale.
 - Archivio vini desktop-first (`/admina`) con CRUD completo:
-  - colonne estese (categoria, anno, prezzi, q.tà, azioni)
+  - colonne estese (categoria, nome, anno, produttore, provenienza, fornitore, prezzi, q.tà, azioni)
   - toolbar filtri ottimizzata su una riga desktop con box statistiche compatto (`Totale`, `Soglia`, `Esauriti`)
   - il box statistiche sostituisce il vecchio filtro `Tutte le giacenze`
   - pulsanti statistiche con stato selezionato a colori invertiti (testo bianco)
@@ -38,7 +38,8 @@ Comandi utili:
   - note consultabili da icona dedicata in `Azioni`
   - categoria selezionabile solo da lista gestita, con `+ Aggiungi categoria…` e suggerimenti anti-duplicato
   - provenienza selezionabile solo da lista gestita, con `+ Aggiungi provenienza…` e suggerimenti anti-duplicato
-  - ordinamento `A-Z / Z-A` su colonne `Categoria`, `Nome`, `Produttore`, `Provenienza`
+  - fornitore selezionabile solo da lista gestita, con `+ Aggiungi fornitore…` e suggerimenti anti-duplicato
+  - ordinamento `A-Z / Z-A` su colonne `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
   - calcoli automatici:
     - `Magazzino = Acquisto × Q.tà`
     - `Margine = Vendita − Acquisto`

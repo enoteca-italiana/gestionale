@@ -1,6 +1,6 @@
 # Operatività (dev) + Backup
 
-Ultimo aggiornamento: **13/03/2026 13:07 CET**.
+Ultimo aggiornamento: **13/03/2026 13:42 CET**.
 
 ## Dev server
 
@@ -23,7 +23,7 @@ Porte usate in progetto:
 
 ## GitHub
 
-- Remote principale: `origin` → `https://github.com/dero975/enoteca.git`
+- Remote principale: `origin` → `https://dero975@github.com/dero975/enoteca.git`
 - Branch default: `main`
 - Script helper: `./scripts/commit_github.sh`
   - usa `git add -A`, `git commit`, `git push origin main`
@@ -70,7 +70,7 @@ Cartella:
 Naming richiesto dall’utente:
 
 - es: `backup_13 Giovedi_15.40.tar.gz`
-- ultimo backup creato: `backup_13 Venerdi_13.07.tar.gz`
+- ultimo backup creato: `backup_13 Venerdi_13.42.tar.gz`
 
 Script:
 

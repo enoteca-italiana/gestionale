@@ -204,7 +204,7 @@
 
 .archiveTable th:nth-child(2),
 .archiveTable td:nth-child(2) {
-  width: 27.6%;
+  width: 18.6%;
 }
 
 .archiveTable th:nth-child(3),
@@ -223,23 +223,28 @@
 }
 
 .archiveTable th:nth-child(6),
-.archiveTable td:nth-child(6),
+.archiveTable td:nth-child(6) {
+  width: 9%;
+}
+
 .archiveTable th:nth-child(7),
 .archiveTable td:nth-child(7),
-.archiveTable th:nth-child(9),
-.archiveTable td:nth-child(9),
+.archiveTable th:nth-child(8),
+.archiveTable td:nth-child(8),
 .archiveTable th:nth-child(10),
-.archiveTable td:nth-child(10) {
+.archiveTable td:nth-child(10),
+.archiveTable th:nth-child(11),
+.archiveTable td:nth-child(11) {
   width: 6.4%;
 }
 
-.archiveTable th:nth-child(8),
-.archiveTable td:nth-child(8) {
+.archiveTable th:nth-child(9),
+.archiveTable td:nth-child(9) {
   width: 4%;
 }
 
-.archiveTable th:nth-child(11),
-.archiveTable td:nth-child(11) {
+.archiveTable th:nth-child(12),
+.archiveTable td:nth-child(12) {
   width: 7%;
 }
 
@@ -269,12 +274,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-right: 0;
+  padding-right: 24px;
+}
+
+.archiveSortableHeaderCell > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .archiveSortButton {
   position: absolute;
-  right: -6px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   appearance: none;

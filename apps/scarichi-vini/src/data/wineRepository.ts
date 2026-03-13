@@ -10,6 +10,7 @@ type WineRow = {
   age?: string | null;
   producer: string;
   origin: string;
+  supplier?: string | null;
   threshold?: number | null;
   purchase_price?: number | null;
   sale_price?: number | null;
@@ -70,6 +71,7 @@ function toWine(row: WineRow): Wine {
     age: row.age ?? undefined,
     producer: row.producer,
     origin: row.origin,
+    supplier: row.supplier ?? undefined,
     threshold: normalizeThreshold(row.threshold),
     purchasePrice: purchase,
     salePrice: sale,
@@ -98,6 +100,7 @@ function toRowPayload(wine: Wine) {
     age: wine.age ?? null,
     producer: wine.producer,
     origin: wine.origin,
+    supplier: wine.supplier ?? null,
     threshold: normalizeThreshold(wine.threshold) ?? null,
     purchase_price: wine.purchasePrice ?? null,
     sale_price: wine.salePrice ?? null,
@@ -170,6 +173,7 @@ export type WineInput = {
   age?: string;
   producer: string;
   origin: string;
+  supplier: string;
   threshold?: number;
   purchasePrice?: number;
   salePrice?: number;
@@ -196,6 +200,7 @@ function normalizeInput(input: WineInput): Wine {
     age: input.age?.trim() || undefined,
     producer: input.producer.trim(),
     origin: input.origin.trim(),
+    supplier: input.supplier.trim(),
     threshold,
     purchasePrice: hasPurchase ? purchasePrice : undefined,
     salePrice: hasSale ? salePrice : undefined,
