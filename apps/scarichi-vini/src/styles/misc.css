@@ -288,3 +288,85 @@
   color: #166534;
   border: 1px solid #cfe9d8;
 }
+
+.adminSettingsSection {
+  display: grid;
+  gap: 2px;
+}
+
+.adminSettingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adminSettingsActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.adminSettingsActionButton {
+  min-width: 110px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.adminSettingsToggleItem {
+  padding: 10px 12px;
+}
+
+.adminSettingsToggleRow {
+  align-items: center;
+}
+
+.adminSettingsMonoHint {
+  overflow-wrap: anywhere;
+}
+
+.adminCenterSection {
+  min-height: calc(100dvh - 340px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .adminSettingsSection {
+    padding: 12px;
+  }
+
+  .adminSettingsHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .adminSettingsActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .adminSettingsActionButton {
+    width: 100%;
+    min-width: 0;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  .adminSettingsToggleRow {
+    gap: 10px;
+  }
+
+  .adminSettingsToggleItem .subtle {
+    line-height: 1.25;
+  }
+
+  .adminCenterSection {
+    min-height: calc(100dvh - 300px);
+  }
+
+}

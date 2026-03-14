@@ -1,6 +1,6 @@
 # Assistente AI Archivio
 
-Ultimo aggiornamento: **14/03/2026 15:20 CET**.
+Ultimo aggiornamento: **14/03/2026 17:33 CET**.
 
 ## Scopo
 
@@ -11,14 +11,14 @@ Fornire in `/admina` una chat AI unica per analisi dei dati archivio vini e sess
 - Pulsante AI in toolbar archivio.
 - Modale chat dark con:
   - titolo `Assistente AI`;
+  - chiusura con pulsante `X` in alto a destra;
   - lista messaggi verticale classica (utente/assistente);
   - composer in basso con:
-    - campo domanda
+    - campo domanda (invio con tasto `Enter`)
     - selettore modello
-    - pulsante `Invia`
-  - pulsante `Chiudi`.
+  - logo brand in basso al centro.
 
-Nota: non esiste più una vista impostazioni separata nel modale.
+Nota: non esiste più una vista impostazioni separata nel modale, né pulsante `Invia`/`Chiudi`.
 
 ## Configurazione API key (stabile)
 
@@ -38,7 +38,6 @@ VITE_OPENAI_MODEL=gpt-4.1-mini
 
 - `gpt-4.1-mini`
 - `gpt-4.1`
-- `gpt-4o-mini`
 
 ## Flusso tecnico
 

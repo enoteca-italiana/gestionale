@@ -20,9 +20,9 @@ const ENV_API_KEY = extractApiKey((import.meta.env.VITE_OPENAI_API_KEY as string
 const ENV_MODEL = (import.meta.env.VITE_OPENAI_MODEL as string | undefined)?.trim() ?? '';
 const AGENT_MODELS = [
   { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
-  { value: 'gpt-4.1', label: 'GPT-4.1' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o mini' }
+  { value: 'gpt-4.1', label: 'GPT-4.1' }
 ] as const;
+const WELCOME_MESSAGE = 'Salve, in cosa posso esserti utile?';
 
 function buildInventorySnapshot(wines: Wine[]) {
   const total = wines.length;
@@ -333,6 +333,15 @@ export function AiAssistantModal({
 
   useEffect(() => {
     if (!open) return;
+    setMessages([
+      {
+        id: `${Date.now()}_welcome`,
+        role: 'assistant',
+        text: WELCOME_MESSAGE
+      }
+    ]);
+    setPrompt('');
+    setBusy(false);
     setTimeout(() => inputRef.current?.focus(), 80);
   }, [open]);
 
@@ -504,6 +513,9 @@ export function AiAssistantModal({
               <div className="archiveAiModalTitle">Assistente AI</div>
             </div>
           </div>
+          <button className="archiveAiCloseButton" type="button" onClick={onClose} aria-label="Chiudi assistente AI">
+            ×
+          </button>
         </div>
 
         <div className="archiveAiChatPanel">
@@ -529,7 +541,7 @@ export function AiAssistantModal({
             <textarea
               ref={inputRef}
               className="input archiveAiPromptTextarea"
-              placeholder="Scrivi una domanda sull’archivio vini..."
+              placeholder="Scrivi una domanda, posso leggere tutti i dati dell'archivio.."
               value={prompt}
               rows={2}
               onChange={(event) => setPrompt(event.target.value)}
@@ -546,20 +558,10 @@ export function AiAssistantModal({
                 </option>
               ))}
             </select>
-            <button
-              className="button buttonAuto archiveAiInlineSendButton"
-              type="button"
-              disabled={busy}
-              onClick={() => void send()}
-            >
-              {busy ? 'Invio…' : 'Invia'}
-            </button>
           </div>
         </div>
-        <div className="archiveAiBottomActions">
-          <button className="button buttonSecondary buttonAuto archiveAiHeaderButton" type="button" onClick={onClose}>
-            Chiudi
-          </button>
+        <div className="archiveAiModalBrand" aria-hidden="true">
+          <img className="archiveAiModalBrandLogo" src="/logo%20inverso.png" alt="" />
         </div>
       </div>
     </div>

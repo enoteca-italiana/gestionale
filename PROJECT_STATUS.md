@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **14/03/2026 15:20 CET**.
+Ultimo aggiornamento: **14/03/2026 17:33 CET**.
 
 ## Scopo di questo file
 
@@ -409,3 +409,27 @@ Se l'autenticazione GitHub non è configurata o la porta è bloccata, il push fa
 - Cartella `backup/` consentita solo per script/tooling (`make_backup.sh`), non per archivi `.tar.gz/.zip`.
 
 Dettaglio operativo anche in `DOCS/07_OPERATIONS_BACKUP.md#github`.
+
+---
+
+## Aggiornamento rapido (14/03/2026 17:33 CET)
+
+- Admin semplificato:
+  - rimosso titolo `Admin` dalla home admin.
+  - rimossi pulsante e pagina “Impostazioni” dal flusso utente.
+  - azioni `Aggiorna password`, `Importa archivio`, `Reset totale` disponibili direttamente nella home admin.
+  - fix bug: click azioni non cambia più pagina, apre i modali restando in home admin.
+- Conferma sessione scarico:
+  - conferma finale sempre obbligatoria (rimossa opzione di disattivazione).
+  - rimossa opzione “Nome utente per scarico” dalle impostazioni e dal flusso conferma.
+- Uniformità UI area admin:
+  - pulsanti principali uniformati a forma/colore del pulsante `Sessioni`.
+  - blocchi azione centrati verticalmente nella viewport (home admin e schermata sessioni).
+- Verifica qualità eseguita:
+  - `npm run -s typecheck` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅
+  - `npm run -s build` ✅
+- Audit asset `public`:
+  - nessun PNG 100% inutilizzato rilevato.
+  - nessuna eliminazione effettuata per evitare regressioni PWA/favicon/export/UI.

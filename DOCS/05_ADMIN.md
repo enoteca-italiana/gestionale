@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **13/03/2026 13:40 CET**.
+Ultimo aggiornamento: **14/03/2026 17:33 CET**.
 
 ## Accesso
 
@@ -19,25 +19,35 @@ Hook: `apps/scarichi-vini/src/pages/admin/useAdminAuth.ts`
 `AdminGate` gestisce le sezioni:
 
 - home admin (menu)
-- settings
 - history
 - pending
+
+Azioni rapide disponibili direttamente in home admin:
+
+- `Sessioni`
+- `Aggiorna password`
+- `Importa archivio`
+- `Reset totale`
+
+Nota:
+
+- La pagina “Impostazioni” non è più parte del flusso UI.
+- Le azioni sopra aprono i modali restando nella home admin (nessun redirect pagina).
 
 La Bottom Nav operativa mostra:
 
 - `Home` (`/`)
 - `Archivio` (`/admina`)
 
-## Settings
+## Impostazioni operative (stato attuale)
 
 File: `AdminSettings.tsx`
 
-Toggle:
-
-- Conferma finale
-- Nome utente per scarico
-
-Nota: le settings notificano aggiornamenti in-tab via evento custom `scarichi:settingsChanged`.
+- componente usato come host modali operativi:
+  - cambio password admin
+  - import archivio CSV
+  - reset totale con PIN
+- non espone più toggle di configurazione utente.
 
 ## Storico
 
@@ -62,6 +72,7 @@ File: `AdminPending.tsx`
 In `AdminSettings.tsx`:
 
 - doppia conferma
+- seconda conferma con PIN admin
 - chiama `hardResetAll()` solo per dati locali tecnici
 - storico/sospesi operativi sono gestiti via API Supabase dedicate
 

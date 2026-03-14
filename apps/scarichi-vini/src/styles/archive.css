@@ -260,8 +260,8 @@
 }
 
 .archiveAiModalCard {
-  max-width: min(1800px, 94vw) !important;
-  width: min(1800px, 94vw) !important;
+  max-width: min(1460px, 88vw) !important;
+  width: min(1460px, 88vw) !important;
   height: min(80vh, 760px);
   display: flex;
   flex-direction: column;
@@ -274,6 +274,7 @@
 }
 
 .archiveAiModalHeader {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,6 +304,29 @@
   font-weight: 800;
   color: #f9eef4;
   letter-spacing: 0.2px;
+}
+
+.archiveAiCloseButton {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #c08aaa;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f9eef4;
+  font-size: 22px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.archiveAiCloseButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #e5bdd4;
 }
 
 .archiveAiModalSubtle {
@@ -464,22 +488,24 @@
 }
 
 .archiveAiMessage {
-  width: min(100%, 780px);
+  width: calc(100% - 24px);
+  max-width: calc(100% - 24px);
+  margin-inline: auto;
   border-radius: 14px;
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1px solid #e5d8c9;
+  background: #f7f0e6;
 }
 
 .archiveAiMessageUser {
   align-self: flex-start;
-  background: #f7edf3;
-  border-color: #e7cedd;
+  background: #f2e6d8;
+  border-color: #e1cfba;
 }
 
 .archiveAiMessageAssistant {
   align-self: flex-start;
-  background: #f5f7fa;
+  background: #f7f0e6;
 }
 
 .archiveAiMessageRole {
@@ -502,7 +528,7 @@
   background: #fffaf3;
   padding: 10px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 220px) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(136px, 156px);
   gap: 10px;
   align-items: center;
 }
@@ -516,6 +542,21 @@
   grid-template-rows: 1fr auto;
   flex: 1 1 auto;
   min-height: 0;
+  margin-top: 10px;
+}
+
+.archiveAiModalBrand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.archiveAiModalBrandLogo {
+  width: min(210px, 26vw);
+  height: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .archiveAiPromptTextarea {
@@ -524,6 +565,8 @@
   border-color: #d1d5db;
   min-height: 52px;
   font-size: 14px;
+  font-family: inherit;
+  line-height: 1.4;
   resize: none;
   padding: 12px;
 }
@@ -532,9 +575,11 @@
   background: #ffffff;
   color: #111827;
   border-color: #d1d5db;
-  min-height: 52px;
   font-size: 14px;
   padding: 0 12px;
+  width: 100%;
+  align-self: stretch;
+  min-height: 0;
 }
 
 .archiveAiInlineSendButton {

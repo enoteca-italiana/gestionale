@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { Toast } from '@/components/Toast';
-import { useAppSettings } from '@/app/useAppSettings';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import { createAndSubmitDischargeSession } from '@/data/dischargeRepository';
 import { useLocalDb } from '@/data/useLocalDb';
@@ -27,7 +26,6 @@ export function HomePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
 
-  const settings = useAppSettings();
   const online = useOnlineStatus();
 
   const { inventory, setInventory, refreshInventory } = useLocalDb();
@@ -62,14 +60,10 @@ export function HomePage() {
 
   const confirmSubmit = () => {
     if (sessionCount <= 0) return;
-    if (!settings.requireFinalConfirm && !settings.enableUserLabel) {
-      submitSession();
-      return;
-    }
     setConfirmOpen(true);
   };
 
-  const submitSession = async (userLabel?: string) => {
+  const submitSession = async () => {
     if (!online) {
       setToast('Offline: impossibile confermare sessione');
       setConfirmOpen(false);
@@ -85,7 +79,6 @@ export function HomePage() {
 
     try {
       await createAndSubmitDischargeSession({
-        userLabel,
         items: sessionList.map((item) => ({ wineId: item.wineId, qty: item.qty })),
         expectedQtyByWineId
       });
@@ -214,10 +207,9 @@ export function HomePage() {
 
       <SessionConfirmModal
         open={confirmOpen}
-        enableUserLabel={settings.enableUserLabel}
         sessionCount={sessionCount}
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={(userLabel) => submitSession(userLabel)}
+        onConfirm={() => submitSession()}
       />
 
       {toast ? <Toast message={toast} onClose={() => setToast(null)} /> : null}
