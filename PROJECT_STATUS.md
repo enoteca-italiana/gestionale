@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **13/03/2026 17:53 CET**.
+Ultimo aggiornamento: **14/03/2026 15:20 CET**.
 
 ## Scopo di questo file
 
@@ -248,6 +248,28 @@ Comandi root:
     - `archivio_vini_13 Marzo 2026.pdf`
   - impostazioni admin: import archivio CSV con validazione e conferma
   - import CSV con sostituzione totale record archivio (Supabase + cache locale allineata)
+
+### Ultimi aggiornamenti AI + toolbar (14/03/2026)
+
+- Assistente AI (`/admina`):
+  - unificata la chat in una sola vista (rimossa la sezione impostazioni separata nel modale);
+  - selezione modello spostata accanto al pulsante `Invia`;
+  - chiamata `Responses API` stabilizzata (fix errore payload `input_text`);
+  - contesto AI esteso con dati archivio completi + contesto sessioni storico/sospese;
+  - modalità operativa web+app attiva lato chiamata AI con vincoli anti-divulgazione nel system prompt.
+- Configurazione API key:
+  - supporto variabile ambiente `VITE_OPENAI_API_KEY` (consigliato);
+  - supporto fallback modello con `VITE_OPENAI_MODEL`.
+- Toolbar archivio:
+  - fix chirurgico altezze pulsanti: allineamento uniforme basato su variabile CSS condivisa;
+  - riduzione dimensionale progressiva dei pulsanti top in base alla richiesta utente.
+
+### Verifica qualità (14/03/2026 15:20 CET)
+
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run test` ✅ (8 test passati)
+- `npm run build` ✅
 
 ### Verifica qualità (13/03/2026 17:53 CET)
 

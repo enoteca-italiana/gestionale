@@ -1,78 +1,68 @@
 # Assistente AI Archivio
 
-Ultimo aggiornamento: **13/03/2026 17:53 CET**.
+Ultimo aggiornamento: **14/03/2026 15:20 CET**.
 
 ## Scopo
 
-Fornire in `/admina` un assistente conversazionale per analisi archivio vini (giacenze, soglie, esauriti, margini, produttori/provenienze/fornitori), senza modificare i dati.
+Fornire in `/admina` una chat AI unica per analisi dei dati archivio vini e sessioni storiche, senza scrivere dati nel database.
 
-## Accesso UI
+## UI attuale
 
-- Pulsante AI nella toolbar archivio (destra, vicino ad `Aggiungi vino`).
-- Apertura modale full-width desktop.
-- Tema dark coerente con branding.
+- Pulsante AI in toolbar archivio.
+- Modale chat dark con:
+  - titolo `Assistente AI`;
+  - lista messaggi verticale classica (utente/assistente);
+  - composer in basso con:
+    - campo domanda
+    - selettore modello
+    - pulsante `Invia`
+  - pulsante `Chiudi`.
 
-## Struttura modale
+Nota: non esiste più una vista impostazioni separata nel modale.
 
-- Header: titolo `Assistente AI` con icona AI.
-- Vista chat:
-  - area messaggi verticale (uno sotto l'altro);
-  - box input domanda + pulsante `Invia`.
-- Vista impostazioni:
-  - solo `OpenAI API key`;
-  - pulsante `Salva`;
-  - pulsante `Importa .txt` per caricare la chiave da file;
-  - solo selettore `Tipo agent`.
-  - nessuna area chat visibile in questa vista.
+## Configurazione API key (stabile)
 
-## Modelli (tipo agent) disponibili
+Percorso consigliato:
 
-- `gpt-4.1-mini` (default)
+- variabile ambiente `VITE_OPENAI_API_KEY` in `.env.local`.
+- modello default opzionale: `VITE_OPENAI_MODEL`.
+
+Esempio:
+
+```env
+VITE_OPENAI_API_KEY=sk-...
+VITE_OPENAI_MODEL=gpt-4.1-mini
+```
+
+## Modelli disponibili in UI
+
+- `gpt-4.1-mini`
 - `gpt-4.1`
 - `gpt-4o-mini`
 
-## Persistenza locale
+## Flusso tecnico
 
-Chiavi localStorage:
+1. L’utente invia la domanda.
+2. Il client costruisce contesto completo:
+   - snapshot inventario;
+   - leaderboard margini/giacenze/valore;
+   - breakdown per categoria/produttore/provenienza/fornitore;
+   - sessioni `submitted`/`pending` e item storico.
+3. Chiamata `POST /v1/responses` con:
+   - `instructions` con vincoli di sicurezza;
+   - input unico con contesto JSON + cronologia conversazione + domanda corrente;
+   - tool web abilitato (`web+app`).
+4. Risposta renderizzata in chat.
 
-- `scarichi.ai.openaiApiKey.v1`
-- `scarichi.ai.openaiModel.v1`
+## Sicurezza
 
-## Flusso richiesta AI
+- Nessuna scrittura su Supabase dalla chat AI.
+- Prompt di sistema con vincoli anti-divulgazione dati interni nelle ricerche web.
+- Nessuna chiave hardcoded nel codice.
 
-1. L’utente invia una domanda.
-2. Il client costruisce snapshot inventario:
-   - totale vini;
-   - totale quantità;
-   - esauriti;
-   - vini in soglia;
-   - valore magazzino;
-   - margine medio.
-3. Viene estratto un sottoinsieme vini rilevanti rispetto al testo domanda.
-4. Chiamata API `POST https://api.openai.com/v1/responses` con:
-   - system prompt vincolato all’uso dei soli dati forniti;
-   - contesto JSON locale;
-   - cronologia chat recente.
-5. Risposta resa nel pannello messaggi.
+## Verifica rapida
 
-## Vincoli e sicurezza
-
-- Nessuna chiave API hardcoded nel codice.
-- Chiave inserita manualmente in UI e mantenuta in localStorage browser.
-- Validazione/sanitizzazione della chiave: viene accettata solo una stringa valida `sk-...`.
-- L’assistente non scrive su Supabase.
-- In caso di risposta vuota/errore rete, feedback esplicito in chat.
-
-## Limiti attuali
-
-- Elaborazione lato client (non server-side proxy).
-- Nessuna knowledge base esterna: risponde sui dati archivio correnti.
-- Nessun tool SQL automatico: solo analisi descrittiva.
-
-## Test regressione minimi
-
-- Apertura/chiusura modale AI.
-- Toggle `Impostazioni` <-> `Assistente AI`.
-- In `Impostazioni` visibili solo i 2 controlli richiesti.
-- Invio domanda con/without API key.
-- Nessuna regressione su filtri/CRUD archivio.
+1. Apri `/admina` e modale AI.
+2. Fai domanda su dati interni (es. top margini).
+3. Fai domanda che richiede web (es. vini piemontesi esterni).
+4. Verifica che la conversazione resti nella stessa chat.

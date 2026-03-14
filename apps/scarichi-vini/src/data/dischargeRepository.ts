@@ -17,6 +17,20 @@ export type DischargeItemInput = {
   qty: number;
 };
 
+export type DischargeSessionItemDetail = {
+  sessionId: string;
+  sessionStatus: DischargeStatus;
+  createdAt: number;
+  submittedAt?: number;
+  wineId: string;
+  wineName: string;
+  producer?: string;
+  origin?: string;
+  category?: string;
+  supplier?: string;
+  qty: number;
+};
+
 function requireSupabase() {
   if (!supabase) {
     throw new Error('Supabase non configurato');
@@ -35,6 +49,40 @@ type SessionRow = {
 
 type ItemCountRow = {
   session_id: string;
+};
+
+type SessionItemRow = {
+  session_id: string;
+  qty: number | null;
+  wine_id: string;
+  discharge_sessions:
+    | {
+        status: DischargeStatus;
+        created_at: string;
+        submitted_at?: string | null;
+      }
+    | Array<{
+        status: DischargeStatus;
+        created_at: string;
+        submitted_at?: string | null;
+      }>
+    | null;
+  wines:
+    | {
+        name?: string | null;
+        producer?: string | null;
+        origin?: string | null;
+        category?: string | null;
+        supplier?: string | null;
+      }
+    | Array<{
+        name?: string | null;
+        producer?: string | null;
+        origin?: string | null;
+        category?: string | null;
+        supplier?: string | null;
+      }>
+    | null;
 };
 
 type WineQtyRow = {
@@ -175,4 +223,38 @@ export async function clearDischargeSessionsByStatus(status: DischargeStatus): P
   const client = requireSupabase();
   const { error } = await client.from('discharge_sessions').delete().eq('status', status);
   if (error) throw error;
+}
+
+export async function listSubmittedDischargeItemsForAi(limit = 500): Promise<DischargeSessionItemDetail[]> {
+  const client = requireSupabase();
+
+  const { data, error } = await client
+    .from('discharge_session_items')
+    .select(
+      'session_id, wine_id, qty, discharge_sessions!inner(status, created_at, submitted_at), wines(name, producer, origin, category, supplier)'
+    )
+    .eq('discharge_sessions.status', 'submitted')
+    .order('submitted_at', { foreignTable: 'discharge_sessions', ascending: false })
+    .limit(Math.max(1, Math.min(limit, 2000)));
+
+  if (error) throw error;
+
+  return ((data ?? []) as SessionItemRow[]).map((row) => {
+    const session = Array.isArray(row.discharge_sessions) ? row.discharge_sessions[0] : row.discharge_sessions;
+    const wine = Array.isArray(row.wines) ? row.wines[0] : row.wines;
+
+    return {
+      sessionId: row.session_id,
+      sessionStatus: session?.status ?? 'submitted',
+      createdAt: session?.created_at ? new Date(session.created_at).getTime() : Date.now(),
+      submittedAt: session?.submitted_at ? new Date(session.submitted_at).getTime() : undefined,
+      wineId: row.wine_id,
+      wineName: wine?.name?.trim() || row.wine_id,
+      producer: wine?.producer ?? undefined,
+      origin: wine?.origin ?? undefined,
+      category: wine?.category ?? undefined,
+      supplier: wine?.supplier ?? undefined,
+      qty: Math.max(0, Number(row.qty ?? 0))
+    };
+  });
 }

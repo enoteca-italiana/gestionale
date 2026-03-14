@@ -12,4 +12,5 @@ backup/*.zip
 
 # Build/dev generated artifacts
 apps/scarichi-vini/dev-dist/
+apps/scarichi-vini/coverage/
 *.tsbuildinfo

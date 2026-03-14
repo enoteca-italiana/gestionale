@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **13/03/2026 15:03 CET**.
+Ultimo aggiornamento: **14/03/2026 15:20 CET**.
 
 ## Quick Start
 
@@ -58,6 +58,11 @@ Comandi utili:
   - calcoli automatici:
     - `Magazzino = Acquisto × Q.tà`
     - `Margine = Vendita − Acquisto`
+- Assistente AI archivio:
+  - chat unica nel modale (nessuna vista impostazioni separata)
+  - modello selezionabile inline vicino a `Invia`
+  - contesto completo su archivio + sessioni storiche/sospese per risposte più affidabili
+  - supporto modalità web+app con vincoli di sicurezza su dati interni
 - Logo applicativo ottimizzato in `public/logo.png` per ridurre peso asset.
 - Icone installazione PWA multi-device:
   - Android/desktop: `pwa-192x192.png`, `pwa-512x512.png` + `maskable`
@@ -82,6 +87,7 @@ Comandi utili:
 ## Variabili ambiente
 
 - Crea `.env` da `.env.example`.
+- AI: impostare `VITE_OPENAI_API_KEY` (consigliato) e opzionalmente `VITE_OPENAI_MODEL`.
 - Con Supabase configurato, storico/sospesi sessioni usano le tabelle dedicate server-side.
 - Post-submit sessione: riconciliazione difensiva delle giacenze `wines.qty` per garantire allineamento archivio/storico anche in caso di RPC parziale.
 

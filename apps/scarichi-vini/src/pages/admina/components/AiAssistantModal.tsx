@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Wine } from '@/domain/types';
+import { extractApiKey } from '@/pages/admina/components/aiAssistantKey';
+import {
+  listDischargeSessions,
+  listSubmittedDischargeItemsForAi,
+  type DischargeSessionItemDetail,
+  type DischargeSessionSummary
+} from '@/data/dischargeRepository';
 
 type ChatMessage = {
   id: string;
@@ -7,23 +14,15 @@ type ChatMessage = {
   text: string;
 };
 
-const STORAGE_API_KEY = 'scarichi.ai.openaiApiKey.v1';
 const STORAGE_MODEL = 'scarichi.ai.openaiModel.v1';
 const DEFAULT_MODEL = 'gpt-4.1-mini';
+const ENV_API_KEY = extractApiKey((import.meta.env.VITE_OPENAI_API_KEY as string | undefined) ?? '');
+const ENV_MODEL = (import.meta.env.VITE_OPENAI_MODEL as string | undefined)?.trim() ?? '';
 const AGENT_MODELS = [
   { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
   { value: 'gpt-4.1', label: 'GPT-4.1' },
   { value: 'gpt-4o-mini', label: 'GPT-4o mini' }
 ] as const;
-
-function extractApiKey(raw: string): string {
-  const normalized = raw.replace(/[\r\n\t]+/g, ' ').trim();
-  const start = normalized.indexOf('sk-');
-  if (start < 0) return '';
-  const candidate = normalized.slice(start);
-  const sanitized = candidate.replace(/[^A-Za-z0-9._~+/\-=]/g, '');
-  return /^sk-[A-Za-z0-9._~+/\-=]{20,}$/.test(sanitized) ? sanitized : '';
-}
 
 function buildInventorySnapshot(wines: Wine[]) {
   const total = wines.length;
@@ -89,6 +88,171 @@ function pickRelevantWines(wines: Wine[], query: string): Wine[] {
   return scored.slice(0, 60).map((item) => item.wine);
 }
 
+type AnalyticWine = {
+  name: string;
+  category: string;
+  producer: string;
+  origin: string;
+  supplier: string;
+  qty: number;
+  threshold: number | null;
+  purchase: number | null;
+  sale: number | null;
+  margin: number;
+  stockValue: number;
+  notes: string;
+};
+
+function toAnalyticWine(wine: Wine): AnalyticWine {
+  const purchase = typeof wine.purchasePrice === 'number' ? wine.purchasePrice : null;
+  const sale = typeof wine.salePrice === 'number' ? wine.salePrice : null;
+  const qty = Math.max(0, Number(wine.qty) || 0);
+  const margin = sale !== null && purchase !== null ? Number((sale - purchase).toFixed(2)) : 0;
+  const stockValue = purchase !== null ? Number((purchase * qty).toFixed(2)) : 0;
+
+  return {
+    name: wine.name,
+    category: (wine.category ?? '').trim(),
+    producer: wine.producer,
+    origin: wine.origin,
+    supplier: (wine.supplier ?? '').trim(),
+    qty,
+    threshold: typeof wine.threshold === 'number' ? wine.threshold : null,
+    purchase,
+    sale,
+    margin,
+    stockValue,
+    notes: (wine.notes ?? '').trim()
+  };
+}
+
+function aggregateBy(items: AnalyticWine[], field: 'category' | 'producer' | 'origin' | 'supplier') {
+  const map = new Map<string, { label: string; wines: number; qty: number; stockValue: number; marginAvg: number }>();
+
+  for (const item of items) {
+    const label = (item[field] || '—').trim() || '—';
+    const current = map.get(label) ?? { label, wines: 0, qty: 0, stockValue: 0, marginAvg: 0 };
+    current.wines += 1;
+    current.qty += item.qty;
+    current.stockValue += item.stockValue;
+    current.marginAvg += item.margin;
+    map.set(label, current);
+  }
+
+  return Array.from(map.values())
+    .map((entry) => ({
+      ...entry,
+      stockValue: Number(entry.stockValue.toFixed(2)),
+      marginAvg: Number((entry.marginAvg / Math.max(1, entry.wines)).toFixed(2))
+    }))
+    .sort((a, b) => b.wines - a.wines)
+    .slice(0, 30);
+}
+
+function buildAiContext(wines: Wine[], question: string, snapshot: ReturnType<typeof buildInventorySnapshot>) {
+  const all = wines.map(toAnalyticWine);
+  const relevantWines = pickRelevantWines(wines, question).map(toAnalyticWine);
+
+  const byMarginDesc = [...all].sort((a, b) => b.margin - a.margin);
+  const byMarginAsc = [...all].sort((a, b) => a.margin - b.margin);
+  const byStockValueDesc = [...all].sort((a, b) => b.stockValue - a.stockValue);
+  const byQtyAsc = [...all].sort((a, b) => a.qty - b.qty);
+
+  const outOfStock = all.filter((wine) => wine.qty <= 0);
+  const inThreshold = all.filter(
+    (wine) => typeof wine.threshold === 'number' && wine.threshold > 0 && wine.qty > 0 && wine.qty <= wine.threshold
+  );
+
+  return {
+    snapshot: {
+      totalWines: snapshot.total,
+      totalQty: snapshot.qtyTotal,
+      outOfStock: snapshot.out,
+      thresholdCount: snapshot.threshold,
+      stockValueEuro: snapshot.stockValue,
+      avgMarginEuro: snapshot.marginAvg
+    },
+    leaderboards: {
+      topMargins: byMarginDesc.slice(0, 20),
+      lowestMargins: byMarginAsc.slice(0, 20),
+      topStockValue: byStockValueDesc.slice(0, 20),
+      lowestQty: byQtyAsc.slice(0, 20),
+      outOfStock: outOfStock.slice(0, 100),
+      inThreshold: inThreshold.slice(0, 100)
+    },
+    breakdowns: {
+      byCategory: aggregateBy(all, 'category'),
+      byProducer: aggregateBy(all, 'producer'),
+      byOrigin: aggregateBy(all, 'origin'),
+      bySupplier: aggregateBy(all, 'supplier')
+    },
+    relevantWines,
+    note:
+      'Le classifiche usano tutto l’archivio caricato in questa pagina. I relevantWines servono solo per dettaglio domanda.'
+  };
+}
+
+function buildSessionsContext(
+  submittedSessions: DischargeSessionSummary[],
+  pendingSessions: DischargeSessionSummary[],
+  submittedItems: DischargeSessionItemDetail[]
+) {
+  const topDischargedMap = new Map<
+    string,
+    {
+      wineId: string;
+      wineName: string;
+      qtyTotal: number;
+      sessions: number;
+      producer?: string;
+      origin?: string;
+      category?: string;
+      supplier?: string;
+    }
+  >();
+
+  for (const item of submittedItems) {
+    const current = topDischargedMap.get(item.wineId) ?? {
+      wineId: item.wineId,
+      wineName: item.wineName,
+      qtyTotal: 0,
+      sessions: 0,
+      producer: item.producer,
+      origin: item.origin,
+      category: item.category,
+      supplier: item.supplier
+    };
+    current.qtyTotal += item.qty;
+    current.sessions += 1;
+    topDischargedMap.set(item.wineId, current);
+  }
+
+  const totalSubmittedQty = submittedSessions.reduce((sum, s) => sum + Math.max(0, s.totalQty), 0);
+  const totalPendingQty = pendingSessions.reduce((sum, s) => sum + Math.max(0, s.totalQty), 0);
+
+  return {
+    summary: {
+      submittedSessions: submittedSessions.length,
+      pendingSessions: pendingSessions.length,
+      totalSubmittedQty,
+      totalPendingQty,
+      lastSubmittedAt: submittedSessions[0]?.submittedAt ?? null
+    },
+    recentSubmittedSessions: submittedSessions.slice(0, 30),
+    recentPendingSessions: pendingSessions.slice(0, 30),
+    topDischargedWines: Array.from(topDischargedMap.values())
+      .sort((a, b) => b.qtyTotal - a.qtyTotal)
+      .slice(0, 30)
+  };
+}
+
+function buildConversationTranscript(messages: ChatMessage[], currentQuestion: string): string {
+  const relevant = [...messages, { id: 'current', role: 'user' as const, text: currentQuestion }].slice(-14);
+  return relevant
+    .map((message) => `${message.role === 'user' ? 'Utente' : 'Assistente'}: ${message.text}`)
+    .join('\n');
+}
+
 function responseToText(data: unknown): string {
   const asRecord = data as Record<string, unknown> | null;
   const outputText = typeof asRecord?.output_text === 'string' ? asRecord.output_text : '';
@@ -107,6 +271,40 @@ function responseToText(data: unknown): string {
   return '';
 }
 
+function readStorage(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeStorage(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readApiError(response: Response): Promise<string> {
+  const payload = await response.text();
+  if (!payload) return `Richiesta AI fallita (${response.status}).`;
+
+  try {
+    const parsed = JSON.parse(payload) as {
+      error?: { message?: string };
+    };
+    const message = parsed.error?.message?.trim();
+    if (message) return `Richiesta AI fallita (${response.status}). ${message}`;
+  } catch {
+    // Fallback to raw text below.
+  }
+
+  return `Richiesta AI fallita (${response.status}). ${payload.slice(0, 180)}`;
+}
+
 export function AiAssistantModal({
   open,
   wines,
@@ -119,18 +317,19 @@ export function AiAssistantModal({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_API_KEY) ?? '');
+  const [submittedSessions, setSubmittedSessions] = useState<DischargeSessionSummary[]>([]);
+  const [pendingSessions, setPendingSessions] = useState<DischargeSessionSummary[]>([]);
+  const [submittedItems, setSubmittedItems] = useState<DischargeSessionItemDetail[]>([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [model, setModel] = useState(() => {
-    const savedModel = (localStorage.getItem(STORAGE_MODEL) ?? DEFAULT_MODEL).trim();
+    const savedModel = (readStorage(STORAGE_MODEL) || ENV_MODEL || DEFAULT_MODEL).trim();
     return AGENT_MODELS.some((option) => option.value === savedModel) ? savedModel : DEFAULT_MODEL;
   });
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiSaved, setApiSaved] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const importApiKeyInputRef = useRef<HTMLInputElement | null>(null);
 
   const snapshot = useMemo(() => buildInventorySnapshot(wines), [wines]);
+  const effectiveApiKey = ENV_API_KEY;
 
   useEffect(() => {
     if (!open) return;
@@ -139,7 +338,33 @@ export function AiAssistantModal({
 
   useEffect(() => {
     if (!open) return;
-    setShowSettings(false);
+    let cancelled = false;
+
+    async function loadSessionsData() {
+      try {
+        const [submitted, pending, items] = await Promise.all([
+          listDischargeSessions('submitted'),
+          listDischargeSessions('pending'),
+          listSubmittedDischargeItemsForAi(1200)
+        ]);
+        if (cancelled) return;
+        setSubmittedSessions(submitted);
+        setPendingSessions(pending);
+        setSubmittedItems(items);
+        setSessionsLoaded(true);
+      } catch {
+        if (cancelled) return;
+        setSubmittedSessions([]);
+        setPendingSessions([]);
+        setSubmittedItems([]);
+        setSessionsLoaded(false);
+      }
+    }
+
+    void loadSessionsData();
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -157,38 +382,25 @@ export function AiAssistantModal({
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, open]);
 
-  const saveAiSettings = () => {
-    const safeApiKey = extractApiKey(apiKey);
-    if (!safeApiKey) return;
-    setApiKey(safeApiKey);
-    localStorage.setItem(STORAGE_API_KEY, safeApiKey);
-    localStorage.setItem(STORAGE_MODEL, model || DEFAULT_MODEL);
-    setApiSaved(true);
-    setTimeout(() => setApiSaved(false), 1500);
-  };
-
-  const handleImportApiKeyFromTxt = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    const content = await file.text();
-    const importedKey = extractApiKey(content);
-    if (!importedKey) return;
-    setApiKey(importedKey);
-    localStorage.setItem(STORAGE_API_KEY, importedKey);
-    localStorage.setItem(STORAGE_MODEL, model || DEFAULT_MODEL);
-    setApiSaved(true);
-    setTimeout(() => setApiSaved(false), 1500);
-  };
+  useEffect(() => {
+    writeStorage(STORAGE_MODEL, model || DEFAULT_MODEL);
+  }, [model]);
 
   const send = async () => {
     const question = prompt.trim();
     if (!question || busy) return;
-    const safeApiKey = extractApiKey(apiKey);
-    if (!safeApiKey) {
-      setShowSettings(true);
+    if (!effectiveApiKey) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}_cfg`,
+          role: 'assistant',
+          text: 'API key non configurata. Imposta VITE_OPENAI_API_KEY nelle variabili ambiente.'
+        }
+      ]);
       return;
     }
+    const safeApiKey = extractApiKey(effectiveApiKey);
 
     const nextUserMessage: ChatMessage = {
       id: `${Date.now()}_u`,
@@ -200,43 +412,32 @@ export function AiAssistantModal({
     setBusy(true);
 
     try {
-      const relevantWines = pickRelevantWines(wines, question).map((wine) => ({
-        name: wine.name,
-        category: wine.category ?? '',
-        producer: wine.producer,
-        origin: wine.origin,
-        supplier: wine.supplier ?? '',
-        qty: wine.qty,
-        threshold: wine.threshold ?? null,
-        purchase: wine.purchasePrice ?? null,
-        sale: wine.salePrice ?? null,
-        notes: wine.notes ?? ''
-      }));
-
       const systemPrompt = [
         'Sei l’assistente AI interno di Enoteca Italiana.',
         'Rispondi in italiano, tono professionale e sintetico.',
-        'Usa solo i dati forniti nel contesto; se mancano dati dichiaralo chiaramente.',
-        'Non inventare numeri.'
+        'Usa SEMPRE sia i dati app (contesto JSON) sia il web quando la richiesta lo richiede.',
+        'Se i dati app bastano per rispondere con precisione, usa prima i dati app e usa il web solo come integrazione.',
+        'Non divulgare mai dati riservati del contesto app durante eventuali ricerche web.',
+        'Per il web usa query generiche e non includere valori sensibili del contesto app.',
+        'Se mancano dati dichiaralo chiaramente.',
+        'Non inventare numeri.',
+        'Per richieste di classifica (top/bottom margini, quantità, valore magazzino) usa SEMPRE i leaderboards globali.',
+        'Usa anche il blocco sessions per risposte su storico, pending, andamenti temporali e vini più scaricati.'
       ].join(' ');
 
       const contextPayload = {
-        snapshot: {
-          totalWines: snapshot.total,
-          totalQty: snapshot.qtyTotal,
-          outOfStock: snapshot.out,
-          thresholdCount: snapshot.threshold,
-          stockValueEuro: snapshot.stockValue,
-          avgMarginEuro: snapshot.marginAvg
-        },
-        relevantWines,
-        note: 'Dati filtrati per pertinenza rispetto alla domanda utente.'
+        inventory: buildAiContext(wines, question, snapshot),
+        sessions: buildSessionsContext(submittedSessions, pendingSessions, submittedItems),
+        meta: {
+          sessionsLoaded
+        }
       };
 
-      const history = [...messages, nextUserMessage].slice(-12).map((message) => ({
-        role: message.role,
-        content: [{ type: 'input_text', text: message.text }]
-      }));
+      const payloadText = [
+        `Contesto app JSON:\n${JSON.stringify(contextPayload)}`,
+        `Cronologia chat:\n${buildConversationTranscript(messages, question)}`,
+        `Domanda attuale:\n${question}`
+      ].join('\n\n');
 
       const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
@@ -246,20 +447,20 @@ export function AiAssistantModal({
         },
         body: JSON.stringify({
           model: model || DEFAULT_MODEL,
+          instructions: systemPrompt,
+          tools: [{ type: 'web_search_preview' }],
+          tool_choice: 'auto',
           input: [
-            { role: 'system', content: [{ type: 'input_text', text: systemPrompt }] },
             {
-              role: 'system',
-              content: [{ type: 'input_text', text: `Contesto JSON:\n${JSON.stringify(contextPayload)}` }]
-            },
-            ...history
+              role: 'user',
+              content: [{ type: 'input_text', text: payloadText }]
+            }
           ]
         })
       });
 
       if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(`Richiesta AI fallita (${response.status}). ${detail.slice(0, 180)}`);
+        throw new Error(await readApiError(response));
       }
 
       const data = (await response.json()) as unknown;
@@ -305,123 +506,57 @@ export function AiAssistantModal({
           </div>
         </div>
 
-        {showSettings ? (
-          <div className="archiveAiSettingsStage">
-            <div className="archiveAiSettings">
-              <div className="archiveAiApiBar">
-                <input
-                  type="text"
-                  placeholder="OpenAI API key (sk-...)"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                  className="input archiveAiSettingsInput archiveAiApiInput"
-                />
-                <button
-                  className="button buttonAuto archiveAiSaveApiButton"
-                  type="button"
-                  onClick={saveAiSettings}
-                >
-                  {apiSaved ? 'Salvata' : 'Salva'}
-                </button>
-              </div>
-              <div className="archiveAiSettingsTools">
-                <button
-                  className="button buttonSecondary buttonAuto archiveAiImportApiButton"
-                  type="button"
-                  onClick={() => importApiKeyInputRef.current?.click()}
-                >
-                  Importa .txt
-                </button>
-                <input
-                  ref={importApiKeyInputRef}
-                  type="file"
-                  accept=".txt,text/plain"
-                  className="archiveAiImportApiInput"
-                  onChange={(event) => void handleImportApiKeyFromTxt(event)}
-                />
-              </div>
-              <select
-                className="input archiveAiSettingsInput"
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
+        <div className="archiveAiChatPanel">
+          <div className="archiveAiMessages" ref={listRef}>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`archiveAiMessage ${message.role === 'user' ? 'archiveAiMessageUser' : 'archiveAiMessageAssistant'}`}
               >
-                {AGENT_MODELS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div className="archiveAiMessageRole">{message.role === 'user' ? 'Tu' : 'Assistente'}</div>
+                <div className="archiveAiMessageText">{message.text}</div>
+              </div>
+            ))}
+            {busy ? (
+              <div className="archiveAiMessage archiveAiMessageAssistant">
+                <div className="archiveAiMessageRole">Assistente</div>
+                <div className="archiveAiMessageText">Elaborazione in corso…</div>
+              </div>
+            ) : null}
           </div>
-        ) : null}
 
-        {!showSettings ? (
-          <>
-            <div className="archiveAiChatPanel">
-              <div className="archiveAiMessages" ref={listRef}>
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`archiveAiMessage ${message.role === 'user' ? 'archiveAiMessageUser' : 'archiveAiMessageAssistant'}`}
-                  >
-                    <div className="archiveAiMessageRole">
-                      {message.role === 'user' ? 'Tu' : 'Assistente'}
-                    </div>
-                    <div className="archiveAiMessageText">{message.text}</div>
-                  </div>
-                ))}
-                {busy ? (
-                  <div className="archiveAiMessage archiveAiMessageAssistant">
-                    <div className="archiveAiMessageRole">Assistente</div>
-                    <div className="archiveAiMessageText">Elaborazione in corso…</div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="archiveAiComposer">
-                <textarea
-                  ref={inputRef}
-                  className="input archiveAiPromptTextarea"
-                  placeholder="Scrivi una domanda sull’archivio vini..."
-                  value={prompt}
-                  rows={2}
-                  onChange={(event) => setPrompt(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter' || event.shiftKey) return;
-                    event.preventDefault();
-                    void send();
-                  }}
-                />
-                <button
-                  className="button buttonAuto archiveAiInlineSendButton"
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void send()}
-                >
-                  {busy ? 'Invio…' : 'Invia'}
-                </button>
-              </div>
-            </div>
-
-          </>
-        ) : null}
+          <div className="archiveAiComposer">
+            <textarea
+              ref={inputRef}
+              className="input archiveAiPromptTextarea"
+              placeholder="Scrivi una domanda sull’archivio vini..."
+              value={prompt}
+              rows={2}
+              onChange={(event) => setPrompt(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || event.shiftKey) return;
+                event.preventDefault();
+                void send();
+              }}
+            />
+            <select className="input archiveAiInlineModelSelect" value={model} onChange={(event) => setModel(event.target.value)}>
+              {AGENT_MODELS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className="button buttonAuto archiveAiInlineSendButton"
+              type="button"
+              disabled={busy}
+              onClick={() => void send()}
+            >
+              {busy ? 'Invio…' : 'Invia'}
+            </button>
+          </div>
+        </div>
         <div className="archiveAiBottomActions">
-          <button
-            className="button buttonSecondary buttonAuto archiveAiHeaderButton"
-            type="button"
-            onClick={() => setShowSettings((prev) => !prev)}
-          >
-            {showSettings ? (
-              <span className="archiveAiToggleSettingsContent">
-                <img className="archiveAiToggleSettingsIcon" src="/icons%20ai.png" alt="" aria-hidden="true" />
-                Torna ad Assistente AI
-              </span>
-            ) : (
-              'Impostazioni'
-            )}
-          </button>
           <button className="button buttonSecondary buttonAuto archiveAiHeaderButton" type="button" onClick={onClose}>
             Chiudi
           </button>
