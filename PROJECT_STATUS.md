@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **15/03/2026 23:57 CET**.
+Ultimo aggiornamento: **16/03/2026 00:19 CET**.
 
 ## Scopo di questo file
 
@@ -75,6 +75,21 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
   - gestione robusta vincoli DB:
     - con schema aggiornato (`wine_id` nullable + FK `ON DELETE SET NULL`) il reset archivio completa senza impattare lo storico;
     - dettaglio storico mantiene i metadati vino tramite snapshot su `discharge_session_items`.
+
+## Ultimi aggiornamenti (16/03/2026)
+
+- Storico sessioni (desktop):
+  - filtro intervallo `Da/A` su una sola riga;
+  - aggiunto reset filtri con icona frecce;
+  - introdotto preset rapidi periodo (`Tutto`, `Oggi`, `7/30/90 giorni`, `6/12 mesi`, `Anno corrente`, `Personalizzato`).
+- Verifica tecnica completa:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run test` ✅
+  - `npm run build` ✅
+- Hygiene:
+  - nessun marker di conflitto (`<<<<<<<`, `=======`, `>>>>>>>`) rilevato;
+  - documentazione Supabase riallineata ai file realmente presenti in repository.
 
 ---
 
@@ -279,7 +294,7 @@ Comandi root:
   - campo `Q.tà` allineato a selector standard unico (`0..99`) come gli altri controlli
   - regola validazione: `Soglia` mai `0`
 - Supabase:
-  - predisposto script SQL dedicato: `sql/supabase_add_supplier.sql`
+  - predisposto script SQL dedicato per migrazione `supplier` (esecuzione via SQL Editor operativo)
   - aggiunta colonna `supplier` su `public.wines` + indice + tabella `public.suppliers`
 - Consistenza iPhone/Safari:
   - fix stile lista sessione su iOS (`button` ora eredita tipografia/colore) per allineare il design a desktop/local

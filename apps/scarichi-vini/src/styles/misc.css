@@ -402,28 +402,31 @@
   margin-top: 12px;
 }
 
-.adminHistoryHeader {
-  position: relative;
-  min-height: 46px;
-}
-
 .adminHistoryTitle {
   margin: 0 auto;
 }
 
-.adminHistoryDateFilterWrap {
-  position: absolute;
-  top: 0;
-  right: 0;
+.adminHistoryDateRangeWrap {
   display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.adminHistoryDateField {
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .adminHistoryDateFilterLabel {
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);
+  line-height: 1;
+  margin: 0;
 }
 
 .adminHistoryDateFilterInput {
@@ -431,6 +434,37 @@
   min-height: 40px;
   padding: 8px 10px;
   border-radius: 12px;
+}
+
+.adminHistoryPresetInput {
+  width: 190px;
+  padding-right: 32px;
+}
+
+.adminHistoryDateResetButton {
+  appearance: none;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #7c164a;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.adminHistoryDateResetButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.adminHistoryDateResetButton svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
 }
 
 .adminHistoryListSection .listItemButton {
@@ -497,21 +531,23 @@
     min-height: calc(100dvh - 300px);
   }
 
-  .adminHistoryHeader {
+  .adminHistoryDateRangeWrap {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     gap: 8px;
-    min-height: 0;
-  }
-
-  .adminHistoryDateFilterWrap {
-    position: static;
-    justify-content: flex-end;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .adminHistoryDateFilterInput {
-    width: 100%;
-    max-width: 220px;
+    width: 154px;
+    max-width: 154px;
+  }
+
+  .adminHistoryPresetInput {
+    width: 170px;
+    max-width: 170px;
   }
 
 }

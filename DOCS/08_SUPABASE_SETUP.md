@@ -1,6 +1,6 @@
 # Supabase Setup
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **16/03/2026 00:19 CET**.
 
 ## Stato attuale
 
@@ -41,13 +41,12 @@ Riferimento codice:
 
 - `apps/scarichi-vini/src/lib/supabase.ts`
 
-## File script SQL operativo
+## Script SQL operativi
 
-File consigliato per esecuzione uno-a-uno in SQL Editor:
+Stato repository:
 
-- `sql_subase_copia.sql`
-- `sql/supabase_add_supplier.sql` (migrazione campo `supplier` + archivio `public.suppliers`)
-- `sql/supabase_independent_history_archive_reset.sql` (storico sessioni indipendente da archivio vini)
+- al momento non sono presenti file `.sql` versionati in repo;
+- gli script operativi sono gestiti in Supabase SQL Editor o condivisi in chat operativa.
 
 Ordine esecuzione:
 
@@ -67,7 +66,7 @@ Ordine esecuzione:
 
 Per attivare il nuovo campo `Fornitore` lato archivio vini:
 
-1. eseguire `sql/supabase_add_supplier.sql` in SQL Editor;
+1. eseguire in SQL Editor lo script migrazione `supplier` concordato in chat/procedura operativa;
 2. verificare presenza colonna `public.wines.supplier`;
 3. verificare tabella `public.suppliers` popolata con i valori distinti già presenti.
 
@@ -75,7 +74,7 @@ Per attivare il nuovo campo `Fornitore` lato archivio vini:
 
 Per abilitare `Reset archivio` senza perdere/stressare lo storico sessioni:
 
-1. eseguire `sql/supabase_independent_history_archive_reset.sql` in SQL Editor;
+1. eseguire in SQL Editor lo script migrazione indipendenza storico/archivio concordato in chat/procedura operativa;
 2. verificare su `public.discharge_session_items`:
    - colonne snapshot presenti (`wine_name`, `wine_age`, `wine_producer`, `wine_origin`, `wine_category`, `wine_supplier`);
    - `wine_id` nullable (`YES`);

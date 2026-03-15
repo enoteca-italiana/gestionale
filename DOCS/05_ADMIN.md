@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **15/03/2026 23:57 CET**.
+Ultimo aggiornamento: **16/03/2026 00:19 CET**.
 
 ## Accesso
 
@@ -87,8 +87,10 @@ File: `AdminHistory.tsx`
 - reset storico:
   - doppia conferma;
   - conferma finale con PIN admin.
-- filtro temporale in alto a destra (desktop-friendly):
-  - selezione data con `input[type="date"]`;
+- filtro temporale desktop aggiornato:
+  - preset rapidi periodo (`Tutto`, `Oggi`, `Ultimi 7/30/90 giorni`, `Ultimi 6/12 mesi`, `Anno corrente`, `Personalizzato`);
+  - selezione manuale intervallo `Da` / `A` su una riga unica;
+  - pulsante reset filtri con icona frecce;
   - filtraggio per giorno (la componente ora viene ignorata).
 
 ## Ottimizzazioni performance Supabase

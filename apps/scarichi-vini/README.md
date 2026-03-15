@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **15/03/2026 23:57 CET**.
+Ultimo aggiornamento: **16/03/2026 00:19 CET**.
 
 ## Quick Start
 
@@ -36,7 +36,10 @@ Comandi utili:
   - azione `Reset archivio` con PIN:
     - cancella solo `public.wines` su Supabase
     - storico sessioni preservato (indipendente dall'archivio vini)
-  - in `Sessioni storico`: filtro data in alto a destra (desktop-friendly), con ricerca per giorno (senza ora)
+  - in `Sessioni storico`:
+    - filtro temporale desktop con preset rapidi (`Tutto`, `Oggi`, `7/30/90 giorni`, `6/12 mesi`, `Anno corrente`, `Personalizzato`)
+    - intervallo manuale `Da/A` e pulsante reset filtri con icona frecce
+    - filtraggio per giorno (senza ora)
 - Archivio vini desktop-first (`/admina`) con CRUD completo:
   - colonne estese (categoria, nome, anno, produttore, provenienza, fornitore, prezzi, q.tà, azioni)
   - toolbar filtri ottimizzata su una riga desktop con box statistiche compatto (`Totale`, `Soglia`, `Esauriti`)

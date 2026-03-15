@@ -1,6 +1,7 @@
 import type { DischargeSessionSummary } from '@/data/dischargeRepository';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { useState } from 'react';
+import { RefreshCcw } from 'lucide-react';
 import { sha256Base64 } from '@/pages/admin/crypto';
 import { storageKeys } from '@/pages/admin/storage';
 import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
@@ -42,6 +43,32 @@ function toLocalDateKey(ts: number) {
   return `${year}-${month}-${day}`;
 }
 
+type DatePreset = 'all' | 'today' | '7d' | '30d' | '90d' | '6m' | '12m' | 'ytd' | 'custom';
+
+function toInputDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getPresetRange(preset: DatePreset): { from: string; to: string } | null {
+  if (preset === 'all' || preset === 'custom') return null;
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(end);
+  if (preset === 'today') {
+    return { from: toInputDate(start), to: toInputDate(end) };
+  }
+  if (preset === '7d') start.setDate(start.getDate() - 6);
+  if (preset === '30d') start.setDate(start.getDate() - 29);
+  if (preset === '90d') start.setDate(start.getDate() - 89);
+  if (preset === '6m') start.setMonth(start.getMonth() - 6);
+  if (preset === '12m') start.setMonth(start.getMonth() - 12);
+  if (preset === 'ytd') start.setMonth(0, 1);
+  return { from: toInputDate(start), to: toInputDate(end) };
+}
+
 export function AdminHistory({
   history,
   onReset
@@ -49,7 +76,9 @@ export function AdminHistory({
   history: DischargeSessionSummary[];
   onReset: () => void;
 }) {
-  const [dateFilter, setDateFilter] = useState('');
+  const [datePreset, setDatePreset] = useState<DatePreset>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [confirm1, setConfirm1] = useState(false);
   const [confirm2, setConfirm2] = useState(false);
   const [resetPin, setResetPin] = useState('');
@@ -60,9 +89,12 @@ export function AdminHistory({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<DischargeSessionSummary | null>(null);
   const [detailItems, setDetailItems] = useState<DischargeSessionItemDetail[]>([]);
-  const filteredHistory = dateFilter
-    ? history.filter((session) => toLocalDateKey(session.submittedAt ?? session.createdAt) === dateFilter)
-    : history;
+  const filteredHistory = history.filter((session) => {
+    const sessionDate = toLocalDateKey(session.submittedAt ?? session.createdAt);
+    if (dateFrom && sessionDate < dateFrom) return false;
+    if (dateTo && sessionDate > dateTo) return false;
+    return true;
+  });
 
   const closeSessionDetail = () => {
     setDetailOpen(false);
@@ -115,21 +147,89 @@ export function AdminHistory({
   return (
     <>
       <div className="adminHistoryListSection">
-        <div className="adminHistoryHeader">
-          <div className="title centered adminHistoryTitle">Storico Sessioni</div>
-          <div className="adminHistoryDateFilterWrap">
-            <label className="adminHistoryDateFilterLabel" htmlFor="admin-history-date-filter">
-              Data
+        <div className="title centered adminHistoryTitle">Storico Sessioni</div>
+        <div className="adminHistoryDateRangeWrap mt12">
+          <div className="adminHistoryDateField">
+            <label className="adminHistoryDateFilterLabel" htmlFor="admin-history-date-preset">
+              Periodo
+            </label>
+            <select
+              id="admin-history-date-preset"
+              className="input adminHistoryDateFilterInput adminHistoryPresetInput"
+              value={datePreset}
+              onChange={(event) => {
+                const nextPreset = event.target.value as DatePreset;
+                setDatePreset(nextPreset);
+                const nextRange = getPresetRange(nextPreset);
+                if (!nextRange) {
+                  if (nextPreset === 'all') {
+                    setDateFrom('');
+                    setDateTo('');
+                  }
+                  return;
+                }
+                setDateFrom(nextRange.from);
+                setDateTo(nextRange.to);
+              }}
+              aria-label="Periodo rapido filtri sessioni"
+            >
+              <option value="all">Tutto</option>
+              <option value="today">Oggi</option>
+              <option value="7d">Ultimi 7 giorni</option>
+              <option value="30d">Ultimi 30 giorni</option>
+              <option value="90d">Ultimi 90 giorni</option>
+              <option value="6m">Ultimi 6 mesi</option>
+              <option value="12m">Ultimi 12 mesi</option>
+              <option value="ytd">Anno corrente</option>
+              <option value="custom">Personalizzato</option>
+            </select>
+          </div>
+          <div className="adminHistoryDateField">
+            <label className="adminHistoryDateFilterLabel" htmlFor="admin-history-date-from">
+              Da
             </label>
             <input
-              id="admin-history-date-filter"
+              id="admin-history-date-from"
               className="input adminHistoryDateFilterInput"
               type="date"
-              value={dateFilter}
-              onChange={(event) => setDateFilter(event.target.value)}
-              aria-label="Filtra sessioni per data"
+              value={dateFrom}
+              onChange={(event) => {
+                setDatePreset('custom');
+                setDateFrom(event.target.value);
+              }}
+              aria-label="Data inizio filtro sessioni"
             />
           </div>
+          <div className="adminHistoryDateField">
+            <label className="adminHistoryDateFilterLabel" htmlFor="admin-history-date-to">
+              A
+            </label>
+            <input
+              id="admin-history-date-to"
+              className="input adminHistoryDateFilterInput"
+              type="date"
+              value={dateTo}
+              onChange={(event) => {
+                setDatePreset('custom');
+                setDateTo(event.target.value);
+              }}
+              aria-label="Data fine filtro sessioni"
+            />
+          </div>
+          <button
+            className="adminHistoryDateResetButton"
+            type="button"
+            aria-label="Reset filtri data"
+            title="Reset filtri"
+            onClick={() => {
+              setDatePreset('all');
+              setDateFrom('');
+              setDateTo('');
+            }}
+            disabled={dateFrom.length === 0 && dateTo.length === 0}
+          >
+            <RefreshCcw size={18} strokeWidth={2.2} />
+          </button>
         </div>
         <div className="list mt12">
           {filteredHistory.length === 0 ? (
