@@ -2,6 +2,7 @@ import type { Wine } from '@/domain/types';
 import type { ArchiveCsvWineInput } from '@/data/archiveCsv';
 import { supabase } from '@/lib/supabase';
 import { loadDb, notifyDbChanged, saveDb, newId } from '@/data/localDb';
+import { detachDischargeItemsFromWines } from '@/data/dischargeRepository';
 import { syncWineUpsert, syncWineDelete } from '@/integrations/googleSheetsSync';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
 
@@ -22,6 +23,8 @@ type WineRow = {
   margin?: number | null;
   notes?: string | null;
 };
+
+const WINES_PAGE_SIZE = 1000;
 
 function randomThreshold(): number {
   return Math.floor(Math.random() * 12) + 1;
@@ -133,6 +136,20 @@ function isSchemaColumnError(error: unknown): boolean {
   return message.includes('column') && message.includes('does not exist');
 }
 
+function isForeignKeyViolation(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null | undefined)?.code ?? '');
+  if (code === '23503') return true;
+  const message = String((error as { message?: unknown } | null | undefined)?.message ?? '').toLowerCase();
+  return message.includes('foreign key') || message.includes('violates foreign key');
+}
+
+function isNotNullViolation(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null | undefined)?.code ?? '');
+  if (code === '23502') return true;
+  const message = String((error as { message?: unknown } | null | undefined)?.message ?? '').toLowerCase();
+  return message.includes('not-null') || message.includes('null value in column');
+}
+
 function sortWines(wines: Wine[]): Wine[] {
   return [...wines].sort((a, b) => a.name.localeCompare(b.name, 'it', { sensitivity: 'base' }));
 }
@@ -154,22 +171,50 @@ function persistLocalInventory(next: Wine[]) {
   notifyDbChanged();
 }
 
+async function listAllWineRows(): Promise<WineRow[]> {
+  if (!supabase) return [];
+
+  const rows: WineRow[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + WINES_PAGE_SIZE - 1;
+    const { data, error } = await supabase
+      .from('wines')
+      .select('*')
+      .order('id', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as WineRow[];
+    if (page.length === 0) break;
+
+    rows.push(...page);
+    if (page.length < WINES_PAGE_SIZE) break;
+    from += WINES_PAGE_SIZE;
+  }
+
+  return rows;
+}
+
 export async function listWines(): Promise<Wine[]> {
   const localInventory = getLocalInventory();
 
   if (supabase) {
-    const { data, error } = await supabase.from('wines').select('*');
-    if (error) {
+    try {
+      const data = await listAllWineRows();
+      const wines = enrichThresholdsFromFallback((data ?? []).map(toWine), localInventory);
+      const normalized = normalizeOrigins(wines);
+      persistLocalInventory(normalized);
+      return sortWines(normalized);
+    } catch (error) {
       console.error('[wineRepository] Supabase list error', error);
       const localWithThresholds = enrichThresholdsFromFallback(localInventory, localInventory);
       const normalizedLocal = normalizeOrigins(localWithThresholds);
       persistLocalInventory(normalizedLocal);
       return sortWines(normalizedLocal);
     }
-    const wines = enrichThresholdsFromFallback((data ?? []).map(toWine), localInventory);
-    const normalized = normalizeOrigins(wines);
-    persistLocalInventory(normalized);
-    return sortWines(normalized);
   }
 
   const wines = enrichThresholdsFromFallback(localInventory, localInventory);
@@ -394,4 +439,37 @@ export async function updateThresholdForAllWines(rawThreshold: number): Promise<
   }
 
   return updated.length;
+}
+
+export async function clearWineArchive(): Promise<number> {
+  const deletedCount = getLocalInventory().length;
+
+  if (supabase) {
+    let { error } = await supabase.from('wines').delete().not('id', 'is', null);
+
+    if (error && isForeignKeyViolation(error)) {
+      try {
+        await detachDischargeItemsFromWines();
+      } catch (detachError) {
+        console.error('[wineRepository] detachDischargeItemsFromWines failed', detachError);
+        if (isNotNullViolation(detachError) || isForeignKeyViolation(detachError)) {
+          throw new Error(
+            'Reset archivio bloccato dal vincolo DB. Esegui prima la migrazione SQL per rendere indipendente lo storico sessioni (FK wine_id -> ON DELETE SET NULL).'
+          );
+        }
+        throw detachError;
+      }
+
+      const retry = await supabase.from('wines').delete().not('id', 'is', null);
+      error = retry.error;
+    }
+
+    if (error) {
+      console.error('[wineRepository] Supabase clear archive error', error);
+      throw error;
+    }
+  }
+
+  persistLocalInventory([]);
+  return deletedCount;
 }

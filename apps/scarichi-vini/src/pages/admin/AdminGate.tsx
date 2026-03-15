@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalDb } from '@/data/useLocalDb';
+import { clearWineArchive } from '@/data/wineRepository';
 import { useDischargeSessions } from '@/data/useDischargeSessions';
 import { AdminHistory } from '@/pages/admin/AdminHistory';
 import { AdminHome, type AdminRootSection } from '@/pages/admin/AdminHome';
@@ -14,7 +14,6 @@ export function AdminGate() {
   const { ready, isAuthed, login, logout, changePassword } = useAdminAuth();
   const [section, setSection] = useState<AdminSection>('home');
   const [settingsAction, setSettingsAction] = useState<SettingsAction>(null);
-  const { hardResetAll } = useLocalDb();
   const {
     history,
     loading: sessionsLoading,
@@ -78,8 +77,8 @@ export function AdminGate() {
         onLogout={() => {
           logout();
         }}
-        onHardReset={() => {
-          hardResetAll();
+        onHardReset={async () => {
+          await clearWineArchive();
         }}
         onChangePassword={async (currentPwd, newPwd) => {
           return changePassword(currentPwd, newPwd);

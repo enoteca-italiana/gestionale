@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **15/03/2026 23:57 CET**.
 
 ## Quick Start
 
@@ -33,6 +33,10 @@ Comandi utili:
   - fix modale scarico: `+/-` aggiornano il valore senza chiusura involontaria
   - fix iOS Safari: titolo `Riepilogo` forzato su colore nero coerente con app
 - Admin impostazioni (`/admin`) con autenticazione locale.
+  - azione `Reset archivio` con PIN:
+    - cancella solo `public.wines` su Supabase
+    - storico sessioni preservato (indipendente dall'archivio vini)
+  - in `Sessioni storico`: filtro data in alto a destra (desktop-friendly), con ricerca per giorno (senza ora)
 - Archivio vini desktop-first (`/admina`) con CRUD completo:
   - colonne estese (categoria, nome, anno, produttore, provenienza, fornitore, prezzi, q.tà, azioni)
   - toolbar filtri ottimizzata su una riga desktop con box statistiche compatto (`Totale`, `Soglia`, `Esauriti`)

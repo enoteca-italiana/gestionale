@@ -34,6 +34,14 @@ function formatDateTimeLabel(ts: number) {
   return `${value.formattedDate}, ${value.formattedTime}`;
 }
 
+function toLocalDateKey(ts: number) {
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function AdminHistory({
   history,
   onReset
@@ -41,6 +49,7 @@ export function AdminHistory({
   history: DischargeSessionSummary[];
   onReset: () => void;
 }) {
+  const [dateFilter, setDateFilter] = useState('');
   const [confirm1, setConfirm1] = useState(false);
   const [confirm2, setConfirm2] = useState(false);
   const [resetPin, setResetPin] = useState('');
@@ -51,6 +60,9 @@ export function AdminHistory({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<DischargeSessionSummary | null>(null);
   const [detailItems, setDetailItems] = useState<DischargeSessionItemDetail[]>([]);
+  const filteredHistory = dateFilter
+    ? history.filter((session) => toLocalDateKey(session.submittedAt ?? session.createdAt) === dateFilter)
+    : history;
 
   const closeSessionDetail = () => {
     setDetailOpen(false);
@@ -103,15 +115,34 @@ export function AdminHistory({
   return (
     <>
       <div className="adminHistoryListSection">
-        <div className="title centered">Storico Sessioni</div>
+        <div className="adminHistoryHeader">
+          <div className="title centered adminHistoryTitle">Storico Sessioni</div>
+          <div className="adminHistoryDateFilterWrap">
+            <label className="adminHistoryDateFilterLabel" htmlFor="admin-history-date-filter">
+              Data
+            </label>
+            <input
+              id="admin-history-date-filter"
+              className="input adminHistoryDateFilterInput"
+              type="date"
+              value={dateFilter}
+              onChange={(event) => setDateFilter(event.target.value)}
+              aria-label="Filtra sessioni per data"
+            />
+          </div>
+        </div>
         <div className="list mt12">
-          {history.length === 0 ? (
+          {filteredHistory.length === 0 ? (
             <div className="listItem centered">
-              <div className="lineTitle">Nessuna sessione</div>
-              <div className="subtle mt6">Lo storico si popola dopo le conferme.</div>
+              <div className="lineTitle">{history.length === 0 ? 'Nessuna sessione' : 'Nessun risultato'}</div>
+              <div className="subtle mt6">
+                {history.length === 0
+                  ? 'Lo storico si popola dopo le conferme.'
+                  : 'Nessuna sessione trovata per la data selezionata.'}
+              </div>
             </div>
           ) : (
-            history.map((s) => {
+            filteredHistory.map((s) => {
               const { formattedDate, formattedTime } = formatDateTime(s.submittedAt ?? s.createdAt);
               return (
                 <button

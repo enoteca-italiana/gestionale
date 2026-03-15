@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **15/03/2026 23:57 CET**.
 
 ## Accesso
 
@@ -27,7 +27,7 @@ Azioni rapide disponibili direttamente in home admin, in questo ordine:
 - `Importa archivio`
 - `Imposta Soglie`
 - `Aggiorna password`
-- `Reset totale`
+- `Reset archivio`
 
 Note:
 
@@ -51,7 +51,7 @@ Modali attivi:
 - cambio password admin
 - import archivio CSV (sostituzione totale)
 - imposta soglia unica su tutti i vini
-- reset totale con PIN
+- reset archivio con PIN
 
 ### Imposta Soglie (nuovo)
 
@@ -87,6 +87,9 @@ File: `AdminHistory.tsx`
 - reset storico:
   - doppia conferma;
   - conferma finale con PIN admin.
+- filtro temporale in alto a destra (desktop-friendly):
+  - selezione data con `input[type="date"]`;
+  - filtraggio per giorno (la componente ora viene ignorata).
 
 ## Ottimizzazioni performance Supabase
 
@@ -112,14 +115,20 @@ Nota UX:
 
 Rimosse dal flusso e dall’interfaccia admin.
 
-## Reset totale
+## Reset archivio
 
 In `AdminSettings.tsx`:
 
 - doppia conferma;
 - seconda conferma con PIN admin;
-- cancella dati locali tecnici;
-- pulizia storico gestita via API Supabase dedicate.
+- cancella solo l'archivio vini (`public.wines`);
+- storico sessioni non modificato.
+
+Note tecniche:
+
+- il reset archivio richiede schema Supabase allineato per indipendenza storico/archivio;
+- `discharge_session_items.wine_id` deve essere nullable con FK `ON DELETE SET NULL`;
+- i dettagli storico usano anche snapshot campi vino (`wine_name`, `wine_age`, `wine_producer`, `wine_origin`, `wine_category`, `wine_supplier`) per restare leggibili anche dopo rimozione archivio.
 
 ## Archivio vini (`/admina`)
 

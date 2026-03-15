@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **15/03/2026 23:57 CET**.
 
 ## Scopo di questo file
 
@@ -18,7 +18,7 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
 - Admin:
   - rimossa pagina intermedia `Sessioni`; il pulsante home è ora `Sessioni storico` e apre direttamente lo storico.
   - nuova azione `Imposta Soglie` in Admin, con ordine pulsanti:
-    - `Sessioni storico`, `Importa archivio`, `Imposta Soglie`, `Aggiorna password`, `Reset totale`.
+    - `Sessioni storico`, `Importa archivio`, `Imposta Soglie`, `Aggiorna password`, `Reset archivio`.
   - `Imposta Soglie` applica una soglia unica su tutti i vini:
     - doppia conferma;
     - PIN admin obbligatorio;
@@ -50,6 +50,7 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
 - Storico sessioni (UI):
   - nessun nome/titolo sessione (solo data/ora + numero vini + numero bottiglie);
   - nel dettaglio, quantità scaricate per vino mostrate inline (senza pill).
+  - aggiunto filtro data (desktop) in alto a destra, con matching per giorno (senza ora).
 
 - Home (Intro):
   - durante l’intro la Bottom Nav non viene mostrata.
@@ -67,6 +68,13 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
   - pulsante reset filtri tondo tra `Esauriti` e `Aggiungi vino`:
     - reset completo a default (`Totale` + select su `Tutti` + ricerca vuota);
     - stile coerente: bianco con bordo grigio leggero, icona frecce viola.
+
+- Admin reset archivio:
+  - azione home rinominata da `Reset totale` a `Reset archivio`;
+  - reset applicato solo a `public.wines` (archivio vini), storico sessioni non toccato;
+  - gestione robusta vincoli DB:
+    - con schema aggiornato (`wine_id` nullable + FK `ON DELETE SET NULL`) il reset archivio completa senza impattare lo storico;
+    - dettaglio storico mantiene i metadati vino tramite snapshot su `discharge_session_items`.
 
 ---
 
@@ -479,7 +487,7 @@ Dettaglio operativo anche in `DOCS/07_OPERATIONS_BACKUP.md#github`.
 - Admin semplificato:
   - rimosso titolo `Admin` dalla home admin.
   - rimossi pulsante e pagina “Impostazioni” dal flusso utente.
-  - azioni `Aggiorna password`, `Importa archivio`, `Reset totale` disponibili direttamente nella home admin.
+  - azioni `Aggiorna password`, `Importa archivio`, `Reset archivio` disponibili direttamente nella home admin.
   - fix bug: click azioni non cambia più pagina, apre i modali restando in home admin.
 - Conferma sessione scarico:
   - conferma finale sempre obbligatoria (rimossa opzione di disattivazione).

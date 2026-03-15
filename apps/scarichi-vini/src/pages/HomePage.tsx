@@ -165,7 +165,7 @@ export function HomePage({
       <div className="mt12 searchRow">
         <input
           className="input inputSearch inputSearchCompact"
-          placeholder="Cerca vino per nome…"
+          placeholder="Cerca per nome, produttore, provenienza, note…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

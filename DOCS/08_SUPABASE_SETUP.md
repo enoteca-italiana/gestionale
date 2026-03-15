@@ -47,6 +47,7 @@ File consigliato per esecuzione uno-a-uno in SQL Editor:
 
 - `sql_subase_copia.sql`
 - `sql/supabase_add_supplier.sql` (migrazione campo `supplier` + archivio `public.suppliers`)
+- `sql/supabase_independent_history_archive_reset.sql` (storico sessioni indipendente da archivio vini)
 
 Ordine esecuzione:
 
@@ -69,6 +70,16 @@ Per attivare il nuovo campo `Fornitore` lato archivio vini:
 1. eseguire `sql/supabase_add_supplier.sql` in SQL Editor;
 2. verificare presenza colonna `public.wines.supplier`;
 3. verificare tabella `public.suppliers` popolata con i valori distinti già presenti.
+
+### Migrazione indipendenza storico/archivio (nuova)
+
+Per abilitare `Reset archivio` senza perdere/stressare lo storico sessioni:
+
+1. eseguire `sql/supabase_independent_history_archive_reset.sql` in SQL Editor;
+2. verificare su `public.discharge_session_items`:
+   - colonne snapshot presenti (`wine_name`, `wine_age`, `wine_producer`, `wine_origin`, `wine_category`, `wine_supplier`);
+   - `wine_id` nullable (`YES`);
+   - FK `discharge_session_items_wine_id_fkey` con `ON DELETE SET NULL`.
 
 ## Verifica finale attesa
 

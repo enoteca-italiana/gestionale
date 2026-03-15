@@ -17,7 +17,7 @@ export function AdminHome({ onOpen }: { onOpen: (section: AdminRootSection) => v
           Aggiorna password
         </button>
         <button className="button adminHomeAction" type="button" onClick={() => onOpen('reset')}>
-          Reset totale
+          Reset archivio
         </button>
       </div>
     </div>

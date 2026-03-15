@@ -16,7 +16,7 @@ export function AdminSettings({
 }: {
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   onLogout: () => void;
-  onHardReset: () => void;
+  onHardReset: () => Promise<void>;
   onBack?: () => void;
   openAction?: 'password' | 'import' | 'threshold' | 'reset' | null;
   onActionHandled?: () => void;
@@ -198,9 +198,15 @@ export function AdminSettings({
         setResetPinError('PIN non corretto');
         return;
       }
-      setReset2(false);
-      setResetPin('');
-      onHardReset();
+      try {
+        await onHardReset();
+        setReset2(false);
+        setResetPin('');
+      } catch (error) {
+        setResetPinError(
+          error instanceof Error ? error.message : 'Errore durante reset archivio'
+        );
+      }
     } finally {
       setResetBusy(false);
     }
@@ -375,8 +381,8 @@ export function AdminSettings({
 
       <ConfirmModal
         open={reset1}
-        title="Reset totale?"
-        description="Verrà cancellato l'intero inventario, incluso lo storico. Azione definitiva."
+        title="Reset archivio?"
+        description="Verrà cancellato l'archivio vini su Supabase. Lo storico sessioni non verrà modificato."
         confirmLabel="Continua"
         cancelLabel="Annulla"
         onConfirm={() => {
@@ -391,9 +397,10 @@ export function AdminSettings({
       {reset2 ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
           <div className="modalCard">
-            <div className="modalTitle">Conferma reset definitivo</div>
+            <div className="modalTitle">Conferma reset archivio</div>
             <div className="modalDescription">
-              Inserisci il PIN admin per confermare l&apos;eliminazione definitiva di inventario e storico.
+              Inserisci il PIN admin per confermare l&apos;eliminazione definitiva dell&apos;archivio vini.
+              Lo storico sessioni non verrà toccato.
             </div>
             <div className="mt12">
               <input
@@ -421,7 +428,7 @@ export function AdminSettings({
                 disabled={resetBusy || resetPin.trim().length === 0}
                 onClick={() => void confirmResetWithPin()}
               >
-                {resetBusy ? 'Verifica…' : 'Sì, reset definitivo'}
+                {resetBusy ? 'Verifica…' : 'Sì, reset archivio'}
               </button>
               <button
                 className="button buttonSecondary buttonCancel"

@@ -15,7 +15,22 @@ export function useLocalSession({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return inventory;
-    return inventory.filter((w) => w.name.toLowerCase().includes(q));
+    return inventory.filter((w) => {
+      const haystack = [
+        w.category,
+        w.name,
+        w.age,
+        w.producer,
+        w.origin,
+        w.supplier,
+        w.notes,
+        w.warehouse
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
   }, [query, inventory]);
 
   const sessionList = useMemo(() => {

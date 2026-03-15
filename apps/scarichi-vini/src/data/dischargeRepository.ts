@@ -32,11 +32,21 @@ export type DischargeSessionItemDetail = {
   qty: number;
 };
 
+const SESSION_ITEMS_SELECT_WITH_SNAPSHOT =
+  'session_id, wine_id, qty, wine_name, wine_age, wine_producer, wine_origin, wine_category, wine_supplier, discharge_sessions!inner(status, created_at, submitted_at), wines(name, age, producer, origin, category, supplier)';
+const SESSION_ITEMS_SELECT_LEGACY =
+  'session_id, wine_id, qty, discharge_sessions!inner(status, created_at, submitted_at), wines(name, age, producer, origin, category, supplier)';
+
 function requireSupabase() {
   if (!supabase) {
     throw new Error('Supabase non configurato');
   }
   return supabase;
+}
+
+function isSchemaColumnError(error: unknown): boolean {
+  const message = String((error as { message?: unknown } | null | undefined)?.message ?? '').toLowerCase();
+  return message.includes('column') && message.includes('does not exist');
 }
 
 type SessionRow = {
@@ -51,7 +61,13 @@ type SessionRow = {
 type SessionItemRow = {
   session_id: string;
   qty: number | null;
-  wine_id: string;
+  wine_id: string | null;
+  wine_name?: string | null;
+  wine_age?: string | null;
+  wine_producer?: string | null;
+  wine_origin?: string | null;
+  wine_category?: string | null;
+  wine_supplier?: string | null;
   discharge_sessions:
     | {
         status: DischargeStatus;
@@ -87,6 +103,16 @@ type SessionItemRow = {
 type WineQtyRow = {
   id: string;
   qty?: number | null;
+};
+
+type WineSnapshotRow = {
+  id: string;
+  name?: string | null;
+  age?: string | null;
+  producer?: string | null;
+  origin?: string | null;
+  category?: string | null;
+  supplier?: string | null;
 };
 
 export async function listDischargeSessions(
@@ -137,15 +163,45 @@ export async function createDischargeSession(input: {
 
   if (sessionError) throw sessionError;
 
-  const { error: itemsError } = await client.from('discharge_session_items').insert(
-    cleanItems.map((item) => ({
+  const wineIds = [...new Set(cleanItems.map((item) => item.wineId))];
+  let snapshotsById = new Map<string, WineSnapshotRow>();
+  if (wineIds.length > 0) {
+    const { data: snapshotRows, error: snapshotError } = await client
+      .from('wines')
+      .select('id, name, age, producer, origin, category, supplier')
+      .in('id', wineIds);
+    if (snapshotError) throw snapshotError;
+    snapshotsById = new Map((snapshotRows ?? []).map((row) => [row.id, row] as const));
+  }
+
+  const rowsWithSnapshot = cleanItems.map((item) => {
+    const snap = snapshotsById.get(item.wineId);
+    return {
       session_id: session.id,
       wine_id: item.wineId,
-      qty: item.qty
-    }))
-  );
+      qty: item.qty,
+      wine_name: snap?.name ?? null,
+      wine_age: snap?.age ?? null,
+      wine_producer: snap?.producer ?? null,
+      wine_origin: snap?.origin ? normalizeOrigin(snap.origin) : null,
+      wine_category: snap?.category ?? null,
+      wine_supplier: snap?.supplier ?? null
+    };
+  });
 
-  if (itemsError) throw itemsError;
+  const { error: itemsError } = await client.from('discharge_session_items').insert(rowsWithSnapshot);
+  if (itemsError && isSchemaColumnError(itemsError)) {
+    const { error: legacyItemsError } = await client.from('discharge_session_items').insert(
+      cleanItems.map((item) => ({
+        session_id: session.id,
+        wine_id: item.wineId,
+        qty: item.qty
+      }))
+    );
+    if (legacyItemsError) throw legacyItemsError;
+  } else if (itemsError) {
+    throw itemsError;
+  }
 
   return session.id as string;
 }
@@ -206,39 +262,66 @@ export async function clearDischargeSessionsByStatus(status: DischargeStatus): P
   if (error) throw error;
 }
 
+export async function detachDischargeItemsFromWines(): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client
+    .from('discharge_session_items')
+    .update({ wine_id: null })
+    .not('wine_id', 'is', null);
+  if (error) throw error;
+}
+
+function mapSessionItemRow(row: SessionItemRow): DischargeSessionItemDetail {
+  const session = Array.isArray(row.discharge_sessions) ? row.discharge_sessions[0] : row.discharge_sessions;
+  const wine = Array.isArray(row.wines) ? row.wines[0] : row.wines;
+  const fallbackWineId = row.wine_id ?? 'vino-rimosso';
+
+  return {
+    sessionId: row.session_id,
+    sessionStatus: session?.status ?? 'submitted',
+    createdAt: session?.created_at ? new Date(session.created_at).getTime() : Date.now(),
+    submittedAt: session?.submitted_at ? new Date(session.submitted_at).getTime() : undefined,
+    wineId: fallbackWineId,
+    wineName: row.wine_name?.trim() || wine?.name?.trim() || fallbackWineId,
+    age: row.wine_age ?? wine?.age ?? undefined,
+    producer: row.wine_producer ?? wine?.producer ?? undefined,
+    origin: row.wine_origin
+      ? normalizeOrigin(row.wine_origin)
+      : wine?.origin
+        ? normalizeOrigin(wine.origin)
+        : undefined,
+    category: row.wine_category ?? wine?.category ?? undefined,
+    supplier: row.wine_supplier ?? wine?.supplier ?? undefined,
+    qty: Math.max(0, Number(row.qty ?? 0))
+  };
+}
+
 export async function listSubmittedDischargeItemsForAi(limit = 500): Promise<DischargeSessionItemDetail[]> {
   const client = requireSupabase();
 
-  const { data, error } = await client
+  const baseQuery = client
     .from('discharge_session_items')
-    .select(
-      'session_id, wine_id, qty, discharge_sessions!inner(status, created_at, submitted_at), wines(name, age, producer, origin, category, supplier)'
-    )
+    .select(SESSION_ITEMS_SELECT_WITH_SNAPSHOT)
     .eq('discharge_sessions.status', 'submitted')
     .order('submitted_at', { foreignTable: 'discharge_sessions', ascending: false })
     .limit(Math.max(1, Math.min(limit, 2000)));
+  const first = await baseQuery;
+  let data = (first.data ?? null) as SessionItemRow[] | null;
+  let error = first.error;
+  if (first.error && isSchemaColumnError(first.error)) {
+    const legacy = await client
+      .from('discharge_session_items')
+      .select(SESSION_ITEMS_SELECT_LEGACY)
+      .eq('discharge_sessions.status', 'submitted')
+      .order('submitted_at', { foreignTable: 'discharge_sessions', ascending: false })
+      .limit(Math.max(1, Math.min(limit, 2000)));
+    data = (legacy.data ?? null) as SessionItemRow[] | null;
+    error = legacy.error;
+  }
 
   if (error) throw error;
 
-  return ((data ?? []) as SessionItemRow[]).map((row) => {
-    const session = Array.isArray(row.discharge_sessions) ? row.discharge_sessions[0] : row.discharge_sessions;
-    const wine = Array.isArray(row.wines) ? row.wines[0] : row.wines;
-
-    return {
-      sessionId: row.session_id,
-      sessionStatus: session?.status ?? 'submitted',
-      createdAt: session?.created_at ? new Date(session.created_at).getTime() : Date.now(),
-      submittedAt: session?.submitted_at ? new Date(session.submitted_at).getTime() : undefined,
-      wineId: row.wine_id,
-      wineName: wine?.name?.trim() || row.wine_id,
-      age: wine?.age ?? undefined,
-      producer: wine?.producer ?? undefined,
-      origin: wine?.origin ? normalizeOrigin(wine.origin) : undefined,
-      category: wine?.category ?? undefined,
-      supplier: wine?.supplier ?? undefined,
-      qty: Math.max(0, Number(row.qty ?? 0))
-    };
-  });
+  return ((data ?? []) as SessionItemRow[]).map(mapSessionItemRow);
 }
 
 export async function listSubmittedDischargeSessionItems(
@@ -246,35 +329,27 @@ export async function listSubmittedDischargeSessionItems(
 ): Promise<DischargeSessionItemDetail[]> {
   const client = requireSupabase();
 
-  const { data, error } = await client
+  const baseQuery = client
     .from('discharge_session_items')
-    .select(
-      'session_id, wine_id, qty, discharge_sessions!inner(status, created_at, submitted_at), wines(name, age, producer, origin, category, supplier)'
-    )
+    .select(SESSION_ITEMS_SELECT_WITH_SNAPSHOT)
     .eq('session_id', sessionId)
     .eq('discharge_sessions.status', 'submitted');
+  const first = await baseQuery;
+  let data = (first.data ?? null) as SessionItemRow[] | null;
+  let error = first.error;
+  if (first.error && isSchemaColumnError(first.error)) {
+    const legacy = await client
+      .from('discharge_session_items')
+      .select(SESSION_ITEMS_SELECT_LEGACY)
+      .eq('session_id', sessionId)
+      .eq('discharge_sessions.status', 'submitted');
+    data = (legacy.data ?? null) as SessionItemRow[] | null;
+    error = legacy.error;
+  }
 
   if (error) throw error;
 
-  const rows = ((data ?? []) as SessionItemRow[]).map((row) => {
-    const session = Array.isArray(row.discharge_sessions) ? row.discharge_sessions[0] : row.discharge_sessions;
-    const wine = Array.isArray(row.wines) ? row.wines[0] : row.wines;
-
-    return {
-      sessionId: row.session_id,
-      sessionStatus: session?.status ?? 'submitted',
-      createdAt: session?.created_at ? new Date(session.created_at).getTime() : Date.now(),
-      submittedAt: session?.submitted_at ? new Date(session.submitted_at).getTime() : undefined,
-      wineId: row.wine_id,
-      wineName: wine?.name?.trim() || row.wine_id,
-      age: wine?.age ?? undefined,
-      producer: wine?.producer ?? undefined,
-      origin: wine?.origin ? normalizeOrigin(wine.origin) : undefined,
-      category: wine?.category ?? undefined,
-      supplier: wine?.supplier ?? undefined,
-      qty: Math.max(0, Number(row.qty ?? 0))
-    } satisfies DischargeSessionItemDetail;
-  });
+  const rows = ((data ?? []) as SessionItemRow[]).map((row) => mapSessionItemRow(row));
 
   rows.sort((a, b) => b.qty - a.qty || a.wineName.localeCompare(b.wineName, 'it-IT'));
   return rows;

@@ -69,8 +69,9 @@ Ultimo aggiornamento: **15/03/2026 23:05 CET**.
   - reset storico con **doppia conferma**
 - Sessioni sospese:
   - rimosse dal flusso operativo e dalla UI admin.
-- Reset totale:
-  - cancella inventario locale + storico + sospesi con **doppia conferma**
+- Reset archivio:
+  - cancella archivio vini su Supabase con **doppia conferma** + PIN
+  - storico sessioni preservato
 
 ## Fuori scope (baseline)
 

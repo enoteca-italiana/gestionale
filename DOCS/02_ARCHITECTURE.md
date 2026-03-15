@@ -106,6 +106,7 @@ Standard UI dati vino:
 
 - `src/data/dischargeRepository.ts`
   - query `discharge_sessions` / `discharge_session_items`
+  - snapshot metadati vino su item sessione (`wine_name`, `wine_age`, `wine_producer`, `wine_origin`, `wine_category`, `wine_supplier`) per mantenere lo storico leggibile anche con vino rimosso
   - submit via RPC `submit_discharge_session`
 - `src/data/useDischargeSessions.ts`
   - hook admin per storico/sospesi da Supabase
