@@ -13,9 +13,6 @@ export function AdminHome({ onOpen }: { onOpen: (section: AdminRootSection) => v
         <button className="button adminHomeAction" type="button" onClick={() => onOpen('history')}>
           Sessioni storico
         </button>
-        <button className="button adminHomeAction" type="button" onClick={() => onOpen('import')}>
-          Importa archivio
-        </button>
         <button
           className="button adminHomeAction"
           type="button"
@@ -32,6 +29,9 @@ export function AdminHome({ onOpen }: { onOpen: (section: AdminRootSection) => v
           onClick={() => onOpen('pinRequest')}
         >
           Richiesta PIN
+        </button>
+        <button className="button adminHomeAction" type="button" onClick={() => onOpen('import')}>
+          Importa archivio
         </button>
         <button className="button adminHomeAction" type="button" onClick={() => onOpen('reset')}>
           Reset archivio

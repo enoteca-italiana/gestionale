@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **16/03/2026 23:46 CET**.
+Ultimo aggiornamento: **17/03/2026 00:04 CET**.
 
 ## Scopo di questo file
 
@@ -37,6 +37,40 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
   - `npm run test` ✅ (15 test)
   - `npm run build` ✅
   - `npm run test:coverage` non disponibile negli script root correnti (`Missing script`).
+
+## Ultimi aggiornamenti (17/03/2026 - wave 16, tuning UX import/home + hardening performance)
+
+- Home (`/`):
+  - aggiunto pulsante refresh forzato (icona frecce) sulla stessa riga di `Inizia sessione di scarico`, allineato a destra;
+  - action: riallinea inventory con refresh esplicito da repository;
+  - bordo pulsante ribilanciato a tono meno marcato mantenendo stile coerente.
+- Admin Home (`/admin`):
+  - riordinati pulsanti azioni rapide:
+    - `Sessioni storico`, `Imposta Soglie`, `Aggiorna password`, `Richiesta PIN`, `Importa archivio`, `Reset archivio`.
+- Import CSV (`AdminSettings`):
+  - nel primo modale import, dopo completamento:
+    - rimosso box `Scegli file`;
+    - visibili solo titolo, testo esito centrato e pulsante `Chiudi` (viola);
+    - sottotitolo operativo nascosto nello stato completato.
+  - testo esito aggiornato:
+    - sostituzione: `Import completato: N Vini`;
+    - aggiunta: `Import completato: aggiunti N Vini`.
+- Filtri archivio (`/admina`):
+  - dopo creazione di un nuovo valore da `+ Aggiungi ...` nelle tendine
+    (`Categoria`, `Produttore`, `Provenienza`, `Fornitore`),
+    il filtro resta sempre su default `Tutte/Tutti` (`all`).
+- Performance hardening risk-zero:
+  - eliminata scrittura ridondante su localStorage durante `refreshInventory` (hook aggiorna solo stato UI);
+  - introdotto guard di persistenza (`sameInventory`) per non salvare/propagare inventory invariata;
+  - polling stato nota Home alleggerito (`12s`) mantenendo sync su eventi focus/pageshow/visibility.
+- Quality gate finale:
+  - `npm run format:check` ✅
+  - `npm run typecheck` ✅
+  - `npm run lint` ✅
+  - `npm run test` ✅ (15 test)
+  - `npm run build` ✅
+- Hygiene:
+  - nessun marker conflitto merge rilevato.
 
 ## Ultimi aggiornamenti (16/03/2026 - wave 14, hardening finale sync/archivio)
 

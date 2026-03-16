@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **16/03/2026 23:46 CET**.
+Ultimo aggiornamento: **17/03/2026 00:04 CET**.
 
 ## Accesso
 
@@ -24,9 +24,10 @@ Hook: `apps/scarichi-vini/src/pages/admin/useAdminAuth.ts`
 Azioni rapide disponibili direttamente in home admin, in questo ordine:
 
 - `Sessioni storico`
-- `Importa archivio`
 - `Imposta Soglie`
 - `Aggiorna password`
+- `Richiesta PIN`
+- `Importa archivio`
 - `Reset archivio`
 
 Note:
@@ -62,6 +63,11 @@ Flusso operativo aggiornato:
   - `Aggiungi record ad archivio esistente`
   - `Sostituisci intero archivio con il CSV`
 - step 3: conferma finale con `PIN admin` obbligatorio.
+- step 4 (post-import riuscito): nel modale restano solo:
+  - titolo `Importa archivio CSV`
+  - messaggio centrato `Import completato: ... Vini`
+  - pulsante `Chiudi` (viola)
+  - box `Scegli file` non visibile nello stato completato.
 
 Vincolo sicurezza:
 
@@ -191,6 +197,7 @@ Funzioni principali:
   - `+ Aggiungi provenienza…`
   - `+ Aggiungi fornitore…`
   - nelle tendine dove presente, la voce `+ Aggiungi...` è la prima opzione visibile.
+  - dopo creazione valore da una tendina filtro, il filtro resta su default `Tutte/Tutti` (`all`).
 - pulsante reset filtri dedicato (tondo bianco, icona frecce viola) tra `Esauriti` e `Aggiungi vino`
   - resetta tutti i filtri allo stato default (`Totale` + select su `Tutti` + ricerca vuota);
   - resetta anche stati tabella (ordinamenti colonne verdi e stati inline aperti).

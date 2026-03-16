@@ -198,8 +198,38 @@ function getLocalInventory(): Wine[] {
   return loadDb().inventory;
 }
 
+function sameWine(a: Wine, b: Wine): boolean {
+  return (
+    a.id === b.id &&
+    a.category === b.category &&
+    a.name === b.name &&
+    a.age === b.age &&
+    a.producer === b.producer &&
+    a.origin === b.origin &&
+    a.supplier === b.supplier &&
+    a.threshold === b.threshold &&
+    a.purchasePrice === b.purchasePrice &&
+    a.salePrice === b.salePrice &&
+    a.vintage === b.vintage &&
+    a.qty === b.qty &&
+    a.warehouse === b.warehouse &&
+    a.margin === b.margin &&
+    a.notes === b.notes
+  );
+}
+
+function sameInventory(prev: Wine[], next: Wine[]): boolean {
+  if (prev === next) return true;
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i += 1) {
+    if (!sameWine(prev[i], next[i])) return false;
+  }
+  return true;
+}
+
 function persistLocalInventory(next: Wine[]) {
   const db = loadDb();
+  if (sameInventory(db.inventory, next)) return;
   saveDb({ ...db, inventory: next });
   notifyDbChanged();
 }

@@ -446,7 +446,7 @@ export function AdminArchiveToolbar({
                 if (value === '__add_category__') {
                   onRequestAddCategory((created) => {
                     if (!created) return;
-                    onFiltersChange({ ...filters, category: created });
+                    onFiltersChange({ ...filters, category: 'all' });
                   });
                   return;
                 }
@@ -476,7 +476,7 @@ export function AdminArchiveToolbar({
                 if (value === '__add_producer__') {
                   onRequestAddProducer((created) => {
                     if (!created) return;
-                    onFiltersChange({ ...filters, producer: created });
+                    onFiltersChange({ ...filters, producer: 'all' });
                   });
                   return;
                 }
@@ -506,7 +506,7 @@ export function AdminArchiveToolbar({
                 if (value === '__add_origin__') {
                   onRequestAddOrigin((created) => {
                     if (!created) return;
-                    onFiltersChange({ ...filters, origin: created });
+                    onFiltersChange({ ...filters, origin: 'all' });
                   });
                   return;
                 }
@@ -536,7 +536,7 @@ export function AdminArchiveToolbar({
                 if (value === '__add_supplier__') {
                   onRequestAddSupplier((created) => {
                     if (!created) return;
-                    onFiltersChange({ ...filters, supplier: created });
+                    onFiltersChange({ ...filters, supplier: 'all' });
                   });
                   return;
                 }

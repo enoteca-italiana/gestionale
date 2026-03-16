@@ -120,17 +120,7 @@ export function useLocalDb() {
     const task = (async () => {
       try {
         const wines = await listWines();
-        setDb((prev) => {
-          const next = { ...prev, inventory: wines };
-          pendingDbRef.current = next;
-          if (flushTimerRef.current !== null) {
-            window.clearTimeout(flushTimerRef.current);
-            flushTimerRef.current = null;
-          }
-          saveDb(next);
-          notifyDbChanged(sourceIdRef.current);
-          return next;
-        });
+        setDb((prev) => ({ ...prev, inventory: wines }));
         return wines;
       } catch (error) {
         console.error('[useLocalDb] refreshInventory failed', error);

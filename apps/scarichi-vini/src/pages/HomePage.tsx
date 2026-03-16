@@ -16,11 +16,13 @@ import { ResultsList } from '@/pages/home/ResultsList';
 import { SessionConfirmModal } from '@/pages/home/SessionConfirmModal';
 import { SummaryList } from '@/pages/home/SummaryList';
 import { useLocalSession } from '@/pages/home/useLocalSession';
+import { RefreshCcw } from 'lucide-react';
 
 type StockFilter = 'all' | 'threshold' | 'out';
 const INTRO_SEEN_SESSION_KEY = 'scarichi:intro-seen';
 const FORCE_HOME_ONCE_SESSION_KEY = 'scarichi:force-home-once';
 const BEFORE_NAV_EVENT = 'scarichi:beforeNav';
+const READY_NOTE_POLL_MS = 12000;
 
 function isInThreshold(qty: number, threshold?: number) {
   const parsedQty = Number(qty);
@@ -80,6 +82,7 @@ export function HomePage({
   const [pendingNoteQtyByWineId, setPendingNoteQtyByWineId] = useState<Record<string, number>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+  const [forceRefreshBusy, setForceRefreshBusy] = useState(false);
   const [readyDischargeNoteItems, setReadyDischargeNoteItems] = useState<
     {
       wineId: string;
@@ -211,7 +214,7 @@ export function HomePage({
     const poll = window.setInterval(() => {
       if (document.visibilityState !== 'visible') return;
       void syncReadyNote();
-    }, 4000);
+    }, READY_NOTE_POLL_MS);
 
     window.addEventListener(dischargeNoteChangedEvent, onFocus);
     window.addEventListener('focus', onFocus);
@@ -377,6 +380,18 @@ export function HomePage({
     stockFilter !== 'all' ||
     pendingNoteWineIdSet.size > 0;
 
+  const forceRefreshHome = async () => {
+    if (forceRefreshBusy) return;
+    setForceRefreshBusy(true);
+    try {
+      await refreshInventory();
+    } catch (error) {
+      console.error('[HomePage] force refresh failed', error);
+    } finally {
+      setForceRefreshBusy(false);
+    }
+  };
+
   if (showIntro) {
     return (
       <div className="container introLayout">
@@ -396,7 +411,7 @@ export function HomePage({
 
       {!online ? <div className="banner">Offline: conferma sessione non disponibile.</div> : null}
 
-      <div className="mt12">
+      <div className="mt12 homeSessionActionRow">
         {sessionOpen ? (
           <button
             className={`button ${sessionCount > 0 ? 'buttonSessionConfirmActive' : 'buttonSessionConfirmInactive'}`}
@@ -423,6 +438,22 @@ export function HomePage({
               : 'Inizia sessione di scarico'}
           </button>
         )}
+        <button
+          className="homeForceRefreshButton"
+          type="button"
+          aria-label="Refresh forzato app"
+          title="Refresh forzato app"
+          onClick={() => {
+            void forceRefreshHome();
+          }}
+          disabled={forceRefreshBusy}
+        >
+          <RefreshCcw
+            size={18}
+            strokeWidth={2.2}
+            className={forceRefreshBusy ? 'homeForceRefreshIconSpinning' : ''}
+          />
+        </button>
       </div>
 
       <div className="mt12 searchRow">

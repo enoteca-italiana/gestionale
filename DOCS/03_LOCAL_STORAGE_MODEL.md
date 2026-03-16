@@ -1,6 +1,6 @@
 # Modello dati locale (localStorage)
 
-Ultimo aggiornamento: **16/03/2026 23:46 CET**.
+Ultimo aggiornamento: **17/03/2026 00:04 CET**.
 
 ## Obiettivo
 
@@ -57,10 +57,11 @@ Hook: `apps/scarichi-vini/src/data/useLocalDb.ts`
   - emette evento custom `scarichi:dbChanged` via `notifyDbChanged()`
 - `refreshInventory()`:
   - deduplica refresh concorrenti (riusa promise in-flight)
-  - sincronizza inventory da repository e riallinea localStorage
+  - sincronizza inventory da repository e aggiorna stato UI senza doppie scritture locali
 - repository vini (`listWines()`):
   - deduplica query concorrenti verso Supabase (promise in-flight condivisa)
   - limita round-trip ridondanti su mount/refresh ravvicinati
+  - persiste inventory solo se realmente cambiata (guard anti-write ridondanti)
 
 Motivo:
 

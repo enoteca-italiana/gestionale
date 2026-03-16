@@ -104,6 +104,57 @@
   align-items: center;
 }
 
+.homeSessionActionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.homeForceRefreshButton {
+  appearance: none;
+  border: 1px solid #b57a9a;
+  background: #ffffff;
+  color: #7c164a;
+  border-radius: 999px;
+  width: 42px;
+  height: 42px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.homeForceRefreshButton:hover {
+  border-color: #9d5f81;
+  background: #fdf9fb;
+}
+
+.homeForceRefreshButton:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.homeForceRefreshButton svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+.homeForceRefreshIconSpinning {
+  animation: homeForceRefreshSpin 900ms linear infinite;
+}
+
+@keyframes homeForceRefreshSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .inputSearchCompact {
   padding: 12px 14px;
 }

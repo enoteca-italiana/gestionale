@@ -150,10 +150,10 @@ export function AdminSettings({
     try {
       if (importMode === 'append') {
         await appendWines(importRows);
-        setImportOk(`Import completato: aggiunti ${importRows.length} record`);
+        setImportOk(`Import completato: aggiunti ${importRows.length} Vini`);
       } else {
         await replaceAllWines(importRows);
-        setImportOk(`Import completato: ${importRows.length} record`);
+        setImportOk(`Import completato: ${importRows.length} Vini`);
       }
       setImportRows(null);
       setImportFile(null);
@@ -594,59 +594,83 @@ export function AdminSettings({
       {importModalOpen ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
-            <div className="modalTitle">Importa archivio CSV</div>
-            <div className="modalDescription">
-              Seleziona il file CSV. La scelta tra aggiunta o sostituzione completa verrà richiesta
-              al click su Importa archivio.
-            </div>
+            <div className={`modalTitle ${importOk ? 'centered' : ''}`}>Importa archivio CSV</div>
+            {!importOk ? (
+              <div className="modalDescription">
+                La scelta tra aggiunta o sostituzione completa verrà richiesta succesivamente.
+              </div>
+            ) : null}
 
-            <div className="mt12">
-              <input
-                className="input adminInput"
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null;
-                  setImportFile(file);
-                  setImportRows(null);
-                  setImportError(null);
-                  setImportOk(null);
-                }}
-              />
-            </div>
-            {importFile ? (
-              <div className="subtle mt8">File selezionato: {importFile.name}</div>
+            {!importOk ? (
+              <>
+                <div className="mt12">
+                  <input
+                    className="input adminInput"
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setImportFile(file);
+                      setImportRows(null);
+                      setImportError(null);
+                      setImportOk(null);
+                    }}
+                  />
+                </div>
+                {importFile ? (
+                  <div className="subtle mt8">File selezionato: {importFile.name}</div>
+                ) : null}
+              </>
             ) : null}
             {importError ? <div className="errorText mt10">{importError}</div> : null}
-            {importOk ? <div className="okText mt10">{importOk}</div> : null}
+            {importOk ? <div className="okText mt10 centered">{importOk}</div> : null}
 
             <div className="modalActions">
-              <button
-                className={`button adminImportArchiveButton ${
-                  importFile && !importBusy
-                    ? 'adminImportArchiveButtonReady'
-                    : 'adminImportArchiveButtonIdle'
-                }`}
-                type="button"
-                disabled={!importFile || importBusy}
-                onClick={() => void prepareImport()}
-              >
-                Importa archivio
-              </button>
-              <button
-                className="button buttonSecondary buttonCancel"
-                type="button"
-                onClick={() => {
-                  if (importBusy) return;
-                  setImportModalOpen(false);
-                  setImportConfirm(false);
-                  setImportPinConfirm(false);
-                  setImportPin('');
-                  setImportPinError(null);
-                }}
-              >
-                Annulla
-              </button>
+              {importOk ? (
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => {
+                    if (importBusy) return;
+                    setImportModalOpen(false);
+                    setImportConfirm(false);
+                    setImportPinConfirm(false);
+                    setImportPin('');
+                    setImportPinError(null);
+                  }}
+                >
+                  Chiudi
+                </button>
+              ) : (
+                <>
+                  <button
+                    className={`button adminImportArchiveButton ${
+                      importFile && !importBusy
+                        ? 'adminImportArchiveButtonReady'
+                        : 'adminImportArchiveButtonIdle'
+                    }`}
+                    type="button"
+                    disabled={!importFile || importBusy}
+                    onClick={() => void prepareImport()}
+                  >
+                    Importa archivio
+                  </button>
+                  <button
+                    className="button buttonSecondary buttonCancel"
+                    type="button"
+                    onClick={() => {
+                      if (importBusy) return;
+                      setImportModalOpen(false);
+                      setImportConfirm(false);
+                      setImportPinConfirm(false);
+                      setImportPin('');
+                      setImportPinError(null);
+                    }}
+                  >
+                    Annulla
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
