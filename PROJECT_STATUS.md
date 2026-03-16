@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **16/03/2026 15:12 CET**.
+Ultimo aggiornamento: **16/03/2026 15:46 CET**.
 
 ## Scopo di questo file
 
@@ -241,6 +241,31 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
   - nessun marker di conflitto;
   - quality gate rieseguito completo.
 - Quality gate post-wave 10:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run test` ✅
+  - `npm run build` ✅
+
+## Ultimi aggiornamenti (16/03/2026 - wave 11, Nota Scarico semplificata + storico)
+
+- Archivio `/admina`:
+  - rimossa la segnalazione bloccante “nota precedente da concludere” nel drawer;
+  - dopo `Conferma nota scarico`, la bozza si resetta subito per nuova compilazione;
+  - aggiunto mini-storico in basso con le ultime 3 note `completed`:
+    - `Reinvia` (riattiva la nota in Home come `ready`);
+    - `Elimina` (rimozione storica).
+- Toolbar archivio:
+  - stato pulsante `Nota` semplificato: verde solo con bozza valorizzata (`draftItemsCount > 0`) o nota `ready` (non più `in_progress`).
+- Home mobile/sessione:
+  - caricamento da nota mantenuto nella lista risultati fino a conferma puntuale dei vini (non va più in schermata vuota);
+  - ogni vino della nota entra nel riepilogo solo dopo conferma nel modale vino.
+- Hygiene codice:
+  - rimossa funzione non usata `startSessionWithItems` (`useLocalSession`);
+  - rimosse classi CSS obsolete non referenziate;
+  - eliminata notifica evento ridondante nel reinvio nota.
+- SQL/Supabase:
+  - nessuna migrazione schema obbligatoria per wave 11 (si riusano tabelle/RPC già operative).
+- Quality gate post-wave 11:
   - `npm run lint` ✅
   - `npm run typecheck` ✅
   - `npm run test` ✅

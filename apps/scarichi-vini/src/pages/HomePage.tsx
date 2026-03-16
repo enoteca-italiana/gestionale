@@ -79,6 +79,7 @@ export function HomePage({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leaveSessionConfirmOpen, setLeaveSessionConfirmOpen] = useState(false);
   const [pendingNavPath, setPendingNavPath] = useState<string | null>(null);
+  const [pendingNoteQtyByWineId, setPendingNoteQtyByWineId] = useState<Record<string, number>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [readyDischargeNoteItems, setReadyDischargeNoteItems] = useState<{
@@ -101,7 +102,6 @@ export function HomePage({
     resetSession,
     endSession,
     startSession,
-    startSessionWithItems,
     addToSession,
     incrementItem,
     decrementItem,
@@ -136,22 +136,33 @@ export function HomePage({
   }, [refreshInventory]);
 
   useEffect(() => {
-    if (!sessionOpen || sessionCount <= 0) return;
+    if (!sessionOpen) return;
 
     const onBeforeNav = (event: Event) => {
       const navEvent = event as CustomEvent<{ href?: string }>;
       const href = navEvent.detail?.href;
       if (!href) return;
-      navEvent.preventDefault();
-      setPendingNavPath(href);
-      setLeaveSessionConfirmOpen(true);
+
+      // If session is open but summary is empty, allow quick return to Home
+      // by closing the session immediately (no confirmation modal needed).
+      if (sessionCount <= 0 && href === '/') {
+        endSession();
+        setPendingNoteQtyByWineId({});
+        return;
+      }
+
+      if (sessionCount > 0) {
+        navEvent.preventDefault();
+        setPendingNavPath(href);
+        setLeaveSessionConfirmOpen(true);
+      }
     };
 
     window.addEventListener(BEFORE_NAV_EVENT, onBeforeNav as EventListener);
     return () => {
       window.removeEventListener(BEFORE_NAV_EVENT, onBeforeNav as EventListener);
     };
-  }, [location, sessionCount, sessionOpen]);
+  }, [endSession, sessionCount, sessionOpen]);
 
   useEffect(() => {
     let alive = true;
@@ -195,6 +206,12 @@ export function HomePage({
     setPendingNavPath(null);
   }, [leaveSessionConfirmOpen, pendingNavPath, sessionCount, sessionOpen]);
 
+  useEffect(() => {
+    if (!sessionOpen && Object.keys(pendingNoteQtyByWineId).length > 0) {
+      setPendingNoteQtyByWineId({});
+    }
+  }, [pendingNoteQtyByWineId, sessionOpen]);
+
   const confirmSubmit = () => {
     if (sessionCount <= 0) return;
     setConfirmOpen(true);
@@ -206,7 +223,14 @@ export function HomePage({
       startSession();
       return;
     }
-    startSessionWithItems(noteItems);
+    startSession();
+    setPendingNoteQtyByWineId(
+      Object.fromEntries(
+        noteItems
+          .filter((item) => item.qty > 0)
+          .map((item) => [item.wineId, Math.max(1, Math.min(99, Math.round(item.qty)))])
+      )
+    );
     setReadyDischargeNoteItems([]);
     setToast('Nota scarico caricata');
   };
@@ -228,6 +252,7 @@ export function HomePage({
         expectedQtyByWineId
       });
       await completeInProgressDischargeNote();
+      setPendingNoteQtyByWineId({});
       setReadyDischargeNoteItems([]);
       await refreshInventory();
       setToast('Sessione inviata');
@@ -262,6 +287,13 @@ export function HomePage({
     for (const i of sessionList) m.set(i.wineId, i.qty);
     return m;
   }, [sessionList]);
+  const pendingNoteWineIdSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const [wineId, qty] of Object.entries(pendingNoteQtyByWineId)) {
+      if (qty > 0 && !sessionQtyByWineId.has(wineId)) set.add(wineId);
+    }
+    return set;
+  }, [pendingNoteQtyByWineId, sessionQtyByWineId]);
   const inventoryQtyByWineId = useMemo(() => {
     const m = new Map<string, number>();
     for (const wine of inventory) m.set(wine.id, wine.qty);
@@ -272,18 +304,47 @@ export function HomePage({
     const winesAvailableForSelection = sessionOpen
       ? filtered.filter((wine) => !sessionQtyByWineId.has(wine.id))
       : filtered;
+    const pendingNoteModeActive =
+      sessionOpen &&
+      pendingNoteWineIdSet.size > 0 &&
+      query.trim().length === 0 &&
+      stockFilter === 'all';
+    const baseSelection = pendingNoteModeActive
+      ? winesAvailableForSelection.filter((wine) => pendingNoteWineIdSet.has(wine.id))
+      : winesAvailableForSelection;
 
     if (stockFilter === 'threshold') {
-      return winesAvailableForSelection.filter((wine) => isInThreshold(wine.qty, wine.threshold));
+      return baseSelection.filter((wine) => isInThreshold(wine.qty, wine.threshold));
     }
     if (stockFilter === 'out') {
-      return winesAvailableForSelection.filter((wine) => wine.qty <= 0);
+      return baseSelection.filter((wine) => wine.qty <= 0);
     }
-    return winesAvailableForSelection;
-  }, [filtered, sessionOpen, sessionQtyByWineId, stockFilter]);
+    return baseSelection;
+  }, [filtered, pendingNoteWineIdSet, query, sessionOpen, sessionQtyByWineId, stockFilter]);
+
+  const confirmPendingNoteWine = (wineId: string, targetQty: number) => {
+    const currentQty = getSessionQty(wineId);
+    const roundedTarget = Math.max(0, Math.min(99, Math.round(targetQty)));
+    if (roundedTarget > currentQty) {
+      addToSession(wineId, roundedTarget - currentQty);
+    } else if (roundedTarget < currentQty) {
+      const toRemove = currentQty - roundedTarget;
+      for (let i = 0; i < toRemove; i += 1) {
+        decrementItem(wineId);
+      }
+    }
+
+    setPendingNoteQtyByWineId((prev) => {
+      if (!(wineId in prev)) return prev;
+      const next = { ...prev };
+      delete next[wineId];
+      return next;
+    });
+  };
 
   const getSessionQty = (wineId: string) => sessionQtyByWineId.get(wineId) ?? 0;
-  const showResults = !sessionOpen || query.trim().length > 0 || stockFilter !== 'all';
+  const showResults =
+    !sessionOpen || query.trim().length > 0 || stockFilter !== 'all' || pendingNoteWineIdSet.size > 0;
 
   if (showIntro) {
     return (
@@ -369,6 +430,8 @@ export function HomePage({
             sessionOpen={sessionOpen}
             interactive={sessionOpen}
             getSessionQty={sessionOpen ? getSessionQty : undefined}
+            getPendingNoteQty={sessionOpen ? (wineId) => pendingNoteQtyByWineId[wineId] ?? 0 : undefined}
+            onConfirmPendingNote={sessionOpen ? confirmPendingNoteWine : undefined}
             onIncrement={sessionOpen ? (wineId) => addToSession(wineId, 1) : undefined}
             onDecrement={sessionOpen ? (wineId) => decrementItem(wineId) : undefined}
           />

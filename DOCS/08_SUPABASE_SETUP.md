@@ -1,6 +1,6 @@
 # Supabase Setup
 
-Ultimo aggiornamento: **16/03/2026 15:12 CET**.
+Ultimo aggiornamento: **16/03/2026 15:46 CET**.
 
 ## Stato attuale
 
@@ -45,6 +45,10 @@ Conferme principali:
   - Home avvia nota pronta con RPC `start_ready_discharge_note`
   - submit sessione chiude nota con RPC `complete_in_progress_discharge_note`
   - stato UI archivio/home letto da RPC `get_discharge_note_state`
+  - storico ultime note in archivio letto da `discharge_notes.status = 'completed'` + `discharge_note_items`
+  - reinvio nota storico: riuso items storici -> nuova bozza -> conferma (`ready`)
+  - eliminazione storico: delete su `discharge_note_items` + `discharge_notes` per nota `completed`
+  - per questa evoluzione non sono richieste nuove migrazioni SQL (schema/RPC attuali già compatibili)
 
 ## Variabili ambiente usate dall'app
 

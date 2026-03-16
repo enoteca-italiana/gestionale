@@ -6,8 +6,11 @@ import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
 import { dischargeNoteChangedEvent } from '@/data/dischargeNote';
 import {
   confirmDischargeNoteDraft,
-  getDischargeNoteState,
+  deleteCompletedDischargeNote,
+  type DischargeNoteHistoryEntry,
+  listRecentCompletedDischargeNotes,
   loadDraftDischargeNote,
+  resendCompletedDischargeNote,
   saveDischargeNoteDraft
 } from '@/data/dischargeNoteRepository';
 
@@ -48,12 +51,17 @@ export function DischargeNoteDrawer({
   const [updatedAt, setUpdatedAt] = useState<number>(Date.now());
   const [itemsByWineId, setItemsByWineId] = useState<Record<string, number>>({});
   const [confirmReadyOpen, setConfirmReadyOpen] = useState(false);
-  const [noteInProgress, setNoteInProgress] = useState(false);
+  const [recentNotes, setRecentNotes] = useState<DischargeNoteHistoryEntry[]>([]);
+  const [historyBusyNoteId, setHistoryBusyNoteId] = useState<string | null>(null);
+  const [historyFeedback, setHistoryFeedback] = useState<string | null>(null);
 
   const refreshNote = useCallback(async () => {
     try {
-      const [state, draft] = await Promise.all([getDischargeNoteState(), loadDraftDischargeNote()]);
-      setNoteInProgress(state.hasInProgress);
+      const [draft, history] = await Promise.all([
+        loadDraftDischargeNote(),
+        listRecentCompletedDischargeNotes(3)
+      ]);
+      setRecentNotes(history);
       if (draft) {
         setItemsByWineId(mapItems(draft.items));
         setUpdatedAt(draft.updatedAt);
@@ -160,7 +168,6 @@ export function DischargeNoteDrawer({
   };
 
   const applyConfirmNote = async () => {
-    if (noteInProgress) return;
     try {
       await confirmDischargeNoteDraft();
       setItemsByWineId({});
@@ -172,6 +179,38 @@ export function DischargeNoteDrawer({
       console.error('[DischargeNoteDrawer] confirm note failed', error);
       await refreshNote();
       setConfirmReadyOpen(false);
+    }
+  };
+
+  const resendHistory = async (noteId: string) => {
+    if (historyBusyNoteId) return;
+    setHistoryBusyNoteId(noteId);
+    setHistoryFeedback(null);
+    try {
+      await resendCompletedDischargeNote(noteId);
+      await refreshNote();
+      setHistoryFeedback('Nota reinviata in Home.');
+    } catch (error) {
+      console.error('[DischargeNoteDrawer] resend history failed', error);
+      setHistoryFeedback('Impossibile reinviare la nota.');
+    } finally {
+      setHistoryBusyNoteId(null);
+    }
+  };
+
+  const deleteHistory = async (noteId: string) => {
+    if (historyBusyNoteId) return;
+    setHistoryBusyNoteId(noteId);
+    setHistoryFeedback(null);
+    try {
+      await deleteCompletedDischargeNote(noteId);
+      await refreshNote();
+      setHistoryFeedback('Nota rimossa dallo storico.');
+    } catch (error) {
+      console.error('[DischargeNoteDrawer] delete history failed', error);
+      setHistoryFeedback('Impossibile eliminare la nota.');
+    } finally {
+      setHistoryBusyNoteId(null);
     }
   };
 
@@ -204,12 +243,6 @@ export function DischargeNoteDrawer({
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-
-        {noteInProgress ? (
-          <div className="archiveNoteWarning mt10">
-            Nota scarico precedente ancora da concludere in Home.
-          </div>
-        ) : null}
 
         {suggestions.length > 0 ? (
           <div className="archiveNoteSuggestions" role="list" aria-label="Suggerimenti vini">
@@ -281,6 +314,57 @@ export function DischargeNoteDrawer({
           )}
         </div>
 
+        <div className="archiveNoteHistory mt10">
+          <div className="archiveNoteSectionTitle">Ultime note inviate</div>
+          {historyFeedback ? <div className="archiveNoteSubtle mt4">{historyFeedback}</div> : null}
+          <div className="archiveNoteHistoryList" role="list" aria-label="Storico ultime note">
+            {recentNotes.length === 0 ? (
+              <div className="archiveNoteEmpty">Nessuna nota recente.</div>
+            ) : (
+              recentNotes.map((note) => {
+                const previewNames = note.items
+                  .slice(0, 2)
+                  .map((item) => winesById.get(item.wineId)?.name)
+                  .filter(Boolean)
+                  .join(' • ');
+                const busy = historyBusyNoteId === note.id;
+                return (
+                  <div key={note.id} className="archiveNoteHistoryRow" role="listitem">
+                    <div className="min0">
+                      <div className="archiveNoteHistoryTitleLine">
+                        {formatDateLabel(note.noteDate)} · {note.itemsCount} vini · {note.totalBottles} bott.
+                      </div>
+                      <div className="archiveNoteHistoryPreview">{previewNames || 'Nomi vini non disponibili'}</div>
+                    </div>
+                    <div className="archiveNoteHistoryActions">
+                      <button
+                        className="archiveNoteHistoryActionButton"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          void resendHistory(note.id);
+                        }}
+                      >
+                        Reinvia
+                      </button>
+                      <button
+                        className="archiveNoteHistoryDeleteButton"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          void deleteHistory(note.id);
+                        }}
+                      >
+                        Elimina
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
         <div className="archiveNoteFooter">
           <button className="button buttonSecondary archiveNoteFooterButton" type="button" onClick={clearAll}>
             Svuota nota
@@ -289,7 +373,7 @@ export function DischargeNoteDrawer({
             className="button buttonSessionConfirmActive archiveNoteFooterButton"
             type="button"
             onClick={() => setConfirmReadyOpen(true)}
-            disabled={noteRows.length === 0 || noteInProgress}
+            disabled={noteRows.length === 0}
           >
             Conferma nota scarico
           </button>

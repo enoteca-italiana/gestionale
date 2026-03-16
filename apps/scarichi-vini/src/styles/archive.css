@@ -443,16 +443,6 @@
   font-size: 14px;
 }
 
-.archiveNoteWarning {
-  border: 1px solid #f59e0b;
-  background: #fff7ed;
-  color: #9a3412;
-  border-radius: 12px;
-  padding: 9px 11px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .archiveNoteSectionTitle {
   font-size: 16px;
   font-weight: 700;
@@ -567,6 +557,88 @@
   padding: 14px;
   color: #6b7280;
   font-size: 13px;
+}
+
+.archiveNoteHistory {
+  margin-top: 8px;
+}
+
+.archiveNoteHistoryList {
+  margin-top: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  max-height: 170px;
+  overflow: auto;
+}
+
+.archiveNoteHistoryRow {
+  padding: 8px 10px;
+  border-top: 1px solid #eef2f7;
+  display: grid;
+  gap: 7px;
+}
+
+.archiveNoteHistoryRow:first-child {
+  border-top: 0;
+}
+
+.archiveNoteHistoryTitleLine {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.08px;
+}
+
+.archiveNoteHistoryPreview {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archiveNoteHistoryActions {
+  display: flex;
+  gap: 6px;
+}
+
+.archiveNoteHistoryActionButton,
+.archiveNoteHistoryDeleteButton {
+  appearance: none;
+  border-radius: 9px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.archiveNoteHistoryActionButton {
+  border: 1px solid #15803d;
+  background: #ffffff;
+  color: #166534;
+}
+
+.archiveNoteHistoryActionButton:hover {
+  background: #f0fdf4;
+}
+
+.archiveNoteHistoryDeleteButton {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #b91c1c;
+}
+
+.archiveNoteHistoryDeleteButton:hover {
+  background: #fee2e2;
+}
+
+.archiveNoteHistoryActionButton:disabled,
+.archiveNoteHistoryDeleteButton:disabled {
+  opacity: 0.58;
+  cursor: wait;
 }
 
 .archiveNoteFooter {

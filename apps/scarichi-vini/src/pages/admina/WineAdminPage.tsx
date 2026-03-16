@@ -105,7 +105,7 @@ export function WineAdminPage() {
       try {
         const state = await getDischargeNoteState();
         if (!alive) return;
-        setHasDischargeNote(state.hasDraft || state.hasReady || state.hasInProgress);
+        setHasDischargeNote(state.hasReady || state.draftItemsCount > 0);
       } catch (error) {
         console.error('[WineAdminPage] sync discharge note state failed', error);
       }

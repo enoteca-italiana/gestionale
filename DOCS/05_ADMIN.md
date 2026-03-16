@@ -197,14 +197,17 @@ Comportamento operativo:
 
 - pulsante `Nota` in toolbar archivio:
   - è il primo controllo nella riga filtri;
-  - diventa verde (testo bianco) quando esiste nota con contenuto (`draft`, `ready`, `in_progress`);
+  - diventa verde (testo bianco) quando esiste nota con contenuto in stato `draft` o `ready`;
 - drawer laterale sx rapido:
   - titolo `Nota Scarico` + data (`16 Marzo 2026`);
   - input ricerca unificato `Cerca vino...`;
   - ricerca per `nome`, `produttore`, `fornitore`, `provenienza`;
   - vini già presenti nella nota non vengono riproposti nel box risultati;
   - lista nota con selector quantità `1..99` e pulsante cestino;
-  - azioni in footer: `Svuota nota`, `Conferma nota scarico`.
+  - azioni in footer: `Svuota nota`, `Conferma nota scarico`;
+  - sezione in basso `Ultime note inviate` (max 3) con azioni:
+    - `Reinvia` (rimette la nota pronta per Home);
+    - `Elimina` (rimozione dallo storico).
 
 Stati nota:
 
@@ -216,9 +219,7 @@ Stati nota:
 Vincoli:
 
 - conferma nota con modale dedicato;
-- se esiste nota `in_progress`, in drawer appare avviso:
-  - `Nota scarico precedente ancora da concludere in Home.`
-  - conferma nuova nota bloccata finché non viene conclusa la precedente.
+- dopo conferma nota, il drawer si resetta e resta subito pronto a una nuova bozza.
 
 Persistenza:
 
