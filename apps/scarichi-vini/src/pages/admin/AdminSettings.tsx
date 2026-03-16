@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { storageKeys } from '@/pages/admin/storage';
+import { getBool, setBool, storageKeys } from '@/pages/admin/storage';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { parseArchiveCsv, type ArchiveCsvWineInput } from '@/data/archiveCsv';
 import { replaceAllWines, updateThresholdForAllWines } from '@/data/wineRepository';
@@ -18,7 +18,7 @@ export function AdminSettings({
   onLogout: () => void;
   onHardReset: () => Promise<void>;
   onBack?: () => void;
-  openAction?: 'password' | 'import' | 'threshold' | 'reset' | null;
+  openAction?: 'password' | 'import' | 'threshold' | 'pinRequest' | 'reset' | null;
   onActionHandled?: () => void;
   hidePanel?: boolean;
 }) {
@@ -48,6 +48,10 @@ export function AdminSettings({
   const [thresholdPin, setThresholdPin] = useState('');
   const [thresholdPinError, setThresholdPinError] = useState<string | null>(null);
   const [thresholdBusy, setThresholdBusy] = useState(false);
+  const [appPinModalOpen, setAppPinModalOpen] = useState(false);
+  const [appPinRequiredOnStart, setAppPinRequiredOnStart] = useState<boolean>(() =>
+    getBool(storageKeys.appPinRequiredOnStart, false)
+  );
 
   const canChange = useMemo(
     () => currentPassword.length > 0 && newPassword.length >= 4,
@@ -77,6 +81,12 @@ export function AdminSettings({
       setThresholdPin('');
       setThresholdValue('');
       setThresholdModalOpen(true);
+      onActionHandled?.();
+      return;
+    }
+    if (openAction === 'pinRequest') {
+      setAppPinRequiredOnStart(getBool(storageKeys.appPinRequiredOnStart, false));
+      setAppPinModalOpen(true);
       onActionHandled?.();
       return;
     }
@@ -241,9 +251,42 @@ export function AdminSettings({
         </div>
       ) : null}
 
+      {appPinModalOpen ? (
+        <div className="modalOverlay" role="dialog" aria-modal="true">
+          <div className="modalCard adminSettingsModalCard">
+            <div className="modalTitle centered">Richiesta PIN</div>
+            <div className="modalDescription centered">
+              Attiva o disattiva la richiesta PIN all&apos;avvio app.
+            </div>
+            <div className="mt12 centered">
+              <button
+                className={`button buttonAuto ${appPinRequiredOnStart ? 'buttonSessionConfirmActive' : ''}`}
+                type="button"
+                onClick={() => {
+                  const next = !appPinRequiredOnStart;
+                  setBool(storageKeys.appPinRequiredOnStart, next);
+                  setAppPinRequiredOnStart(next);
+                }}
+              >
+                {appPinRequiredOnStart ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            <div className="modalActions">
+              <button
+                className="button buttonSecondary buttonCancel"
+                type="button"
+                onClick={() => setAppPinModalOpen(false)}
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {thresholdModalOpen ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modalCard">
+          <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Imposta soglia unica</div>
             <div className="modalDescription">
               Imposta un valore soglia uguale per tutti i vini in archivio.
@@ -312,6 +355,7 @@ export function AdminSettings({
 
       <ConfirmModal
         open={thresholdConfirm1}
+        cardClassName="adminSettingsModalCard"
         title="Confermare nuova soglia?"
         description={`Confermando, tutti i vini in archivio verranno aggiornati con la soglia ${
           parseThresholdValue() ?? 'selezionata'
@@ -329,7 +373,7 @@ export function AdminSettings({
 
       {thresholdConfirm2 ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modalCard">
+          <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Conferma modifica soglie</div>
             <div className="modalDescription">
               Inserisci il PIN admin per applicare la soglia a tutti i vini in archivio.
@@ -381,6 +425,7 @@ export function AdminSettings({
 
       <ConfirmModal
         open={reset1}
+        cardClassName="adminSettingsModalCard"
         title="Reset archivio?"
         description="Verrà cancellato l'archivio vini su Supabase. Lo storico sessioni non verrà modificato."
         confirmLabel="Continua"
@@ -396,7 +441,7 @@ export function AdminSettings({
 
       {reset2 ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modalCard">
+          <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Conferma reset archivio</div>
             <div className="modalDescription">
               Inserisci il PIN admin per confermare l&apos;eliminazione definitiva dell&apos;archivio vini.
@@ -449,7 +494,7 @@ export function AdminSettings({
 
       {passwordModalOpen ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modalCard">
+          <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Aggiorna password admin</div>
             <div className="modalDescription">Inserisci password attuale e nuova password.</div>
 
@@ -504,7 +549,7 @@ export function AdminSettings({
 
       {importModalOpen ? (
         <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modalCard">
+          <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Importa archivio CSV</div>
             <div className="modalDescription">
               Il CSV sostituirà completamente l&apos;archivio attuale.
@@ -554,6 +599,7 @@ export function AdminSettings({
 
       <ConfirmModal
         open={passwordConfirmOpen}
+        cardClassName="adminSettingsModalCard"
         title="Confermare aggiornamento password?"
         description="La password admin verrà modificata con il nuovo valore inserito."
         confirmLabel={busy ? 'Aggiornamento…' : 'Sì, aggiorna password'}
@@ -570,6 +616,7 @@ export function AdminSettings({
 
       <ConfirmModal
         open={importConfirm}
+        cardClassName="adminSettingsModalCard"
         title="Confermare import archivio?"
         description={
           importRows

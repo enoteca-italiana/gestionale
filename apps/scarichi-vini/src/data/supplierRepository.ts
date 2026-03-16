@@ -1,10 +1,11 @@
 import type { Wine } from '@/domain/types';
 import { supabase } from '@/lib/supabase';
+import { normalizeWineSupplier } from '@/domain/normalizeWineText';
 
 const SUPPLIER_STORAGE_KEY = 'scarichi.suppliers.v1';
 
 function normalizeSupplier(value: string) {
-  return value.trim().replace(/\s+/g, ' ');
+  return normalizeWineSupplier(value);
 }
 
 function isSchemaColumnError(error: unknown): boolean {

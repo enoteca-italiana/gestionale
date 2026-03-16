@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **16/03/2026 15:12 CET**.
+Ultimo aggiornamento: **16/03/2026 16:35 CET**.
 
 ## Accesso
 
@@ -174,6 +174,9 @@ Funzioni principali:
   - resetta tutti i filtri allo stato default (`Totale` + select su `Tutti` + ricerca vuota)
 - CRUD vini
 - categoria/provenienza/fornitore da liste gestite
+- policy campi testo vino (anche su import CSV):
+  - `Categoria`, `Nome`, `Provenienza` sempre in **MAIUSCOLO**
+  - `Produttore`, `Fornitore` sempre con **iniziale maiuscola**
 - tabella con header sticky, righe alternate e separatori verticali
 - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
 - performance su dataset grandi:

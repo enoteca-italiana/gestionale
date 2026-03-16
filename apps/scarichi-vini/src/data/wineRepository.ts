@@ -5,6 +5,12 @@ import { loadDb, notifyDbChanged, saveDb, newId } from '@/data/localDb';
 import { detachDischargeItemsFromWines } from '@/data/dischargeRepository';
 import { syncWineUpsert, syncWineDelete } from '@/integrations/googleSheetsSync';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
+import {
+  normalizeWineCategory,
+  normalizeWineName,
+  normalizeWineProducer,
+  normalizeWineSupplier
+} from '@/domain/normalizeWineText';
 
 type WineRow = {
   id: string;
@@ -74,12 +80,12 @@ function toWine(row: WineRow): Wine {
 
   return {
     id: row.id,
-    category: row.category ?? undefined,
-    name: row.name,
+    category: row.category ? normalizeWineCategory(row.category) : undefined,
+    name: normalizeWineName(row.name),
     age: row.age ?? undefined,
-    producer: row.producer,
+    producer: normalizeWineProducer(row.producer),
     origin: normalizeOrigin(row.origin),
-    supplier: row.supplier ?? undefined,
+    supplier: row.supplier ? normalizeWineSupplier(row.supplier) : undefined,
     threshold: normalizeThreshold(row.threshold),
     purchasePrice: purchase,
     salePrice: sale,
@@ -103,12 +109,12 @@ function toRowPayload(wine: Wine) {
 
   return {
     id: wine.id,
-    category: wine.category ?? null,
-    name: wine.name,
+    category: wine.category ? normalizeWineCategory(wine.category) : null,
+    name: normalizeWineName(wine.name),
     age: wine.age ?? null,
-    producer: wine.producer,
+    producer: normalizeWineProducer(wine.producer),
     origin: normalizeOrigin(wine.origin),
-    supplier: wine.supplier ?? null,
+    supplier: wine.supplier ? normalizeWineSupplier(wine.supplier) : null,
     threshold: normalizeThreshold(wine.threshold) ?? null,
     purchase_price: wine.purchasePrice ?? null,
     sale_price: wine.salePrice ?? null,
@@ -123,11 +129,11 @@ function toRowPayload(wine: Wine) {
 function toLegacyPayload(wine: Wine) {
   return {
     id: wine.id,
-    name: wine.name,
-    producer: wine.producer,
+    name: normalizeWineName(wine.name),
+    producer: normalizeWineProducer(wine.producer),
     origin: normalizeOrigin(wine.origin),
     vintage: wine.vintage ?? null,
-    category: wine.category ?? null,
+    category: wine.category ? normalizeWineCategory(wine.category) : null,
     qty: wine.qty
   };
 }
@@ -157,10 +163,14 @@ function sortWines(wines: Wine[]): Wine[] {
   return [...wines].sort((a, b) => WINE_NAME_COLLATOR.compare(a.name, b.name));
 }
 
-function normalizeOrigins(wines: Wine[]): Wine[] {
+function normalizeWineTextFields(wines: Wine[]): Wine[] {
   return wines.map((wine) => ({
     ...wine,
-    origin: normalizeOrigin(wine.origin)
+    category: wine.category ? normalizeWineCategory(wine.category) : undefined,
+    name: normalizeWineName(wine.name),
+    producer: normalizeWineProducer(wine.producer),
+    origin: normalizeOrigin(wine.origin),
+    supplier: wine.supplier ? normalizeWineSupplier(wine.supplier) : undefined
   }));
 }
 
@@ -208,20 +218,20 @@ export async function listWines(): Promise<Wine[]> {
     try {
       const data = await listAllWineRows();
       const wines = enrichThresholdsFromFallback((data ?? []).map(toWine), localInventory);
-      const normalized = normalizeOrigins(wines);
+      const normalized = normalizeWineTextFields(wines);
       persistLocalInventory(normalized);
       return sortWines(normalized);
     } catch (error) {
       console.error('[wineRepository] Supabase list error', error);
       const localWithThresholds = enrichThresholdsFromFallback(localInventory, localInventory);
-      const normalizedLocal = normalizeOrigins(localWithThresholds);
+      const normalizedLocal = normalizeWineTextFields(localWithThresholds);
       persistLocalInventory(normalizedLocal);
       return sortWines(normalizedLocal);
     }
   }
 
   const wines = enrichThresholdsFromFallback(localInventory, localInventory);
-  const normalized = normalizeOrigins(wines);
+  const normalized = normalizeWineTextFields(wines);
   persistLocalInventory(normalized);
   return sortWines(normalized);
 }
@@ -255,12 +265,12 @@ function normalizeInput(input: WineInput): Wine {
 
   return {
     id: input.id ?? newId('wine'),
-    category: input.category?.trim() || undefined,
-    name: input.name.trim(),
+    category: input.category?.trim() ? normalizeWineCategory(input.category) : undefined,
+    name: normalizeWineName(input.name),
     age: input.age?.trim() || undefined,
-    producer: input.producer.trim(),
+    producer: normalizeWineProducer(input.producer),
     origin: normalizeOrigin(input.origin),
-    supplier: input.supplier?.trim() || undefined,
+    supplier: input.supplier?.trim() ? normalizeWineSupplier(input.supplier) : undefined,
     threshold,
     purchasePrice: hasPurchase ? purchasePrice : undefined,
     salePrice: hasSale ? salePrice : undefined,

@@ -326,6 +326,13 @@
   overflow-wrap: anywhere;
 }
 
+.adminSettingsModalCard {
+  width: min(100%, 520px);
+  max-height: min(86dvh, 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .adminCenterSection {
   min-height: calc(100dvh - 340px);
   display: flex;
@@ -582,6 +589,17 @@
 
   .adminSettingsToggleItem .subtle {
     line-height: 1.25;
+  }
+
+  .adminSettingsModalCard {
+    max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .adminSettingsModalCard .modalDescription {
+    font-size: 14px;
+    line-height: 1.3;
   }
 
   .adminCenterSection {

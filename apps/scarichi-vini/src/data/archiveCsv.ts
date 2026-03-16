@@ -1,5 +1,11 @@
 import type { Wine } from '@/domain/types';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
+import {
+  normalizeWineCategory,
+  normalizeWineName,
+  normalizeWineProducer,
+  normalizeWineSupplier
+} from '@/domain/normalizeWineText';
 
 export type ArchiveCsvWineInput = {
   id?: string;
@@ -166,12 +172,12 @@ function parseLooseNumber(raw: string): number | undefined {
 function toCsvRecord(wine: Wine): ArchiveCsvWineInput {
   return {
     id: wine.id,
-    category: wine.category ?? '',
-    name: wine.name,
+    category: wine.category ? normalizeWineCategory(wine.category) : '',
+    name: normalizeWineName(wine.name),
     age: wine.age ?? '',
-    producer: wine.producer,
+    producer: normalizeWineProducer(wine.producer),
     origin: normalizeOrigin(wine.origin),
-    supplier: wine.supplier ?? '',
+    supplier: wine.supplier ? normalizeWineSupplier(wine.supplier) : '',
     threshold: wine.threshold,
     purchasePrice: wine.purchasePrice,
     salePrice: wine.salePrice,
@@ -234,8 +240,8 @@ export function parseArchiveCsv(raw: string): ArchiveCsvWineInput[] {
     });
 
     const rowNumber = r + 1;
-    const name = (record.name ?? '').toString().trim();
-    const producer = (record.producer ?? '').toString().trim();
+    const name = normalizeWineName((record.name ?? '').toString());
+    const producer = normalizeWineProducer((record.producer ?? '').toString());
     const origin = normalizeOrigin((record.origin ?? '').toString());
     const qty = typeof record.qty === 'number' ? record.qty : undefined;
 
@@ -247,12 +253,12 @@ export function parseArchiveCsv(raw: string): ArchiveCsvWineInput[] {
 
     parsed.push({
       id: record.id?.toString(),
-      category: record.category?.toString(),
+      category: record.category?.toString() ? normalizeWineCategory(record.category.toString()) : undefined,
       name,
       age: record.age?.toString(),
       producer,
       origin,
-      supplier: record.supplier?.toString(),
+      supplier: record.supplier?.toString() ? normalizeWineSupplier(record.supplier.toString()) : undefined,
       threshold: typeof record.threshold === 'number' ? record.threshold : undefined,
       purchasePrice: typeof record.purchasePrice === 'number' ? record.purchasePrice : undefined,
       salePrice: typeof record.salePrice === 'number' ? record.salePrice : undefined,

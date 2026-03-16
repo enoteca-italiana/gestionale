@@ -1,10 +1,11 @@
 import type { Wine } from '@/domain/types';
 import { supabase } from '@/lib/supabase';
+import { normalizeWineCategory } from '@/domain/normalizeWineText';
 
 const CATEGORY_STORAGE_KEY = 'scarichi.categories.v1';
 
 function normalizeCategoryName(value: string) {
-  return value.trim().replace(/\s+/g, ' ');
+  return normalizeWineCategory(value);
 }
 
 function isSchemaColumnError(error: unknown): boolean {

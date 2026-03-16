@@ -188,6 +188,10 @@ export function DischargeNoteDrawer({
     setHistoryFeedback(null);
     try {
       await resendCompletedDischargeNote(noteId);
+      // Keep nuova nota libera: nessun vino storico deve restare escluso nella ricerca.
+      setItemsByWineId({});
+      setQuery('');
+      setUpdatedAt(Date.now());
       await refreshNote();
       setHistoryFeedback('Nota reinviata in Home.');
     } catch (error) {

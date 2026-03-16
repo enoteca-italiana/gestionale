@@ -1,6 +1,7 @@
 export const storageKeys = {
   adminPasswordHash: 'scarichi.admin.passwordHash',
-  adminAuthedUntil: 'scarichi.admin.authedUntil'
+  adminAuthedUntil: 'scarichi.admin.authedUntil',
+  appPinRequiredOnStart: 'scarichi.app.pinRequiredOnStart'
 } as const;
 
 export const settingsChangedEvent = 'scarichi:settingsChanged';

@@ -1,6 +1,6 @@
 # Requisiti (baseline) — Scarichi Vini
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **16/03/2026 16:35 CET**.
 
 ## Scopo
 
@@ -61,7 +61,9 @@ Ultimo aggiornamento: **15/03/2026 23:05 CET**.
 - In archivio, campo `ANNO` vuoto quando il valore non è presente.
 - In archivio, le note sono consultabili da icona in colonna `Azioni` (non più come colonna dedicata).
 - Categoria e provenienza selezionabili da liste gestite (no input libero), con opzione `+ Aggiungi ...` e suggerimenti anti-duplicato.
-- Provenienza: salvata e mostrata sempre in **MAIUSCOLO**.
+- Policy testo campi vino (obbligatoria, anche da CSV):
+  - `Categoria`, `Nome`, `Provenienza` sempre in **MAIUSCOLO**.
+  - `Produttore`, `Fornitore` sempre con **iniziale maiuscola**.
 - Settings (toggle):
   - associazione nome utente (predisposizione / future)
 - Storico Admin:

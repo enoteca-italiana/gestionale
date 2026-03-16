@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **16/03/2026 15:12 CET**.
+Ultimo aggiornamento: **16/03/2026 16:35 CET**.
 
 ## Quick Start
 
@@ -88,7 +88,9 @@ Comandi utili:
     - `Magazzino = Acquisto × Q.tà`
     - `Margine = Vendita − Acquisto`
   - standard rendering info sotto al nome vino: `Produttore • Anno(se presente) • Provenienza`
-  - `Provenienza` salvata e mostrata sempre in **MAIUSCOLO**
+  - policy campi testuali vino (input, CSV, visualizzazione, export):
+    - `Categoria`, `Nome`, `Provenienza` sempre in **MAIUSCOLO**
+    - `Produttore`, `Fornitore` sempre con **iniziale maiuscola**
   - export archivio: Excel/PDF con icone dockate in alto a destra (solo icone)
   - performance avanzata (dataset grandi):
     - route lazy-loaded (`/`, `/admin`, `/admina`) per startup più rapido
@@ -149,6 +151,7 @@ Comandi utili:
   - RPC: `save_discharge_note_draft`, `confirm_discharge_note_draft`, `start_ready_discharge_note`, `complete_in_progress_discharge_note`, `get_discharge_note_state`
 - Post-submit sessione: riconciliazione difensiva delle giacenze `wines.qty` per garantire allineamento archivio/storico anche in caso di RPC parziale.
 - Script SQL enterprise DB ops: `scripts/sql/supabase_enterprise_index_cleanup.sql`.
+- Script SQL policy casing campi vino: `scripts/sql/supabase_text_casing_policy.sql`.
 
 ## Regole Deploy (Render)
 

@@ -2,7 +2,7 @@
 
 Questa cartella contiene la documentazione operativa allineata allo stato reale del progetto.
 
-Ultimo aggiornamento: **16/03/2026 15:12 CET**.
+Ultimo aggiornamento: **16/03/2026 16:35 CET**.
 
 ## Documenti
 
@@ -24,6 +24,8 @@ Ultimo aggiornamento: **16/03/2026 15:12 CET**.
   - setup Supabase eseguito, ordine script SQL e checklist verifiche.
 - `09_AI_ASSISTANT.md`
   - architettura, limiti, configurazione e uso operativo dell'Assistente AI in archivio (incl. export PDF contestuale).
+- `10_TEXT_CASING_POLICY.md`
+  - policy obbligatoria di normalizzazione maiuscole/initcap su campi vino (app, CSV, SQL Supabase).
 
 Documenti root correlati:
 

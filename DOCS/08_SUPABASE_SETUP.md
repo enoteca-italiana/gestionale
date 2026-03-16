@@ -1,6 +1,6 @@
 # Supabase Setup
 
-Ultimo aggiornamento: **16/03/2026 15:46 CET**.
+Ultimo aggiornamento: **16/03/2026 16:35 CET**.
 
 ## Stato attuale
 
@@ -67,7 +67,15 @@ Stato repository:
 
 - è presente script SQL versionato per cleanup performance indici:
   - `scripts/sql/supabase_enterprise_index_cleanup.sql`
+- è presente script SQL versionato per policy casing campi vino:
+  - `scripts/sql/supabase_text_casing_policy.sql`
 - gli altri script operativi restano disponibili via SQL Editor/chat operativa.
+
+Policy SQL obbligatoria su insert/update record vino:
+
+- `category`, `name`, `origin` => `UPPER(...)`
+- `producer`, `supplier` => `INITCAP(LOWER(...))`
+- sempre con `TRIM` + normalizzazione spazi.
 
 Script Nota Scarico (operativi in SQL Editor):
 

@@ -1,5 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
+import {
+  normalizeWineCategory,
+  normalizeWineName,
+  normalizeWineProducer,
+  normalizeWineSupplier
+} from '@/domain/normalizeWineText';
 
 export type DischargeStatus = 'pending' | 'submitted' | 'cancelled';
 
@@ -223,12 +229,12 @@ export async function createDischargeSession(input: {
       session_id: session.id,
       wine_id: item.wineId,
       qty: item.qty,
-      wine_name: snap?.name ?? null,
+      wine_name: snap?.name ? normalizeWineName(snap.name) : null,
       wine_age: snap?.age ?? null,
-      wine_producer: snap?.producer ?? null,
+      wine_producer: snap?.producer ? normalizeWineProducer(snap.producer) : null,
       wine_origin: snap?.origin ? normalizeOrigin(snap.origin) : null,
-      wine_category: snap?.category ?? null,
-      wine_supplier: snap?.supplier ?? null
+      wine_category: snap?.category ? normalizeWineCategory(snap.category) : null,
+      wine_supplier: snap?.supplier ? normalizeWineSupplier(snap.supplier) : null
     };
   });
 
@@ -358,16 +364,32 @@ function mapSessionItemRow(row: SessionItemRow): DischargeSessionItemDetail {
     createdAt: session?.created_at ? new Date(session.created_at).getTime() : Date.now(),
     submittedAt: session?.submitted_at ? new Date(session.submitted_at).getTime() : undefined,
     wineId: fallbackWineId,
-    wineName: row.wine_name?.trim() || wine?.name?.trim() || fallbackWineId,
+    wineName: row.wine_name?.trim()
+      ? normalizeWineName(row.wine_name)
+      : wine?.name?.trim()
+        ? normalizeWineName(wine.name)
+        : fallbackWineId,
     age: row.wine_age ?? wine?.age ?? undefined,
-    producer: row.wine_producer ?? wine?.producer ?? undefined,
+    producer: row.wine_producer
+      ? normalizeWineProducer(row.wine_producer)
+      : wine?.producer
+        ? normalizeWineProducer(wine.producer)
+        : undefined,
     origin: row.wine_origin
       ? normalizeOrigin(row.wine_origin)
       : wine?.origin
         ? normalizeOrigin(wine.origin)
         : undefined,
-    category: row.wine_category ?? wine?.category ?? undefined,
-    supplier: row.wine_supplier ?? wine?.supplier ?? undefined,
+    category: row.wine_category
+      ? normalizeWineCategory(row.wine_category)
+      : wine?.category
+        ? normalizeWineCategory(wine.category)
+        : undefined,
+    supplier: row.wine_supplier
+      ? normalizeWineSupplier(row.wine_supplier)
+      : wine?.supplier
+        ? normalizeWineSupplier(wine.supplier)
+        : undefined,
     qty: Math.max(0, Number(row.qty ?? 0))
   };
 }

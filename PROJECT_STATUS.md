@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **16/03/2026 15:46 CET**.
+Ultimo aggiornamento: **16/03/2026 16:25 CET**.
 
 ## Scopo di questo file
 
@@ -12,6 +12,36 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
 - stato attuale (feature completate / da fare)
 - punti chiave del codice
 - come riprendere il lavoro con Cascade (prompt operativi)
+
+## Ultimi aggiornamenti (16/03/2026 - wave 11, policy casing persistente)
+
+- Policy testo campi vino resa vincolante in codice:
+  - `Categoria`, `Nome`, `Provenienza` sempre in **MAIUSCOLO**;
+  - `Produttore`, `Fornitore` sempre con **iniziale maiuscola**.
+- Enforcement applicato su:
+  - input CRUD archivio, repository vini, import/export CSV, snapshot sessioni scarico, rendering info vino.
+- Nuovo modulo centralizzato:
+  - `apps/scarichi-vini/src/domain/normalizeWineText.ts`.
+- Nuovo script SQL versionato per Supabase:
+  - `scripts/sql/supabase_text_casing_policy.sql`
+  - trigger `before insert/update` + normalizzazione retroattiva su `public.wines`.
+- Nuova documentazione operativa:
+  - `DOCS/10_TEXT_CASING_POLICY.md` (riferimento unico, valido anche per script SQL futuri).
+
+## Ultimi aggiornamenti (16/03/2026 - wave 12, quality gate enterprise + backup)
+
+- Quality gate eseguito su codice aggiornato:
+  - `npm run lint -w @enoteca/scarichi-vini` ✅
+  - `npm run typecheck -w @enoteca/scarichi-vini` ✅
+  - `npm run test -w @enoteca/scarichi-vini -- --run` ✅ (11 test passati)
+  - `npm run build -w @enoteca/scarichi-vini` ✅
+- Verifica conflitti Git:
+  - nessun marker merge (`<<<<<<<`, `=======`, `>>>>>>>`).
+- Verifica hygiene:
+  - nessun file obsoleto rimosso in questa wave per vincolo risk-zero su logica/layout;
+  - top file più lunghi identificati (`AiAssistantModal.tsx`, `AdminSettings.tsx`, `WineAdminPage.tsx`) e mantenuti invariati lato comportamento.
+- Backup creato senza eliminare backup precedenti:
+  - `backup/backup_16 Lunedi_16.24.tar.gz`.
 
 ## Ultimi aggiornamenti (14/03/2026)
 

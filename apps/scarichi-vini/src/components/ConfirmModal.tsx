@@ -6,6 +6,8 @@ export function ConfirmModal({
   description,
   titleCentered = false,
   descriptionCentered = false,
+  cardClassName,
+  overlayClassName,
   confirmLabel,
   cancelLabel,
   onConfirm,
@@ -16,6 +18,8 @@ export function ConfirmModal({
   description?: ReactNode;
   titleCentered?: boolean;
   descriptionCentered?: boolean;
+  cardClassName?: string;
+  overlayClassName?: string;
   confirmLabel: string;
   cancelLabel: string;
   onConfirm: () => void;
@@ -24,8 +28,8 @@ export function ConfirmModal({
   if (!open) return null;
 
   return (
-    <div className="modalOverlay" role="dialog" aria-modal="true">
-      <div className="modalCard">
+    <div className={`modalOverlay${overlayClassName ? ` ${overlayClassName}` : ''}`} role="dialog" aria-modal="true">
+      <div className={`modalCard${cardClassName ? ` ${cardClassName}` : ''}`}>
         <div className={`modalTitle${titleCentered ? ' centered' : ''}`}>{title}</div>
         {description ? (
           <div className={`modalDescription${descriptionCentered ? ' centered' : ''}`}>{description}</div>

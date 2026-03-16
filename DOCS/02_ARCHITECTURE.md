@@ -1,6 +1,6 @@
 # Architettura
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **16/03/2026 16:35 CET**.
 
 ## Workspace
 
@@ -96,11 +96,15 @@ Toolbar archivio:
 - `src/data/categoryRepository.ts` (lista categorie gestite + upsert controllato)
 - `src/data/originRepository.ts` (lista provenienze gestite + upsert controllato)
 - `src/data/supplierRepository.ts` (lista fornitori gestiti + upsert controllato)
+- `src/domain/normalizeWineText.ts` (policy centralizzata casing campi vino)
 
 Standard UI dati vino:
 
 - riga metadati sotto al nome vino: `Produttore • Anno(se presente) • Provenienza` (`formatWineInfoLine`).
-- `origin` (provenienza) normalizzata in **uppercase** tramite `normalizeOrigin` (input e display).
+- policy casing invariabile:
+  - `category`, `name`, `origin` in **uppercase**
+  - `producer`, `supplier` in **initcap**
+  - enforcement su input, CSV, repository, snapshot sessioni e render info.
 
 ### Sessioni scarico (Supabase)
 
