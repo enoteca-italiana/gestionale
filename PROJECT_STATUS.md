@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **16/03/2026 01:07 CET**.
+Ultimo aggiornamento: **16/03/2026 01:21 CET**.
 
 ## Scopo di questo file
 
@@ -124,13 +124,29 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
   - Storico sessioni: rendering progressivo con batch, autoload e fallback pulsante.
 - Performance filtri e query locali:
   - Archivio: campi filtro normalizzati memoizzati per vino (`category/producer/origin/supplier`) per ridurre trasformazioni ripetute;
-  - fetch paginato Supabase su `wines` con pagina aumentata (`2000`) per ridurre round-trip.
+  - fetch paginato Supabase su `wines` allineato al limite API (`1000`) per evitare stop prematuro a 1000 record.
 - Assistente AI (stabilità + velocità):
   - cache in memoria TTL per storico sessioni usato dal contesto AI;
   - precomputo analytics inventario memoizzato (leaderboard/breakdown) evitando ricalcolo completo a ogni domanda.
 - DB ops:
   - aggiunto script SQL versionato per cleanup indici duplicati:
     - `scripts/sql/supabase_enterprise_index_cleanup.sql`
+
+## Ultimi aggiornamenti (16/03/2026 - wave 5)
+
+- Archivio desktop UX:
+  - confinato lo scroll verticale alla sola tabella; pagina esterna fissa su desktop.
+- Assistente AI (copertura dataset storico completa):
+  - lettura paginata completa di `discharge_sessions` e `discharge_session_items` (submitted), non più limitata a 600/1200;
+  - contesto AI arricchito con blocco `recency` per:
+    - vini mai scaricati,
+    - vini non scaricati da >3 mesi / >6 mesi / >12 mesi,
+    - classifica “più vecchi o mai scaricati”;
+  - metadata contesto con conteggi record effettivamente caricati (`loadedSubmittedSessions`, `loadedSubmittedItems`).
+- Quality gate post-wave 5:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run test` ✅
 
 ## Ultimi aggiornamenti (16/03/2026 - UX desktop startup)
 

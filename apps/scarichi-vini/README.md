@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **16/03/2026 01:07 CET**.
+Ultimo aggiornamento: **16/03/2026 01:21 CET**.
 
 ## Quick Start
 
@@ -84,13 +84,14 @@ Comandi utili:
     - lookup O(1) via mappe per sessione/riepilogo/modali (meno scansioni su migliaia di righe)
     - autoload progressivo con `IntersectionObserver` su liste lunghe (Home/Archivio/Storico)
     - normalizzazione memoizzata campi filtro archivio per ridurre lavoro per-riga
-    - fetch paginato `wines` più efficiente (page size 2000)
+    - fetch paginato `wines` allineato al limite API Supabase (page size 1000) per evitare blocco a 1000 righe
 - Assistente AI archivio:
   - chat unica nel modale (nessuna vista impostazioni separata)
   - modello selezionabile inline vicino a `Invia`
   - contesto completo su archivio + sessioni storiche/sospese per risposte più affidabili
   - supporto modalità web+app con vincoli di sicurezza su dati interni
   - cache TTL locale su sessioni storiche AI + analytics inventario precomputati (meno latenza su invio)
+  - caricamento storico AI completo via paginazione (sessioni/items `submitted`) con blocco recency (`mai scaricati`, `>6 mesi`, `>12 mesi`)
 - Logo applicativo ottimizzato in `public/logo.png` per ridurre peso asset.
 - Icone installazione PWA multi-device:
   - Android/desktop: `pwa-192x192.png`, `pwa-512x512.png` + `maskable`

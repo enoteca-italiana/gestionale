@@ -1,6 +1,6 @@
 # Assistente AI Archivio
 
-Ultimo aggiornamento: **15/03/2026 23:05 CET**.
+Ultimo aggiornamento: **16/03/2026 01:21 CET**.
 
 ## Scopo
 
@@ -46,12 +46,29 @@ VITE_OPENAI_MODEL=gpt-4.1-mini
    - snapshot inventario;
    - leaderboard margini/giacenze/valore;
    - breakdown per categoria/produttore/provenienza/fornitore;
-   - sessioni `submitted`/`pending` e item storico.
+   - sessioni `submitted` e item storico caricati con paginazione completa;
+   - blocco recency per analisi temporale per vino:
+     - `neverDischarged`
+     - `over3m`
+     - `over6m`
+     - `over12m`
+     - `oldestOrNever`.
 3. Chiamata `POST /v1/responses` con:
    - `instructions` con vincoli di sicurezza;
    - input unico con contesto JSON + cronologia conversazione + domanda corrente;
    - tool web abilitato (`web+app`).
 4. Risposta renderizzata in chat.
+
+## Copertura dati (enterprise)
+
+- Le sessioni storiche usate dall’AI non sono più limitate a piccoli batch fissi:
+  - `discharge_sessions` caricate a pagine;
+  - `discharge_session_items` caricate a pagine;
+  - cache TTL in memoria per ridurre round-trip ripetuti durante la stessa sessione utente.
+- Il payload AI include metadati di carico:
+  - `meta.loadedSubmittedSessions`
+  - `meta.loadedSubmittedItems`
+  - `meta.sessionsLoaded`.
 
 ## Sicurezza
 

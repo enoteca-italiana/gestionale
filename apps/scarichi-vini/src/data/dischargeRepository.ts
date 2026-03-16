@@ -36,6 +36,9 @@ const SESSION_ITEMS_SELECT_WITH_SNAPSHOT =
   'session_id, wine_id, qty, wine_name, wine_age, wine_producer, wine_origin, wine_category, wine_supplier, discharge_sessions!inner(status, created_at, submitted_at), wines(name, age, producer, origin, category, supplier)';
 const SESSION_ITEMS_SELECT_LEGACY =
   'session_id, wine_id, qty, discharge_sessions!inner(status, created_at, submitted_at), wines(name, age, producer, origin, category, supplier)';
+const DEFAULT_PAGE_SIZE = 1000;
+const MAX_PAGE_SIZE = 1000;
+const DEFAULT_MAX_ROWS = 50_000;
 
 function requireSupabase() {
   if (!supabase) {
@@ -142,6 +145,46 @@ export async function listDischargeSessions(
     itemsCount: Number(row.discharge_session_items?.[0]?.count ?? 0),
     status: row.status
   }));
+}
+
+export async function listAllDischargeSessions(
+  status: DischargeStatus,
+  options?: { pageSize?: number; maxRows?: number }
+): Promise<DischargeSessionSummary[]> {
+  const client = requireSupabase();
+  const pageSize = Math.max(1, Math.min(options?.pageSize ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE));
+  const maxRows = Math.max(1, Math.min(options?.maxRows ?? DEFAULT_MAX_ROWS, DEFAULT_MAX_ROWS));
+  const rows: DischargeSessionSummary[] = [];
+  let from = 0;
+
+  while (rows.length < maxRows) {
+    const to = from + pageSize - 1;
+    const { data: sessions, error } = await client
+      .from('discharge_sessions')
+      .select('id, created_at, submitted_at, total_qty, status, discharge_session_items(count)')
+      .eq('status', status)
+      .order(status === 'submitted' ? 'submitted_at' : 'created_at', { ascending: false })
+      .range(from, to);
+    if (error) throw error;
+
+    const page = (sessions ?? []) as SessionRow[];
+    if (page.length === 0) break;
+
+    rows.push(
+      ...page.map((row) => ({
+        id: row.id,
+        createdAt: new Date(row.created_at).getTime(),
+        submittedAt: row.submitted_at ? new Date(row.submitted_at).getTime() : undefined,
+        totalQty: Number(row.total_qty ?? 0),
+        itemsCount: Number(row.discharge_session_items?.[0]?.count ?? 0),
+        status: row.status
+      }))
+    );
+    if (page.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return rows.slice(0, maxRows);
 }
 
 export async function createDischargeSession(input: {
@@ -322,6 +365,48 @@ export async function listSubmittedDischargeItemsForAi(limit = 500): Promise<Dis
   if (error) throw error;
 
   return ((data ?? []) as SessionItemRow[]).map(mapSessionItemRow);
+}
+
+export async function listAllSubmittedDischargeItemsForAi(options?: {
+  pageSize?: number;
+  maxRows?: number;
+}): Promise<DischargeSessionItemDetail[]> {
+  const client = requireSupabase();
+  const pageSize = Math.max(1, Math.min(options?.pageSize ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE));
+  const maxRows = Math.max(1, Math.min(options?.maxRows ?? DEFAULT_MAX_ROWS, DEFAULT_MAX_ROWS));
+  const rows: DischargeSessionItemDetail[] = [];
+  let useLegacy = false;
+  let from = 0;
+
+  while (rows.length < maxRows) {
+    const to = from + pageSize - 1;
+    const result = useLegacy
+      ? await client
+          .from('discharge_session_items')
+          .select(SESSION_ITEMS_SELECT_LEGACY)
+          .eq('discharge_sessions.status', 'submitted')
+          .order('submitted_at', { foreignTable: 'discharge_sessions', ascending: false })
+          .range(from, to)
+      : await client
+          .from('discharge_session_items')
+          .select(SESSION_ITEMS_SELECT_WITH_SNAPSHOT)
+          .eq('discharge_sessions.status', 'submitted')
+          .order('submitted_at', { foreignTable: 'discharge_sessions', ascending: false })
+          .range(from, to);
+    if (result.error && isSchemaColumnError(result.error) && !useLegacy) {
+      useLegacy = true;
+      continue;
+    }
+    if (result.error) throw result.error;
+
+    const page = (result.data ?? []) as SessionItemRow[];
+    if (page.length === 0) break;
+    rows.push(...page.map(mapSessionItemRow));
+    if (page.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return rows.slice(0, maxRows);
 }
 
 export async function listSubmittedDischargeSessionItems(

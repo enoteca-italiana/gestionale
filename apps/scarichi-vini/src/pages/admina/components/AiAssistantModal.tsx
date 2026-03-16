@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Wine } from '@/domain/types';
 import { extractApiKey } from '@/pages/admina/components/aiAssistantKey';
 import {
-  listDischargeSessions,
-  listSubmittedDischargeItemsForAi,
+  listAllDischargeSessions,
+  listAllSubmittedDischargeItemsForAi,
   type DischargeSessionItemDetail,
   type DischargeSessionSummary
 } from '@/data/dischargeRepository';
@@ -169,6 +169,20 @@ type InventoryAnalytics = {
   };
 };
 
+type WineRecencyRow = {
+  wineId: string;
+  wineName: string;
+  producer: string;
+  origin: string;
+  category: string;
+  supplier: string;
+  currentQty: number;
+  totalDischargedQty: number;
+  dischargeEvents: number;
+  lastDischargeAt: number | null;
+  daysSinceLastDischarge: number | null;
+};
+
 function buildInventoryAnalytics(wines: Wine[]): InventoryAnalytics {
   const all = wines.map(toAnalyticWine);
   const byMarginDesc = [...all].sort((a, b) => b.margin - a.margin);
@@ -203,7 +217,8 @@ function buildInventoryAnalytics(wines: Wine[]): InventoryAnalytics {
 function buildAiContext(
   snapshot: ReturnType<typeof buildInventorySnapshot>,
   analytics: InventoryAnalytics,
-  relevantWines: AnalyticWine[]
+  relevantWines: AnalyticWine[],
+  recency: ReturnType<typeof buildRecencyContext>
 ) {
   const { leaderboards, breakdowns } = analytics;
 
@@ -218,9 +233,76 @@ function buildAiContext(
     },
     leaderboards,
     breakdowns,
+    recency,
     relevantWines,
     note:
       'Le classifiche usano tutto l’archivio caricato in questa pagina. I relevantWines servono solo per dettaglio domanda.'
+  };
+}
+
+function buildRecencyContext(wines: Wine[], submittedItems: DischargeSessionItemDetail[]) {
+  const aggregateByWineId = new Map<
+    string,
+    { lastDischargeAt: number | null; totalDischargedQty: number; dischargeEvents: number }
+  >();
+  for (const item of submittedItems) {
+    const submittedAt = item.submittedAt ?? item.createdAt;
+    const current = aggregateByWineId.get(item.wineId) ?? {
+      lastDischargeAt: null,
+      totalDischargedQty: 0,
+      dischargeEvents: 0
+    };
+    current.totalDischargedQty += Math.max(0, item.qty);
+    current.dischargeEvents += 1;
+    if (!current.lastDischargeAt || submittedAt > current.lastDischargeAt) {
+      current.lastDischargeAt = submittedAt;
+    }
+    aggregateByWineId.set(item.wineId, current);
+  }
+
+  const now = Date.now();
+  const recencyRows: WineRecencyRow[] = wines.map((wine) => {
+    const agg = aggregateByWineId.get(wine.id);
+    const lastDischargeAt = agg?.lastDischargeAt ?? null;
+    const daysSinceLastDischarge =
+      lastDischargeAt !== null ? Math.floor((now - lastDischargeAt) / (1000 * 60 * 60 * 24)) : null;
+    return {
+      wineId: wine.id,
+      wineName: wine.name,
+      producer: wine.producer,
+      origin: wine.origin,
+      category: wine.category ?? '',
+      supplier: wine.supplier ?? '',
+      currentQty: Math.max(0, wine.qty),
+      totalDischargedQty: agg?.totalDischargedQty ?? 0,
+      dischargeEvents: agg?.dischargeEvents ?? 0,
+      lastDischargeAt,
+      daysSinceLastDischarge
+    };
+  });
+
+  const neverDischarged = recencyRows.filter((row) => row.lastDischargeAt === null);
+  const over3m = recencyRows.filter((row) => (row.daysSinceLastDischarge ?? 0) >= 90);
+  const over6m = recencyRows.filter((row) => (row.daysSinceLastDischarge ?? 0) >= 180);
+  const over12m = recencyRows.filter((row) => (row.daysSinceLastDischarge ?? 0) >= 365);
+  const byStaleness = [...recencyRows].sort((a, b) => {
+    const aDays = a.daysSinceLastDischarge ?? Number.POSITIVE_INFINITY;
+    const bDays = b.daysSinceLastDischarge ?? Number.POSITIVE_INFINITY;
+    return bDays - aDays;
+  });
+
+  return {
+    summary: {
+      winesTotal: recencyRows.length,
+      neverDischarged: neverDischarged.length,
+      over3m: over3m.length,
+      over6m: over6m.length,
+      over12m: over12m.length
+    },
+    oldestOrNever: byStaleness.slice(0, 300),
+    neverDischarged: neverDischarged.slice(0, 300),
+    over6m: over6m.slice(0, 300),
+    over12m: over12m.slice(0, 300)
   };
 }
 
@@ -389,10 +471,6 @@ export function AiAssistantModal({
     return map;
   }, [wines]);
   const analytics = useMemo(() => buildInventoryAnalytics(wines), [wines]);
-  const sessionsContext = useMemo(
-    () => buildSessionsContext(submittedSessions, submittedItems),
-    [submittedItems, submittedSessions]
-  );
   const effectiveApiKey = ENV_API_KEY;
 
   const loadSessionsData = useCallback(
@@ -404,25 +482,28 @@ export function AiAssistantModal({
           setSubmittedSessions(cached.submittedSessions);
           setSubmittedItems(cached.submittedItems);
           setSessionsLoaded(true);
-          return;
+          return cached;
         }
       }
       try {
         const [submitted, items] = await Promise.all([
-          listDischargeSessions('submitted', { limit: 600 }),
-          listSubmittedDischargeItemsForAi(1200)
+          listAllDischargeSessions('submitted'),
+          listAllSubmittedDischargeItemsForAi()
         ]);
         setSubmittedSessions(submitted);
         setSubmittedItems(items);
         setSessionsLoaded(true);
-        writeAiSessionsCache({
+        const payload = {
           submittedSessions: submitted,
           submittedItems: items
-        });
+        };
+        writeAiSessionsCache(payload);
+        return payload;
       } catch {
         setSubmittedSessions([]);
         setSubmittedItems([]);
         setSessionsLoaded(false);
+        return null;
       }
     },
     []
@@ -492,8 +573,18 @@ export function AiAssistantModal({
     setBusy(true);
 
     try {
-      if (!sessionsLoaded) {
-        await loadSessionsData({ force: true });
+      let effectiveSessions = submittedSessions;
+      let effectiveItems = submittedItems;
+      let effectiveSessionsLoaded = sessionsLoaded;
+      if (!effectiveSessionsLoaded || effectiveItems.length === 0) {
+        const loaded = await loadSessionsData({ force: true });
+        if (loaded) {
+          effectiveSessions = loaded.submittedSessions;
+          effectiveItems = loaded.submittedItems;
+          effectiveSessionsLoaded = true;
+        } else {
+          effectiveSessionsLoaded = false;
+        }
       }
       const systemPrompt = [
         'Sei l’assistente AI interno di Enoteca Italiana.',
@@ -505,15 +596,20 @@ export function AiAssistantModal({
         'Se mancano dati dichiaralo chiaramente.',
         'Non inventare numeri.',
         'Per richieste di classifica (top/bottom margini, quantità, valore magazzino) usa SEMPRE i leaderboards globali.',
+        'Usa sempre il blocco inventory.recency per domande su vini non scaricati da 3/6/12 mesi o mai scaricati.',
         'Usa anche il blocco sessions per risposte su storico, andamenti temporali e vini più scaricati.'
       ].join(' ');
       const relevantWines = pickRelevantWines(wines, question, searchTextByWineId).map(toAnalyticWine);
+      const effectiveSessionsContext = buildSessionsContext(effectiveSessions, effectiveItems);
+      const recency = buildRecencyContext(wines, effectiveItems);
 
       const contextPayload = {
-        inventory: buildAiContext(snapshot, analytics, relevantWines),
-        sessions: sessionsContext,
+        inventory: buildAiContext(snapshot, analytics, relevantWines, recency),
+        sessions: effectiveSessionsContext,
         meta: {
-          sessionsLoaded
+          sessionsLoaded: effectiveSessionsLoaded,
+          loadedSubmittedSessions: effectiveSessions.length,
+          loadedSubmittedItems: effectiveItems.length
         }
       };
 
