@@ -16,4 +16,35 @@ describe('archiveCsv normalization', () => {
     expect(rows[0]?.origin).toBe('LANGUEDOC');
     expect(rows[0]?.supplier).toBe('Import Vini Europa');
   });
+
+  it('requires only name and producer, applying defaults for missing origin and qty', () => {
+    const raw = [
+      'Categoria,Nome,Produttore,Anno,Provenienza,Fornitore,Acquisto,Vendita,Q.tà',
+      ',Roen 2024,Tramin,,,,"€ 17,50","€ 22,75",'
+    ].join('\n');
+
+    const rows = parseArchiveCsv(raw);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.name).toBe('ROEN 2024');
+    expect(rows[0]?.producer).toBe('Tramin');
+    expect(rows[0]?.origin).toBe('N/D');
+    expect(rows[0]?.qty).toBe(0);
+    expect(rows[0]?.purchasePrice).toBe(17.5);
+    expect(rows[0]?.salePrice).toBe(22.75);
+  });
+
+  it('ignores category placeholder values from spreadsheet markers', () => {
+    const raw = [
+      'Categoria,Nome,Produttore,Provenienza,Q.tà',
+      "CATEGORIA,Nobile di montepulciano '18,Contucci,Toscana,30"
+    ].join('\n');
+
+    const rows = parseArchiveCsv(raw);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.category).toBeUndefined();
+    expect(rows[0]?.name).toBe("NOBILE DI MONTEPULCIANO '18");
+    expect(rows[0]?.producer).toBe('Contucci');
+    expect(rows[0]?.origin).toBe('TOSCANA');
+    expect(rows[0]?.qty).toBe(30);
+  });
 });

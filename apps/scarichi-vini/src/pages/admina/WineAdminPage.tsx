@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import {
@@ -16,13 +16,25 @@ import {
   upsertSupabaseSupplier,
   upsertManagedSupplier
 } from '@/data/supplierRepository';
+import {
+  listProducerOptions,
+  loadManagedProducers,
+  upsertManagedProducer
+} from '@/data/producerRepository';
 import { loadDb } from '@/data/localDb';
 import { dischargeNoteChangedEvent } from '@/data/dischargeNote';
 import { getDischargeNoteState } from '@/data/dischargeNoteRepository';
-import { createWine, deleteWine, listWines, updateWine } from '@/data/wineRepository';
+import {
+  archiveResetEvent,
+  createWine,
+  deleteWine,
+  listWines,
+  updateWine
+} from '@/data/wineRepository';
 import { AdminArchiveToolbar } from '@/pages/admina/components/AdminArchiveToolbar';
 import { AdminArchiveTable } from '@/pages/admina/components/AdminArchiveTable';
 import { AiAssistantModal } from '@/pages/admina/components/AiAssistantModal';
+import { BulkEditFilteredModal } from '@/pages/admina/components/BulkEditFilteredModal';
 import { CategoryCreateModal } from '@/pages/admina/components/CategoryCreateModal';
 import { DischargeNoteDrawer } from '@/pages/admina/components/DischargeNoteDrawer';
 import { WineArchiveFormModal } from '@/pages/admina/components/WineArchiveFormModal';
@@ -30,6 +42,7 @@ import { isInThreshold } from '@/pages/admina/utils/wineFilters';
 import {
   defaultFilters,
   emptyWine,
+  hasActiveArchiveFilters,
   type Filters,
   type Mode,
   type WineFormState
@@ -49,6 +62,7 @@ export function WineAdminPage() {
   const [managedCategories, setManagedCategories] = useState<string[]>(() => loadManagedCategories());
   const [supabaseCategories, setSupabaseCategories] = useState<string[]>([]);
   const [managedOrigins, setManagedOrigins] = useState<string[]>(() => loadManagedOrigins());
+  const [managedProducers, setManagedProducers] = useState<string[]>(() => loadManagedProducers());
   const [managedSuppliers, setManagedSuppliers] = useState<string[]>(() => loadManagedSuppliers());
   const [supabaseSuppliers, setSupabaseSuppliers] = useState<string[]>([]);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -57,13 +71,20 @@ export function WineAdminPage() {
   const [originModalOpen, setOriginModalOpen] = useState(false);
   const [originResultHandler, setOriginResultHandler] =
     useState<((created: string | null) => void) | null>(null);
+  const [producerModalOpen, setProducerModalOpen] = useState(false);
+  const [producerResultHandler, setProducerResultHandler] =
+    useState<((created: string | null) => void) | null>(null);
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
   const [supplierResultHandler, setSupplierResultHandler] =
     useState<((created: string | null) => void) | null>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false);
+  const [bulkEditBusy, setBulkEditBusy] = useState(false);
   const [dischargeNoteOpen, setDischargeNoteOpen] = useState(false);
   const [hasDischargeNote, setHasDischargeNote] = useState(false);
   const deferredTerm = useDeferredValue(filters.term);
+  const bulkUpdateBatchSize = 40;
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const loadWines = useCallback(async () => {
     setLoading(true);
@@ -82,22 +103,23 @@ export function WineAdminPage() {
     }
   }, []);
 
+  const refreshCategoryRegistry = useCallback(async () => {
+    const values = await listSupabaseCategories();
+    setSupabaseCategories(values);
+  }, []);
+
+  const refreshSupplierRegistry = useCallback(async () => {
+    const values = await listSupabaseSuppliers();
+    setSupabaseSuppliers(values);
+  }, []);
+
   useEffect(() => {
     void loadWines();
   }, [loadWines]);
 
   useEffect(() => {
-    let alive = true;
-    const loadCategoryRegistry = async () => {
-      const values = await listSupabaseCategories();
-      if (!alive) return;
-      setSupabaseCategories(values);
-    };
-    void loadCategoryRegistry();
-    return () => {
-      alive = false;
-    };
-  }, []);
+    void refreshCategoryRegistry();
+  }, [refreshCategoryRegistry]);
 
   useEffect(() => {
     let alive = true;
@@ -132,35 +154,33 @@ export function WineAdminPage() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    const loadSupplierRegistry = async () => {
-      const values = await listSupabaseSuppliers();
-      if (!alive) return;
-      setSupabaseSuppliers(values);
+    void refreshSupplierRegistry();
+  }, [refreshSupplierRegistry]);
+
+  useEffect(() => {
+    const onArchiveReset = () => {
+      setManagedCategories(loadManagedCategories());
+      setManagedOrigins(loadManagedOrigins());
+      setManagedProducers(loadManagedProducers());
+      setManagedSuppliers(loadManagedSuppliers());
+      void refreshCategoryRegistry();
+      void refreshSupplierRegistry();
+      void loadWines();
+      setFilters(defaultFilters);
     };
-    void loadSupplierRegistry();
-    return () => {
-      alive = false;
-    };
-  }, []);
+    window.addEventListener(archiveResetEvent, onArchiveReset);
+    return () => window.removeEventListener(archiveResetEvent, onArchiveReset);
+  }, [loadWines, refreshCategoryRegistry, refreshSupplierRegistry]);
 
   const categories = useMemo(
     () => listCategoryOptions(wines, [...managedCategories, ...supabaseCategories]),
     [wines, managedCategories, supabaseCategories]
   );
   const origins = useMemo(() => listOriginOptions(wines, managedOrigins), [wines, managedOrigins]);
-  const producers = useMemo(() => {
-    const unique = new Map<string, string>();
-    for (const wine of wines) {
-      const value = wine.producer?.trim() ?? '';
-      if (!value) continue;
-      const key = value.toLowerCase();
-      if (!unique.has(key)) unique.set(key, value);
-    }
-    return Array.from(unique.values()).sort((a, b) =>
-      a.localeCompare(b, 'it', { sensitivity: 'base' })
-    );
-  }, [wines]);
+  const producers = useMemo(
+    () => listProducerOptions(wines, managedProducers),
+    [managedProducers, wines]
+  );
   const suppliers = useMemo(
     () => listSupplierOptions(wines, [...managedSuppliers, ...supabaseSuppliers]),
     [wines, managedSuppliers, supabaseSuppliers]
@@ -252,11 +272,27 @@ export function WineAdminPage() {
       outCount
     };
   }, [wines]);
+  const hasActiveFilters = useMemo(() => hasActiveArchiveFilters(filters), [filters]);
+  const canOpenBulkEdit = hasActiveFilters && !loading && filteredWines.length > 0;
 
-  const showToast = (message: string) => {
+  const showToast = useCallback((message: string) => {
     setToast(message);
-    window.setTimeout(() => setToast(null), 2400);
-  };
+    if (toastTimeoutRef.current !== null) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimeoutRef.current = null;
+    }, 2400);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleAddCategory = useCallback(
     (rawValue: string) => {
@@ -280,6 +316,14 @@ export function WineAdminPage() {
       return result.created;
     },
     [managedOrigins, origins]
+  );
+  const handleAddProducer = useCallback(
+    (rawValue: string) => {
+      const result = upsertManagedProducer(rawValue, producers, managedProducers);
+      if (result.changed) setManagedProducers(result.managedNext);
+      return result.created;
+    },
+    [managedProducers, producers]
   );
   const handleAddSupplier = useCallback(
     (rawValue: string) => {
@@ -305,6 +349,10 @@ export function WineAdminPage() {
     setOriginResultHandler(() => onResult);
     setOriginModalOpen(true);
   }, []);
+  const handleRequestAddProducer = useCallback((onResult: (created: string | null) => void) => {
+    setProducerResultHandler(() => onResult);
+    setProducerModalOpen(true);
+  }, []);
   const handleRequestAddSupplier = useCallback((onResult: (created: string | null) => void) => {
     setSupplierResultHandler(() => onResult);
     setSupplierModalOpen(true);
@@ -317,6 +365,10 @@ export function WineAdminPage() {
   const closeOriginModal = useCallback(() => {
     setOriginModalOpen(false);
     setOriginResultHandler(null);
+  }, []);
+  const closeProducerModal = useCallback(() => {
+    setProducerModalOpen(false);
+    setProducerResultHandler(null);
   }, []);
   const closeSupplierModal = useCallback(() => {
     setSupplierModalOpen(false);
@@ -348,6 +400,18 @@ export function WineAdminPage() {
     if (originResultHandler) originResultHandler(null);
     closeOriginModal();
   }, [originResultHandler, closeOriginModal]);
+  const confirmAddProducer = useCallback(
+    (rawValue: string) => {
+      const created = handleAddProducer(rawValue);
+      if (producerResultHandler) producerResultHandler(created);
+      closeProducerModal();
+    },
+    [closeProducerModal, handleAddProducer, producerResultHandler]
+  );
+  const cancelAddProducer = useCallback(() => {
+    if (producerResultHandler) producerResultHandler(null);
+    closeProducerModal();
+  }, [closeProducerModal, producerResultHandler]);
   const confirmAddSupplier = useCallback(
     (rawValue: string) => {
       const created = handleAddSupplier(rawValue);
@@ -444,6 +508,70 @@ export function WineAdminPage() {
     }
   };
 
+  const handleBulkEditConfirm = useCallback(
+    async (payload: { category?: string; supplier?: string }) => {
+      const nextCategory = payload.category?.trim() ?? '';
+      const nextSupplier = payload.supplier?.trim() ?? '';
+      if (!nextCategory && !nextSupplier) {
+        setError('Seleziona almeno un campo da applicare (categoria e/o fornitore).');
+        return;
+      }
+
+      const targetWines = [...filteredWines];
+      if (targetWines.length === 0) {
+        setBulkEditModalOpen(false);
+        return;
+      }
+
+      setBulkEditBusy(true);
+      setBusy(true);
+      try {
+        const createdCategory = nextCategory ? handleAddCategory(nextCategory) : null;
+        const categoryToApply = nextCategory ? (createdCategory ?? nextCategory) : undefined;
+        const createdSupplier = nextSupplier ? handleAddSupplier(nextSupplier) : null;
+        const supplierToApply = nextSupplier ? (createdSupplier ?? nextSupplier) : undefined;
+
+        for (let i = 0; i < targetWines.length; i += bulkUpdateBatchSize) {
+          const chunk = targetWines.slice(i, i + bulkUpdateBatchSize);
+          await Promise.all(
+            chunk.map((wine) =>
+              updateWine({
+                id: wine.id,
+                category: categoryToApply ?? wine.category ?? '',
+                name: wine.name,
+                age: wine.age ?? '',
+                producer: wine.producer,
+                origin: wine.origin,
+                supplier: supplierToApply ?? wine.supplier ?? '',
+                threshold: wine.threshold,
+                purchasePrice: wine.purchasePrice,
+                salePrice: wine.salePrice,
+                vintage: wine.vintage,
+                qty: wine.qty,
+                notes: wine.notes
+              })
+            )
+          );
+        }
+
+        await loadWines();
+        setBulkEditModalOpen(false);
+        const appliedParts = [
+          categoryToApply ? 'categoria' : null,
+          supplierToApply ? 'fornitore' : null
+        ].filter(Boolean);
+        showToast(`${appliedParts.join(' + ')} applicati a ${targetWines.length} vini filtrati`);
+      } catch (err) {
+        console.error('[WineAdminPage] bulk edit error', err);
+        setError('Modifica massiva non riuscita.');
+      } finally {
+        setBulkEditBusy(false);
+        setBusy(false);
+      }
+    },
+    [bulkUpdateBatchSize, filteredWines, handleAddCategory, handleAddSupplier, loadWines, showToast]
+  );
+
   return (
     <div className="container archiveDesktopContainer">
       <div className="archiveLogoTop">
@@ -469,6 +597,10 @@ export function WineAdminPage() {
         origins={origins}
         suppliers={suppliers}
         onFiltersChange={setFilters}
+        onRequestAddCategory={handleRequestAddCategory}
+        onRequestAddProducer={handleRequestAddProducer}
+        onRequestAddOrigin={handleRequestAddOrigin}
+        onRequestAddSupplier={handleRequestAddSupplier}
         onResetFilters={() => setFilters(defaultFilters)}
         onOpenCreate={openCreate}
         onOpenAi={() => setAiModalOpen(true)}
@@ -488,6 +620,8 @@ export function WineAdminPage() {
         onEdit={openEdit}
         onDelete={setDeleteId}
         onUpdateQty={handleQuickQtyUpdate}
+        bulkEditEnabled={canOpenBulkEdit}
+        onOpenBulkEdit={() => setBulkEditModalOpen(true)}
       />
 
       <WineArchiveFormModal
@@ -505,6 +639,18 @@ export function WineAdminPage() {
         onCancel={closeForm}
       />
       <AiAssistantModal open={aiModalOpen} wines={wines} onClose={() => setAiModalOpen(false)} />
+      <BulkEditFilteredModal
+        open={bulkEditModalOpen}
+        busy={busy || bulkEditBusy}
+        filteredCount={filteredWines.length}
+        categories={categories}
+        suppliers={suppliers}
+        onConfirm={handleBulkEditConfirm}
+        onCancel={() => {
+          if (busy || bulkEditBusy) return;
+          setBulkEditModalOpen(false);
+        }}
+      />
       <DischargeNoteDrawer
         open={dischargeNoteOpen}
         wines={wines}
@@ -527,6 +673,17 @@ export function WineAdminPage() {
         ariaLabel="Nuova provenienza"
         onCancel={cancelAddOrigin}
         onConfirm={confirmAddOrigin}
+      />
+      <CategoryCreateModal
+        open={producerModalOpen}
+        existingValues={producers}
+        title="Nuovo produttore"
+        inputPlaceholder="Inserisci produttore"
+        similarTitle="Produttori già presenti simili"
+        duplicateMessage="Produttore già esistente: se confermi, verrà riusato quello esistente."
+        ariaLabel="Nuovo produttore"
+        onCancel={cancelAddProducer}
+        onConfirm={confirmAddProducer}
       />
       <CategoryCreateModal
         open={supplierModalOpen}

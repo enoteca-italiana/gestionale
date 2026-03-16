@@ -133,13 +133,13 @@ export function WineArchiveFormModal({
                 setField('category', value);
               }}
             >
+              <option value="__add_category__">+ Aggiungi categoria…</option>
               <option value="">Seleziona categoria</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>
               ))}
-              <option value="__add_category__">+ Aggiungi categoria…</option>
             </select>
           </label>
           <label className="modalLabel archiveFormSpan2">
@@ -191,13 +191,13 @@ export function WineArchiveFormModal({
                   setField('origin', value);
                 }}
               >
+                <option value="__add_origin__">+ Aggiungi provenienza…</option>
                 <option value="">Seleziona provenienza</option>
                 {origins.map((origin) => (
                   <option key={origin} value={origin}>
                     {origin}
                   </option>
                 ))}
-                <option value="__add_origin__">+ Aggiungi provenienza…</option>
               </select>
             </label>
             <label className="modalLabel archiveFormThresholdLabel">
@@ -244,13 +244,13 @@ export function WineArchiveFormModal({
                 setField('supplier', value);
               }}
             >
+              <option value="__add_supplier__">+ Aggiungi fornitore…</option>
               <option value="">Seleziona fornitore</option>
               {suppliers.map((supplier) => (
                 <option key={supplier} value={supplier}>
                   {supplier}
                 </option>
               ))}
-              <option value="__add_supplier__">+ Aggiungi fornitore…</option>
             </select>
           </label>
           <div className="archiveFormInline3">

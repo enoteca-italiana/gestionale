@@ -1,6 +1,6 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **16/03/2026 16:25 CET**.
+Ultimo aggiornamento: **16/03/2026 22:40 CET**.
 
 ## Scopo di questo file
 
@@ -42,6 +42,31 @@ Questo documento serve per riprendere il progetto su un nuovo PC in modo rapido 
   - top file più lunghi identificati (`AiAssistantModal.tsx`, `AdminSettings.tsx`, `WineAdminPage.tsx`) e mantenuti invariati lato comportamento.
 - Backup creato senza eliminare backup precedenti:
   - `backup/backup_16 Lunedi_16.24.tar.gz`.
+
+## Ultimi aggiornamenti (16/03/2026 - wave 13, bulk edit archivio + robustezza reset/csv)
+
+- Import CSV archivio (`AdminSettings`):
+  - regola obbligatoria ridotta a `Nome` + `Produttore`;
+  - fallback automatici in parse:
+    - `Provenienza` mancante => `N/D`,
+    - `Q.tà` mancante => `0`;
+  - sanitizzazione marker foglio: `Categoria = CATEGORIA` ignorata durante import.
+- Reset archivio hard:
+  - oltre a `public.wines`, il reset ora pulisce anche registry/local cache dei filtri (`categories`, `origins`, `suppliers`, `producers`) e notifica refresh UI archivio;
+  - eliminati residui filtro “fantasma” post-reset.
+- Archivio `/admina`:
+  - nuove opzioni `+ Aggiungi ...` direttamente nelle tendine filtri (`Categoria`, `Produttore`, `Provenienza`, `Fornitore`);
+  - `+ Aggiungi ...` resa prima voce visibile nelle tendine dove presente (filtri + modali archivio).
+- Modifica massiva su filtri attivi:
+  - apertura con click destro in tabella (solo con filtri attivi e risultati presenti);
+  - applicazione bulk su tutti i vini filtrati;
+  - campi supportati: `Categoria` e `Fornitore` (anche insieme nella stessa operazione);
+  - sicurezza: doppio step `conferma` + `PIN admin` obbligatorio.
+- Quality gate finale:
+  - `npm run lint -w @enoteca/scarichi-vini` ✅
+  - `npm run typecheck -w @enoteca/scarichi-vini` ✅
+  - `npm run test -w @enoteca/scarichi-vini` ✅ (13 test passati)
+  - `npm run build -w @enoteca/scarichi-vini` ✅
 
 ## Ultimi aggiornamenti (14/03/2026)
 

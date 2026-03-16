@@ -72,6 +72,8 @@ const HEADER_ALIASES: Record<string, keyof ArchiveCsvWineInput> = {
   notes: 'notes'
 };
 
+const CATEGORY_PLACEHOLDERS = new Set(['categoria', 'category']);
+
 function normalizeHeader(value: string): string {
   return value
     .normalize('NFD')
@@ -215,7 +217,7 @@ export function parseArchiveCsv(raw: string): ArchiveCsvWineInput[] {
     if (alias) map.set(index, alias);
   });
 
-  const required: (keyof ArchiveCsvWineInput)[] = ['name', 'producer', 'origin', 'qty'];
+  const required: (keyof ArchiveCsvWineInput)[] = ['name', 'producer'];
   const missing = required.filter((field) => !Array.from(map.values()).includes(field));
   if (missing.length > 0) {
     throw new Error(`CSV non valido: colonne obbligatorie mancanti (${missing.join(', ')})`);
@@ -229,6 +231,9 @@ export function parseArchiveCsv(raw: string): ArchiveCsvWineInput[] {
     map.forEach((field, index) => {
       const rawCell = (line[index] ?? '').trim();
       if (!rawCell) return;
+      if (field === 'category' && CATEGORY_PLACEHOLDERS.has(normalizeHeader(rawCell))) {
+        return;
+      }
       if (field === 'threshold' || field === 'purchasePrice' || field === 'salePrice' || field === 'qty') {
         const parsedNumber = parseLooseNumber(rawCell);
         if (parsedNumber !== undefined) {
@@ -242,13 +247,11 @@ export function parseArchiveCsv(raw: string): ArchiveCsvWineInput[] {
     const rowNumber = r + 1;
     const name = normalizeWineName((record.name ?? '').toString());
     const producer = normalizeWineProducer((record.producer ?? '').toString());
-    const origin = normalizeOrigin((record.origin ?? '').toString());
-    const qty = typeof record.qty === 'number' ? record.qty : undefined;
+    const origin = normalizeOrigin((record.origin ?? 'N/D').toString());
+    const qty = typeof record.qty === 'number' ? record.qty : 0;
 
-    if (!name || !producer || !origin || qty === undefined) {
-      throw new Error(
-        `Riga ${rowNumber} non valida: richiesti Nome, Produttore, Provenienza e Quantita`
-      );
+    if (!name || !producer) {
+      throw new Error(`Riga ${rowNumber} non valida: richiesti Nome e Produttore`);
     }
 
     parsed.push({

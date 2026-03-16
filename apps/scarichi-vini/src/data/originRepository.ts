@@ -23,6 +23,11 @@ function saveManagedOrigins(origins: string[]) {
   window.localStorage.setItem(ORIGIN_STORAGE_KEY, JSON.stringify(origins));
 }
 
+export function clearManagedOrigins() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(ORIGIN_STORAGE_KEY);
+}
+
 export function listOriginOptions(wines: Wine[], managedOrigins: string[]): string[] {
   const entries: string[] = [...managedOrigins];
   wines.forEach((wine) => {

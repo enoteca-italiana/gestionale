@@ -9,6 +9,8 @@ type Props = {
   onEdit: (wine: Wine) => void;
   onDelete: (wineId: string) => void;
   onUpdateQty: (wine: Wine, nextQty: number) => Promise<boolean>;
+  bulkEditEnabled: boolean;
+  onOpenBulkEdit: () => void;
 };
 
 const TOTAL_COLUMNS = 12;
@@ -47,7 +49,15 @@ function computeMargin(wine: Wine) {
   return Number((wine.salePrice - wine.purchasePrice).toFixed(2));
 }
 
-export function AdminArchiveTable({ wines, loading, onEdit, onDelete, onUpdateQty }: Props) {
+export function AdminArchiveTable({
+  wines,
+  loading,
+  onEdit,
+  onDelete,
+  onUpdateQty,
+  bulkEditEnabled,
+  onOpenBulkEdit
+}: Props) {
   const qtyInlineBoxRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRowRef = useRef<HTMLTableRowElement | null>(null);
   const [targetRows, setTargetRows] = useState(BASE_ROWS);
@@ -210,7 +220,14 @@ export function AdminArchiveTable({ wines, loading, onEdit, onDelete, onUpdateQt
   return (
     <section className="archiveTableSection">
       <div className="archiveTableWrap">
-        <table className="archiveTable">
+        <table
+          className="archiveTable"
+          onContextMenu={(event) => {
+            if (!bulkEditEnabled) return;
+            event.preventDefault();
+            onOpenBulkEdit();
+          }}
+        >
           <thead>
             <tr>
               <th>

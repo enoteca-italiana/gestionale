@@ -33,6 +33,11 @@ function saveManagedSuppliers(suppliers: string[]) {
   window.localStorage.setItem(SUPPLIER_STORAGE_KEY, JSON.stringify(suppliers));
 }
 
+export function clearManagedSuppliers() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(SUPPLIER_STORAGE_KEY);
+}
+
 export function listSupplierOptions(wines: Wine[], managedSuppliers: string[]): string[] {
   const entries: string[] = [...managedSuppliers];
   wines.forEach((wine) => {
@@ -123,6 +128,16 @@ export async function upsertSupabaseSupplier(rawValue: string): Promise<void> {
     if (code === '23505') return;
     if (!isSchemaColumnError(insertError)) {
       console.error('[supplierRepository] insert supplier error', insertError);
+    }
+  }
+}
+
+export async function clearSupabaseSuppliers(): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('suppliers').delete().not('id', 'is', null);
+  if (error) {
+    if (!isSchemaColumnError(error)) {
+      console.error('[supplierRepository] clearSupabaseSuppliers error', error);
     }
   }
 }

@@ -1381,6 +1381,32 @@
   text-align: center;
 }
 
+.archiveBulkSelectAll {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.archiveBulkSelectAllCheckbox {
+  width: 20px;
+  height: 20px;
+  accent-color: #7c164a;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.archiveBulkSelectAllLabel {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
 .archiveFormGrid {
   display: grid;
   grid-template-columns: 1fr;

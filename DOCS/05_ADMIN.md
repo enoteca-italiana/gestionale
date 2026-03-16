@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **16/03/2026 16:35 CET**.
+Ultimo aggiornamento: **16/03/2026 22:40 CET**.
 
 ## Accesso
 
@@ -148,6 +148,7 @@ In `AdminSettings.tsx`:
 - seconda conferma con PIN admin;
 - cancella solo l'archivio vini (`public.wines`);
 - storico sessioni non modificato.
+- pulisce anche registry/cache filtri locali (`categories`, `origins`, `suppliers`, `producers`) per evitare residui post-reset.
 
 Note tecniche:
 
@@ -170,6 +171,12 @@ Funzioni principali:
 
 - ricerca e filtri (testo, categoria, soglia/esauriti)
 - filtri su singola riga desktop con box statistiche (`Totale`, `Soglia`, `Esauriti`) e pulsante `Aggiungi vino`
+- filtri con creazione rapida valori:
+  - `+ Aggiungi categoria…`
+  - `+ Aggiungi produttore…`
+  - `+ Aggiungi provenienza…`
+  - `+ Aggiungi fornitore…`
+  - nelle tendine dove presente, la voce `+ Aggiungi...` è la prima opzione visibile.
 - pulsante reset filtri dedicato (tondo bianco, icona frecce viola) tra `Esauriti` e `Aggiungi vino`
   - resetta tutti i filtri allo stato default (`Totale` + select su `Tutti` + ricerca vuota)
 - CRUD vini
@@ -179,6 +186,11 @@ Funzioni principali:
   - `Produttore`, `Fornitore` sempre con **iniziale maiuscola**
 - tabella con header sticky, righe alternate e separatori verticali
 - ordinamento `A-Z / Z-A` su `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
+- modifica massiva su filtri attivi (tabella):
+  - apertura con click destro;
+  - applicazione su tutti i vini filtrati;
+  - campi supportati: `Categoria`, `Fornitore` (anche insieme);
+  - conferma protetta con doppio step (`Conferma` + `PIN admin`).
 - performance su dataset grandi:
   - route `/admina` lazy-loaded
   - tabella con rendering progressivo righe (`Carica altre righe`)

@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabase';
 import { loadDb, notifyDbChanged, saveDb, newId } from '@/data/localDb';
 import { detachDischargeItemsFromWines } from '@/data/dischargeRepository';
 import { syncWineUpsert, syncWineDelete } from '@/integrations/googleSheetsSync';
+import { clearManagedCategories, clearSupabaseCategories } from '@/data/categoryRepository';
+import { clearManagedOrigins } from '@/data/originRepository';
+import { clearManagedSuppliers, clearSupabaseSuppliers } from '@/data/supplierRepository';
+import { clearManagedProducers } from '@/data/producerRepository';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
 import {
   normalizeWineCategory,
@@ -183,6 +187,8 @@ function persistLocalInventory(next: Wine[]) {
   saveDb({ ...db, inventory: next });
   notifyDbChanged();
 }
+
+export const archiveResetEvent = 'scarichi:archiveReset';
 
 async function listAllWineRows(): Promise<WineRow[]> {
   if (!supabase) return [];
@@ -483,6 +489,16 @@ export async function clearWineArchive(): Promise<number> {
     }
   }
 
+  clearManagedCategories();
+  clearManagedOrigins();
+  clearManagedProducers();
+  clearManagedSuppliers();
+
+  if (supabase) {
+    await Promise.all([clearSupabaseCategories(), clearSupabaseSuppliers()]);
+  }
+
   persistLocalInventory([]);
+  window.dispatchEvent(new CustomEvent(archiveResetEvent));
   return deletedCount;
 }

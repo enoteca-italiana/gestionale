@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **16/03/2026 16:35 CET**.
+Ultimo aggiornamento: **16/03/2026 22:40 CET**.
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ Comandi utili:
   - fix iOS Safari: titolo `Riepilogo` forzato su colore nero coerente con app
 - Admin impostazioni (`/admin`) con autenticazione locale.
   - azione `Reset archivio` con PIN:
-    - cancella solo `public.wines` su Supabase
+    - cancella archivio vini e pulisce i registry/cache filtri correlati
     - storico sessioni preservato (indipendente dall'archivio vini)
   - in `Sessioni storico`:
     - filtro temporale desktop con preset rapidi (`Tutto`, `Oggi`, `7/30/90 giorni`, `6/12 mesi`, `Anno corrente`, `Personalizzato`)
@@ -57,6 +57,8 @@ Comandi utili:
     - reset completo filtri a default (`Totale` + tutti i select su `Tutti` + ricerca vuota)
     - stile: sfondo bianco, bordo grigio leggero, icona frecce viola
   - il box statistiche sostituisce il vecchio filtro `Tutte le giacenze`
+  - filtri archivio (`Categoria`, `Produttore`, `Provenienza`, `Fornitore`) con shortcut `+ Aggiungi ...` direttamente nelle tendine
+    - la voce `+ Aggiungi ...` è la prima opzione visibile dove presente
   - pulsanti statistiche con stato selezionato a colori invertiti (testo bianco)
   - `Soglia` in tono giallo/ambra, `Esauriti` in tono rosso
   - q.tà `0` evidenziata in rosso acceso
@@ -76,6 +78,10 @@ Comandi utili:
     - input solo numerico da tastiera (senza selector)
     - conferma via modale su tasto `Invio`
   - ordinamento `A-Z / Z-A` su colonne `Categoria`, `Nome`, `Produttore`, `Provenienza`, `Fornitore`
+  - modifica massiva su risultati filtrati:
+    - apertura da click destro tabella (solo con filtri attivi e risultati presenti)
+    - campi supportati: `Categoria`, `Fornitore` (applicabili anche insieme)
+    - sicurezza: `Conferma` + `PIN admin` prima dell'applicazione
   - Nota Scarico (desktop, drawer laterale sinistro):
     - pulsante `Nota` in toolbar (verde quando esiste una nota con vini in `draft/ready/in_progress`);
     - bozza nota con ricerca vino (`Cerca vino...`) e lista vini aggiunti con q.tà (`1..99`) + cestino;

@@ -13,6 +13,10 @@ type Props = {
   origins: string[];
   suppliers: string[];
   onFiltersChange: (next: Filters) => void;
+  onRequestAddCategory: (onResult: (created: string | null) => void) => void;
+  onRequestAddProducer: (onResult: (created: string | null) => void) => void;
+  onRequestAddOrigin: (onResult: (created: string | null) => void) => void;
+  onRequestAddSupplier: (onResult: (created: string | null) => void) => void;
   onResetFilters: () => void;
   onOpenCreate: () => void;
   onOpenAi: () => void;
@@ -31,6 +35,10 @@ export function AdminArchiveToolbar({
   origins,
   suppliers,
   onFiltersChange,
+  onRequestAddCategory,
+  onRequestAddProducer,
+  onRequestAddOrigin,
+  onRequestAddSupplier,
   onResetFilters,
   onOpenCreate,
   onOpenAi,
@@ -415,8 +423,19 @@ export function AdminArchiveToolbar({
               }`}
               aria-label="Filtro categoria"
               value={filters.category}
-              onChange={(e) => onFiltersChange({ ...filters, category: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '__add_category__') {
+                  onRequestAddCategory((created) => {
+                    if (!created) return;
+                    onFiltersChange({ ...filters, category: created });
+                  });
+                  return;
+                }
+                onFiltersChange({ ...filters, category: value });
+              }}
             >
+              <option value="__add_category__">+ Aggiungi categoria…</option>
               <option value="all">Tutte</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
@@ -434,8 +453,19 @@ export function AdminArchiveToolbar({
               }`}
               aria-label="Filtro produttore"
               value={filters.producer}
-              onChange={(e) => onFiltersChange({ ...filters, producer: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '__add_producer__') {
+                  onRequestAddProducer((created) => {
+                    if (!created) return;
+                    onFiltersChange({ ...filters, producer: created });
+                  });
+                  return;
+                }
+                onFiltersChange({ ...filters, producer: value });
+              }}
             >
+              <option value="__add_producer__">+ Aggiungi produttore…</option>
               <option value="all">Tutti</option>
               {producers.map((producer) => (
                 <option key={producer} value={producer}>
@@ -453,8 +483,19 @@ export function AdminArchiveToolbar({
               }`}
               aria-label="Filtro provenienza"
               value={filters.origin}
-              onChange={(e) => onFiltersChange({ ...filters, origin: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '__add_origin__') {
+                  onRequestAddOrigin((created) => {
+                    if (!created) return;
+                    onFiltersChange({ ...filters, origin: created });
+                  });
+                  return;
+                }
+                onFiltersChange({ ...filters, origin: value });
+              }}
             >
+              <option value="__add_origin__">+ Aggiungi provenienza…</option>
               <option value="all">Tutte</option>
               {origins.map((origin) => (
                 <option key={origin} value={origin}>
@@ -472,8 +513,19 @@ export function AdminArchiveToolbar({
               }`}
               aria-label="Filtro fornitore"
               value={filters.supplier}
-              onChange={(e) => onFiltersChange({ ...filters, supplier: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '__add_supplier__') {
+                  onRequestAddSupplier((created) => {
+                    if (!created) return;
+                    onFiltersChange({ ...filters, supplier: created });
+                  });
+                  return;
+                }
+                onFiltersChange({ ...filters, supplier: value });
+              }}
             >
+              <option value="__add_supplier__">+ Aggiungi fornitore…</option>
               <option value="all">Tutti</option>
               {suppliers.map((supplier) => (
                 <option key={supplier} value={supplier}>

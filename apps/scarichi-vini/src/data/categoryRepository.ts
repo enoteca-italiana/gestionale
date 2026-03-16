@@ -33,6 +33,11 @@ function saveManagedCategories(categories: string[]) {
   window.localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(categories));
 }
 
+export function clearManagedCategories() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(CATEGORY_STORAGE_KEY);
+}
+
 export function listCategoryOptions(wines: Wine[], managedCategories: string[]): string[] {
   const entries: string[] = [...managedCategories];
   wines.forEach((wine) => {
@@ -119,6 +124,16 @@ export async function upsertSupabaseCategory(rawValue: string): Promise<void> {
     if (code === '23505') return;
     if (!isSchemaColumnError(insertError)) {
       console.error('[categoryRepository] insert category error', insertError);
+    }
+  }
+}
+
+export async function clearSupabaseCategories(): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('categories').delete().not('id', 'is', null);
+  if (error) {
+    if (!isSchemaColumnError(error)) {
+      console.error('[categoryRepository] clearSupabaseCategories error', error);
     }
   }
 }

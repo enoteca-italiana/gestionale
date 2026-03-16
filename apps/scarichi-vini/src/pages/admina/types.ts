@@ -35,6 +35,17 @@ export const defaultFilters: Filters = {
   stock: 'all'
 };
 
+export function hasActiveArchiveFilters(filters: Filters): boolean {
+  return (
+    filters.term.trim().length > 0 ||
+    filters.category !== defaultFilters.category ||
+    filters.producer !== defaultFilters.producer ||
+    filters.origin !== defaultFilters.origin ||
+    filters.supplier !== defaultFilters.supplier ||
+    filters.stock !== defaultFilters.stock
+  );
+}
+
 export const emptyWine: WineFormState = {
   id: undefined,
   category: '',
