@@ -311,7 +311,7 @@ export function AdminSettings({
       ) : null}
 
       {appPinModalOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle centered">Richiesta PIN</div>
             <div className="adminPinToggleBlock">
@@ -390,7 +390,7 @@ export function AdminSettings({
       ) : null}
 
       {thresholdModalOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Imposta soglia unica</div>
             <div className="modalDescription">
@@ -461,6 +461,7 @@ export function AdminSettings({
       <ConfirmModal
         open={thresholdConfirm1}
         cardClassName="adminSettingsModalCard"
+        overlayClassName="adminSettingsOverlay"
         title="Confermare nuova soglia?"
         description={`Confermando, tutti i vini in archivio verranno aggiornati con la soglia ${
           parseThresholdValue() ?? 'selezionata'
@@ -477,7 +478,7 @@ export function AdminSettings({
       />
 
       {thresholdConfirm2 ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Conferma modifica soglie</div>
             <div className="modalDescription">
@@ -531,6 +532,7 @@ export function AdminSettings({
       <ConfirmModal
         open={reset1}
         cardClassName="adminSettingsModalCard"
+        overlayClassName="adminSettingsOverlay"
         title="Reset archivio?"
         description="Verrà cancellato l'archivio vini su Supabase. Lo storico sessioni non verrà modificato."
         confirmLabel="Continua"
@@ -545,7 +547,7 @@ export function AdminSettings({
       />
 
       {reset2 ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Conferma reset archivio</div>
             <div className="modalDescription">
@@ -598,7 +600,7 @@ export function AdminSettings({
       ) : null}
 
       {passwordModalOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Aggiorna password admin</div>
             <div className="modalDescription">Inserisci password attuale e nuova password.</div>
@@ -669,7 +671,7 @@ export function AdminSettings({
       ) : null}
 
       {importModalOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className={`modalTitle ${importOk ? 'centered' : ''}`}>Importa archivio CSV</div>
             {!importOk ? (
@@ -756,6 +758,7 @@ export function AdminSettings({
       <ConfirmModal
         open={passwordConfirmOpen}
         cardClassName="adminSettingsModalCard"
+        overlayClassName="adminSettingsOverlay"
         title="Confermare aggiornamento password?"
         description="La password admin verrà modificata con il nuovo valore inserito."
         confirmLabel={busy ? 'Aggiornamento…' : 'Sì, aggiorna password'}
@@ -773,6 +776,7 @@ export function AdminSettings({
       <ConfirmModal
         open={importConfirm}
         cardClassName="adminSettingsModalCard adminImportModeConfirmCard"
+        overlayClassName="adminSettingsOverlay"
         title="IMPORTANTE!"
         description={
           <div className="adminImportModeConfirmContent">
@@ -820,7 +824,7 @@ export function AdminSettings({
       />
 
       {importPinConfirm ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
+        <div className="modalOverlay adminSettingsOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Conferma import archivio</div>
             <div className="modalDescription">
