@@ -41,10 +41,17 @@ export function App() {
   const [appPinRequiredOnStart, setAppPinRequiredOnStart] = useState(() =>
     getBool(storageKeys.appPinRequiredOnStart, false)
   );
+  const [appPinRequiredForSettings, setAppPinRequiredForSettings] = useState(() =>
+    getBool(storageKeys.appPinRequiredForSettings, false)
+  );
   const [appPinUnlocked, setAppPinUnlocked] = useState(() => readPinUnlockedSession());
+  const [settingsPinUnlocked, setSettingsPinUnlocked] = useState(false);
   const [appPin, setAppPin] = useState('');
   const [appPinError, setAppPinError] = useState<string | null>(null);
   const [appPinBusy, setAppPinBusy] = useState(false);
+  const [settingsPin, setSettingsPin] = useState('');
+  const [settingsPinError, setSettingsPinError] = useState<string | null>(null);
+  const [settingsPinBusy, setSettingsPinBusy] = useState(false);
 
   const ensureAdminPinHash = useCallback(async () => {
     const storedHash = localStorage.getItem(storageKeys.adminPasswordHash);
@@ -61,25 +68,57 @@ export function App() {
 
   useEffect(() => {
     setAppPinRequiredOnStart(getBool(storageKeys.appPinRequiredOnStart, false));
+    setAppPinRequiredForSettings(getBool(storageKeys.appPinRequiredForSettings, false));
   }, []);
 
   useEffect(() => {
     const onSettingsChanged = (event: Event) => {
       const changedKey = (event as CustomEvent<{ key?: string }>).detail?.key;
-      if (changedKey !== storageKeys.appPinRequiredOnStart) return;
-      const nextEnabled = getBool(storageKeys.appPinRequiredOnStart, false);
-      setAppPinRequiredOnStart(nextEnabled);
-      // Runtime toggle should apply from next app start.
-      setAppPinUnlocked(true);
-      writePinUnlockedSession(true);
-      setAppPin('');
-      setAppPinError(null);
+      if (changedKey === storageKeys.appPinRequiredOnStart) {
+        const nextEnabled = getBool(storageKeys.appPinRequiredOnStart, false);
+        setAppPinRequiredOnStart(nextEnabled);
+        if (nextEnabled) {
+          // ON: attiva subito il gate PIN e forza nuova verifica sessione.
+          setAppPinUnlocked(false);
+          writePinUnlockedSession(false);
+        } else {
+          // OFF: disattiva subito il gate PIN.
+          setAppPinUnlocked(true);
+          writePinUnlockedSession(true);
+          setAppPin('');
+          setAppPinError(null);
+        }
+        return;
+      }
+
+      if (changedKey === storageKeys.appPinRequiredForSettings) {
+        const nextEnabled = getBool(storageKeys.appPinRequiredForSettings, false);
+        setAppPinRequiredForSettings(nextEnabled);
+        setSettingsPinUnlocked(false);
+        setSettingsPin('');
+        setSettingsPinError(null);
+      }
     };
     window.addEventListener(settingsChangedEvent, onSettingsChanged as EventListener);
     return () => {
       window.removeEventListener(settingsChangedEvent, onSettingsChanged as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    // Richiede nuovamente il PIN ogni volta che si rientra in Impostazioni.
+    if (!appPinRequiredForSettings) {
+      setSettingsPinUnlocked(false);
+      setSettingsPin('');
+      setSettingsPinError(null);
+      return;
+    }
+    if (!location.startsWith('/admin') || location.startsWith('/admina')) {
+      setSettingsPinUnlocked(false);
+      setSettingsPin('');
+      setSettingsPinError(null);
+    }
+  }, [appPinRequiredForSettings, location]);
 
   const unlockAppWithPin = async () => {
     if (appPinBusy) return;
@@ -106,7 +145,38 @@ export function App() {
     }
   };
 
+  const unlockSettingsWithPin = async () => {
+    if (settingsPinBusy) return;
+    const enteredPin = settingsPin.trim();
+    if (!enteredPin) {
+      setSettingsPinError('Inserisci PIN');
+      return;
+    }
+    setSettingsPinError(null);
+    setSettingsPinBusy(true);
+    try {
+      const storedHash = await ensureAdminPinHash();
+      const enteredHash = await sha256Base64(enteredPin);
+      if (enteredHash !== storedHash) {
+        setSettingsPinError('PIN non corretto');
+        return;
+      }
+      setSettingsPinUnlocked(true);
+      setSettingsPin('');
+      setSettingsPinError(null);
+    } finally {
+      setSettingsPinBusy(false);
+    }
+  };
+
   const showAppPinGate = appPinRequiredOnStart && !appPinUnlocked && !introVisible;
+  const isSettingsRoute = location.startsWith('/admin') && !location.startsWith('/admina');
+  const showSettingsPinGate =
+    isSettingsRoute &&
+    appPinRequiredForSettings &&
+    !settingsPinUnlocked &&
+    !introVisible &&
+    !showAppPinGate;
 
   return (
     <>
@@ -165,7 +235,53 @@ export function App() {
           </div>
         </div>
       ) : null}
-      <BottomNav currentPath={location} hidden={hideNav || showAppPinGate} />
+      {showSettingsPinGate ? (
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Richiesta PIN accesso impostazioni"
+        >
+          <div className="modalCard">
+            <div className="modalTitle">Inserisci PIN</div>
+            <div className="modalDescription">
+              Richiesta PIN attiva. Inserisci il PIN per accedere alla pagina Impostazioni.
+            </div>
+            <div className="mt12">
+              <input
+                className="input"
+                type="password"
+                inputMode="numeric"
+                placeholder="Inserisci PIN"
+                value={settingsPin}
+                onChange={(event) => {
+                  setSettingsPin(event.target.value);
+                  if (settingsPinError) setSettingsPinError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return;
+                  event.preventDefault();
+                  void unlockSettingsWithPin();
+                }}
+              />
+            </div>
+            {settingsPinError ? <div className="errorText mt10">{settingsPinError}</div> : null}
+            <div className="modalActions">
+              <button
+                className="button"
+                type="button"
+                disabled={settingsPinBusy || settingsPin.trim().length === 0}
+                onClick={() => {
+                  void unlockSettingsWithPin();
+                }}
+              >
+                {settingsPinBusy ? 'Verifica…' : 'Conferma PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <BottomNav currentPath={location} hidden={hideNav || showAppPinGate || showSettingsPinGate} />
     </>
   );
 }

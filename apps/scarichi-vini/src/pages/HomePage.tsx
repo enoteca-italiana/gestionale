@@ -4,14 +4,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { Logo } from '@/components/Logo';
 import { Toast } from '@/components/Toast';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
-import { createAndSubmitDischargeSession } from '@/data/dischargeRepository';
 import { dischargeNoteChangedEvent } from '@/data/dischargeNote';
-import {
-  completeInProgressDischargeNote,
-  getReadyDischargeNoteItems,
-  startReadyDischargeNoteItems
-} from '@/data/dischargeNoteRepository';
-import { updateWine } from '@/data/wineRepository';
 import { useLocalDb } from '@/data/useLocalDb';
 import { ResultsList } from '@/pages/home/ResultsList';
 import { SessionConfirmModal } from '@/pages/home/SessionConfirmModal';
@@ -25,6 +18,26 @@ const INTRO_SEEN_SESSION_KEY = 'scarichi:intro-seen';
 const FORCE_HOME_ONCE_SESSION_KEY = 'scarichi:force-home-once';
 const BEFORE_NAV_EVENT = 'scarichi:beforeNav';
 const READY_NOTE_POLL_MS = 12000;
+let dischargeRepositoryPromise: Promise<typeof import('@/data/dischargeRepository')> | null = null;
+let dischargeNoteRepositoryPromise: Promise<
+  typeof import('@/data/dischargeNoteRepository')
+> | null = null;
+let wineRepositoryPromise: Promise<typeof import('@/data/wineRepository')> | null = null;
+
+async function loadDischargeRepository() {
+  dischargeRepositoryPromise ??= import('@/data/dischargeRepository');
+  return dischargeRepositoryPromise;
+}
+
+async function loadDischargeNoteRepository() {
+  dischargeNoteRepositoryPromise ??= import('@/data/dischargeNoteRepository');
+  return dischargeNoteRepositoryPromise;
+}
+
+async function loadWineRepository() {
+  wineRepositoryPromise ??= import('@/data/wineRepository');
+  return wineRepositoryPromise;
+}
 
 function isInThreshold(qty: number, threshold?: number) {
   const parsedQty = Number(qty);
@@ -197,7 +210,9 @@ export function HomePage({
     let alive = true;
     const syncReadyNote = async () => {
       try {
-        const items = await getReadyDischargeNoteItems();
+        const noteRepository = await loadDischargeNoteRepository();
+        if (!alive) return;
+        const items = await noteRepository.getReadyDischargeNoteItems();
         if (!alive) return;
         setReadyDischargeNoteItems(items);
       } catch (error) {
@@ -255,7 +270,8 @@ export function HomePage({
   };
 
   const startSessionFromReadyNote = async () => {
-    const noteItems = await startReadyDischargeNoteItems();
+    const noteRepository = await loadDischargeNoteRepository();
+    const noteItems = await noteRepository.startReadyDischargeNoteItems();
     if (noteItems.length === 0) {
       startSession();
       return;
@@ -284,11 +300,13 @@ export function HomePage({
     );
 
     try {
-      await createAndSubmitDischargeSession({
+      const dischargeRepository = await loadDischargeRepository();
+      const noteRepository = await loadDischargeNoteRepository();
+      await dischargeRepository.createAndSubmitDischargeSession({
         items: sessionList.map((item) => ({ wineId: item.wineId, qty: item.qty })),
         expectedQtyByWineId
       });
-      await completeInProgressDischargeNote();
+      await noteRepository.completeInProgressDischargeNote();
       setPendingNoteQtyByWineId({});
       setReadyDischargeNoteItems([]);
       await refreshInventory();
@@ -390,9 +408,29 @@ export function HomePage({
     if (forceRefreshBusy) return;
     setForceRefreshBusy(true);
     try {
-      await refreshInventory();
+      // Reset filters first so UI always restarts from default state.
+      setQuery('');
+      setStockFilter('all');
+
+      // Force a SW update check before refreshing inventory.
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(
+          registrations.map(async (registration) => {
+            try {
+              await registration.update();
+            } catch {
+              // Ignore update errors and continue with hard refresh flow.
+            }
+          })
+        );
+      }
+
+      await refreshInventory({ forceRemote: true });
+      setToast('Archivio aggiornato');
     } catch (error) {
       console.error('[HomePage] force refresh failed', error);
+      setToast('Errore refresh archivio');
     } finally {
       setForceRefreshBusy(false);
     }
@@ -433,7 +471,8 @@ export function HomePage({
 
     setStockSaveBusy(true);
     try {
-      await updateWine({
+      const wineRepository = await loadWineRepository();
+      await wineRepository.updateWine({
         id: editingStockWine.id,
         category: editingStockWine.category ?? '',
         name: editingStockWine.name,

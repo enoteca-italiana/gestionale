@@ -1,6 +1,6 @@
 # Operatività (dev) + Backup
 
-Ultimo aggiornamento: **17/03/2026 01:42 CET**.
+Ultimo aggiornamento: **17/03/2026 02:38 CET**.
 
 ## Dev server
 
@@ -78,6 +78,7 @@ Naming richiesto dall’utente:
 - ultimo backup creato: `backup_16 Lunedi_23.46.tar.gz`
 - ultimo backup creato: `backup_17 Martedi_00.06.tar.gz`
 - ultimo backup creato: `backup_17 Martedi_01.42.tar.gz`
+- ultimo backup creato: `backup_17 Martedi_02.38.tar.gz`
 
 Script:
 

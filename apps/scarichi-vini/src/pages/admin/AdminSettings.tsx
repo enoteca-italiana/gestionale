@@ -26,6 +26,7 @@ export function AdminSettings({
 }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [pwdError, setPwdError] = useState<string | null>(null);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -58,10 +59,17 @@ export function AdminSettings({
   const [appPinRequiredOnStart, setAppPinRequiredOnStart] = useState<boolean>(() =>
     getBool(storageKeys.appPinRequiredOnStart, false)
   );
+  const [appPinRequiredForSettings, setAppPinRequiredForSettings] = useState<boolean>(() =>
+    getBool(storageKeys.appPinRequiredForSettings, false)
+  );
 
   const canChange = useMemo(
-    () => currentPassword.length > 0 && newPassword.length >= 4,
-    [currentPassword, newPassword]
+    () =>
+      currentPassword.length > 0 &&
+      newPassword.length >= 4 &&
+      confirmNewPassword.length >= 4 &&
+      newPassword === confirmNewPassword,
+    [confirmNewPassword, currentPassword, newPassword]
   );
 
   useEffect(() => {
@@ -70,6 +78,7 @@ export function AdminSettings({
       setPwdError(null);
       setCurrentPassword('');
       setNewPassword('');
+      setConfirmNewPassword('');
       setPasswordModalOpen(true);
       onActionHandled?.();
       return;
@@ -97,6 +106,7 @@ export function AdminSettings({
     }
     if (openAction === 'pinRequest') {
       setAppPinRequiredOnStart(getBool(storageKeys.appPinRequiredOnStart, false));
+      setAppPinRequiredForSettings(getBool(storageKeys.appPinRequiredForSettings, false));
       setAppPinModalOpen(true);
       onActionHandled?.();
       return;
@@ -108,6 +118,10 @@ export function AdminSettings({
   }, [onActionHandled, openAction]);
 
   const changePassword = async () => {
+    if (newPassword !== confirmNewPassword) {
+      setPwdError('La conferma password non coincide');
+      return;
+    }
     setPwdError(null);
     setBusy(true);
     try {
@@ -118,6 +132,7 @@ export function AdminSettings({
       }
       setCurrentPassword('');
       setNewPassword('');
+      setConfirmNewPassword('');
       setPasswordModalOpen(false);
     } finally {
       setBusy(false);
@@ -299,25 +314,71 @@ export function AdminSettings({
         <div className="modalOverlay" role="dialog" aria-modal="true">
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle centered">Richiesta PIN</div>
-            <div className="modalDescription centered">
-              Attiva o disattiva la richiesta PIN all&apos;avvio app.
+            <div className="adminPinToggleBlock">
+              <div className="modalDescription centered">
+                Richiesta PIN all&apos;avvio App.
+              </div>
+              <div className="adminPinSegmented" role="group" aria-label="Richiesta PIN avvio app">
+                <button
+                  className={`adminPinSegment adminPinSegmentOn ${appPinRequiredOnStart ? 'isActive' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    if (appPinRequiredOnStart) return;
+                    setBool(storageKeys.appPinRequiredOnStart, true);
+                    setAppPinRequiredOnStart(true);
+                  }}
+                >
+                  ON
+                </button>
+                <button
+                  className={`adminPinSegment adminPinSegmentOff ${!appPinRequiredOnStart ? 'isActive' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    if (!appPinRequiredOnStart) return;
+                    setBool(storageKeys.appPinRequiredOnStart, false);
+                    setAppPinRequiredOnStart(false);
+                  }}
+                >
+                  OFF
+                </button>
+              </div>
             </div>
-            <div className="mt12 centered">
-              <button
-                className={`button buttonAuto ${appPinRequiredOnStart ? 'buttonSessionConfirmActive' : ''}`}
-                type="button"
-                onClick={() => {
-                  const next = !appPinRequiredOnStart;
-                  setBool(storageKeys.appPinRequiredOnStart, next);
-                  setAppPinRequiredOnStart(next);
-                }}
+            <div className="adminPinToggleBlock">
+              <div className="modalDescription centered">
+                Richiesta PIN pagina IMPOSTAZIONI.
+              </div>
+              <div
+                className="adminPinSegmented"
+                role="group"
+                aria-label="Richiesta PIN accesso pagina impostazioni"
               >
-                {appPinRequiredOnStart ? 'ON' : 'OFF'}
-              </button>
+                <button
+                  className={`adminPinSegment adminPinSegmentOn ${appPinRequiredForSettings ? 'isActive' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    if (appPinRequiredForSettings) return;
+                    setBool(storageKeys.appPinRequiredForSettings, true);
+                    setAppPinRequiredForSettings(true);
+                  }}
+                >
+                  ON
+                </button>
+                <button
+                  className={`adminPinSegment adminPinSegmentOff ${!appPinRequiredForSettings ? 'isActive' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    if (!appPinRequiredForSettings) return;
+                    setBool(storageKeys.appPinRequiredForSettings, false);
+                    setAppPinRequiredForSettings(false);
+                  }}
+                >
+                  OFF
+                </button>
+              </div>
             </div>
-            <div className="modalActions">
+            <div className="modalActions adminPinModalActions">
               <button
-                className="button buttonSecondary buttonCancel"
+                className="button adminPinCloseButton"
                 type="button"
                 onClick={() => setAppPinModalOpen(false)}
               >
@@ -557,7 +618,22 @@ export function AdminSettings({
                 type="password"
                 placeholder="Nuova password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  if (pwdError) setPwdError(null);
+                }}
+              />
+            </div>
+            <div className="mt10">
+              <input
+                className="input adminInput"
+                type="password"
+                placeholder="Conferma nuova password"
+                value={confirmNewPassword}
+                onChange={(e) => {
+                  setConfirmNewPassword(e.target.value);
+                  if (pwdError) setPwdError(null);
+                }}
               />
             </div>
 
@@ -582,6 +658,7 @@ export function AdminSettings({
                   setPwdError(null);
                   setCurrentPassword('');
                   setNewPassword('');
+                  setConfirmNewPassword('');
                 }}
               >
                 Annulla

@@ -3,9 +3,28 @@ import { supabase } from '@/lib/supabase';
 import { normalizeWineSupplier } from '@/domain/normalizeWineText';
 
 const SUPPLIER_STORAGE_KEY = 'scarichi.suppliers.v1';
+const SUPABASE_SUPPLIER_CACHE_TTL_MS = 60_000;
+let supabaseSupplierCache: { values: string[]; updatedAt: number } | null = null;
 
 function normalizeSupplier(value: string) {
   return normalizeWineSupplier(value);
+}
+
+function getCachedSupabaseSuppliers(): string[] | null {
+  if (!supabaseSupplierCache) return null;
+  if (Date.now() - supabaseSupplierCache.updatedAt > SUPABASE_SUPPLIER_CACHE_TTL_MS) {
+    supabaseSupplierCache = null;
+    return null;
+  }
+  return supabaseSupplierCache.values;
+}
+
+function setCachedSupabaseSuppliers(values: string[]) {
+  supabaseSupplierCache = { values, updatedAt: Date.now() };
+}
+
+function clearCachedSupabaseSuppliers() {
+  supabaseSupplierCache = null;
 }
 
 function isSchemaColumnError(error: unknown): boolean {
@@ -132,6 +151,8 @@ type SupplierRow = {
 };
 
 export async function listSupabaseSuppliers(): Promise<string[]> {
+  const cached = getCachedSupabaseSuppliers();
+  if (cached) return cached;
   if (!supabase) return [];
 
   const { data, error } = await supabase
@@ -152,9 +173,11 @@ export async function listSupabaseSuppliers(): Promise<string[]> {
     const key = normalized.toLowerCase();
     if (!seen.has(key)) seen.set(key, normalized);
   }
-  return Array.from(seen.values()).sort((a, b) =>
+  const output = Array.from(seen.values()).sort((a, b) =>
     a.localeCompare(b, 'it', { sensitivity: 'base' })
   );
+  setCachedSupabaseSuppliers(output);
+  return output;
 }
 
 export async function upsertSupabaseSupplier(rawValue: string): Promise<void> {
@@ -175,7 +198,9 @@ export async function upsertSupabaseSupplier(rawValue: string): Promise<void> {
     return;
   }
 
-  if (existing && existing.length > 0) return;
+  if (existing && existing.length > 0) {
+    return;
+  }
 
   const { error: insertError } = await supabase.from('suppliers').insert({ name: normalized });
   if (insertError) {
@@ -184,7 +209,9 @@ export async function upsertSupabaseSupplier(rawValue: string): Promise<void> {
     if (!isSchemaColumnError(insertError)) {
       console.error('[supplierRepository] insert supplier error', insertError);
     }
+    return;
   }
+  clearCachedSupabaseSuppliers();
 }
 
 export async function renameSupabaseSupplier(rawFrom: string, rawTo: string): Promise<void> {
@@ -200,7 +227,9 @@ export async function renameSupabaseSupplier(rawFrom: string, rawTo: string): Pr
     if (!isSchemaColumnError(error)) {
       console.error('[supplierRepository] renameSupabaseSupplier error', error);
     }
+    return;
   }
+  clearCachedSupabaseSuppliers();
 }
 
 export async function deleteSupabaseSupplier(rawValue: string): Promise<void> {
@@ -212,7 +241,9 @@ export async function deleteSupabaseSupplier(rawValue: string): Promise<void> {
     if (!isSchemaColumnError(error)) {
       console.error('[supplierRepository] deleteSupabaseSupplier error', error);
     }
+    return;
   }
+  clearCachedSupabaseSuppliers();
 }
 
 export async function clearSupabaseSuppliers(): Promise<void> {
@@ -222,5 +253,7 @@ export async function clearSupabaseSuppliers(): Promise<void> {
     if (!isSchemaColumnError(error)) {
       console.error('[supplierRepository] clearSupabaseSuppliers error', error);
     }
+    return;
   }
+  clearCachedSupabaseSuppliers();
 }

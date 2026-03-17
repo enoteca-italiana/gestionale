@@ -3,9 +3,28 @@ import { supabase } from '@/lib/supabase';
 import { normalizeWineCategory } from '@/domain/normalizeWineText';
 
 const CATEGORY_STORAGE_KEY = 'scarichi.categories.v1';
+const SUPABASE_CATEGORY_CACHE_TTL_MS = 60_000;
+let supabaseCategoryCache: { values: string[]; updatedAt: number } | null = null;
 
 function normalizeCategoryName(value: string) {
   return normalizeWineCategory(value);
+}
+
+function getCachedSupabaseCategories(): string[] | null {
+  if (!supabaseCategoryCache) return null;
+  if (Date.now() - supabaseCategoryCache.updatedAt > SUPABASE_CATEGORY_CACHE_TTL_MS) {
+    supabaseCategoryCache = null;
+    return null;
+  }
+  return supabaseCategoryCache.values;
+}
+
+function setCachedSupabaseCategories(values: string[]) {
+  supabaseCategoryCache = { values, updatedAt: Date.now() };
+}
+
+function clearCachedSupabaseCategories() {
+  supabaseCategoryCache = null;
 }
 
 function isSchemaColumnError(error: unknown): boolean {
@@ -134,6 +153,8 @@ type CategoryRow = {
 };
 
 export async function listSupabaseCategories(): Promise<string[]> {
+  const cached = getCachedSupabaseCategories();
+  if (cached) return cached;
   if (!supabase) return [];
 
   const { data, error } = await supabase
@@ -154,9 +175,11 @@ export async function listSupabaseCategories(): Promise<string[]> {
     const key = normalized.toLowerCase();
     if (!seen.has(key)) seen.set(key, normalized);
   }
-  return Array.from(seen.values()).sort((a, b) =>
+  const output = Array.from(seen.values()).sort((a, b) =>
     a.localeCompare(b, 'it', { sensitivity: 'base' })
   );
+  setCachedSupabaseCategories(output);
+  return output;
 }
 
 export async function upsertSupabaseCategory(rawValue: string): Promise<void> {
@@ -177,7 +200,9 @@ export async function upsertSupabaseCategory(rawValue: string): Promise<void> {
     return;
   }
 
-  if (existing && existing.length > 0) return;
+  if (existing && existing.length > 0) {
+    return;
+  }
 
   const { error: insertError } = await supabase.from('categories').insert({ name: normalized });
   if (insertError) {
@@ -186,7 +211,9 @@ export async function upsertSupabaseCategory(rawValue: string): Promise<void> {
     if (!isSchemaColumnError(insertError)) {
       console.error('[categoryRepository] insert category error', insertError);
     }
+    return;
   }
+  clearCachedSupabaseCategories();
 }
 
 export async function renameSupabaseCategory(rawFrom: string, rawTo: string): Promise<void> {
@@ -202,7 +229,9 @@ export async function renameSupabaseCategory(rawFrom: string, rawTo: string): Pr
     if (!isSchemaColumnError(error)) {
       console.error('[categoryRepository] renameSupabaseCategory error', error);
     }
+    return;
   }
+  clearCachedSupabaseCategories();
 }
 
 export async function deleteSupabaseCategory(rawValue: string): Promise<void> {
@@ -214,7 +243,9 @@ export async function deleteSupabaseCategory(rawValue: string): Promise<void> {
     if (!isSchemaColumnError(error)) {
       console.error('[categoryRepository] deleteSupabaseCategory error', error);
     }
+    return;
   }
+  clearCachedSupabaseCategories();
 }
 
 export async function clearSupabaseCategories(): Promise<void> {
@@ -224,5 +255,7 @@ export async function clearSupabaseCategories(): Promise<void> {
     if (!isSchemaColumnError(error)) {
       console.error('[categoryRepository] clearSupabaseCategories error', error);
     }
+    return;
   }
+  clearCachedSupabaseCategories();
 }

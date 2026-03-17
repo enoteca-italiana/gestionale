@@ -72,11 +72,13 @@
 .modalTitle {
   font-size: 18px;
   font-weight: 800;
+  text-align: center;
 }
 
 .modalDescription {
   margin-top: 8px;
   color: var(--muted);
+  text-align: center;
 }
 
 .modalActions {
@@ -335,6 +337,70 @@
   max-height: min(86dvh, 760px);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.adminPinToggleBlock {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.adminPinSegmented {
+  width: min(100%, 420px);
+  margin-inline: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 5px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.adminPinSegment {
+  appearance: none;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  background: #ffffff;
+  color: #111827;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.adminPinSegment:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.adminPinSegmentOn.isActive {
+  background: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+}
+
+.adminPinSegmentOff.isActive {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #ffffff;
+}
+
+.adminPinModalActions {
+  width: min(100%, 420px);
+  margin-inline: auto;
+}
+
+.adminPinCloseButton {
+  background: var(--brand);
+  color: #ffffff;
 }
 
 .adminImportArchiveButton {

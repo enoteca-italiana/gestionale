@@ -43,6 +43,7 @@ const WINE_SELECT_COLUMNS =
   'id,category,name,age,producer,origin,supplier,threshold,purchase_price,sale_price,vintage,qty,warehouse,margin,notes';
 const WINE_NAME_COLLATOR = new Intl.Collator('it', { sensitivity: 'base' });
 let listWinesInFlight: Promise<Wine[]> | null = null;
+let listWinesCache: Wine[] | null = null;
 
 function randomThreshold(): number {
   return Math.floor(Math.random() * 12) + 1;
@@ -261,6 +262,41 @@ function persistLocalInventory(next: Wine[]) {
   notifyDbChanged();
 }
 
+function setListWinesCache(wines: Wine[]) {
+  listWinesCache = wines;
+}
+
+function prepareInventory(source: Wine[], fallback: Wine[]): Wine[] {
+  const wines = enrichThresholdsFromFallback(source, fallback);
+  const normalized = normalizeWineTextFields(wines);
+  return sortWines(normalized);
+}
+
+function persistAndCacheInventory(next: Wine[]) {
+  persistLocalInventory(next);
+  setListWinesCache(next);
+}
+
+async function fetchAndPersistRemoteWines(localInventory: Wine[]): Promise<Wine[]> {
+  if (!supabase) {
+    const prepared = prepareInventory(localInventory, localInventory);
+    persistAndCacheInventory(prepared);
+    return prepared;
+  }
+
+  try {
+    const data = await listAllWineRows();
+    const prepared = prepareInventory((data ?? []).map(toWine), localInventory);
+    persistAndCacheInventory(prepared);
+    return prepared;
+  } catch (error) {
+    console.error('[wineRepository] Supabase list error', error);
+    const prepared = prepareInventory(localInventory, localInventory);
+    persistAndCacheInventory(prepared);
+    return prepared;
+  }
+}
+
 export const archiveResetEvent = 'scarichi:archiveReset';
 
 async function listAllWineRows(): Promise<WineRow[]> {
@@ -329,33 +365,24 @@ async function listAllWineRows(): Promise<WineRow[]> {
   return [...firstPage, ...pages.flat()];
 }
 
-export async function listWines(): Promise<Wine[]> {
-  if (listWinesInFlight) return listWinesInFlight;
+export async function listWines(options?: { forceRemote?: boolean }): Promise<Wine[]> {
+  const forceRemote = options?.forceRemote === true;
+  const localInventory = getLocalInventory();
 
-  listWinesInFlight = (async () => {
-    const localInventory = getLocalInventory();
-
-    if (supabase) {
-      try {
-        const data = await listAllWineRows();
-        const wines = enrichThresholdsFromFallback((data ?? []).map(toWine), localInventory);
-        const normalized = normalizeWineTextFields(wines);
-        persistLocalInventory(normalized);
-        return sortWines(normalized);
-      } catch (error) {
-        console.error('[wineRepository] Supabase list error', error);
-        const localWithThresholds = enrichThresholdsFromFallback(localInventory, localInventory);
-        const normalizedLocal = normalizeWineTextFields(localWithThresholds);
-        persistLocalInventory(normalizedLocal);
-        return sortWines(normalizedLocal);
-      }
+  if (!forceRemote) {
+    if (listWinesCache && sameInventory(localInventory, listWinesCache)) {
+      return listWinesCache;
     }
 
-    const wines = enrichThresholdsFromFallback(localInventory, localInventory);
-    const normalized = normalizeWineTextFields(wines);
-    persistLocalInventory(normalized);
-    return sortWines(normalized);
-  })();
+    if (localInventory.length > 0) {
+      const preparedLocal = prepareInventory(localInventory, localInventory);
+      persistAndCacheInventory(preparedLocal);
+      return preparedLocal;
+    }
+  }
+
+  if (listWinesInFlight) return listWinesInFlight;
+  listWinesInFlight = fetchAndPersistRemoteWines(localInventory);
 
   try {
     return await listWinesInFlight;
@@ -435,7 +462,7 @@ export async function createWine(input: WineInput): Promise<Wine> {
   }
 
   const next = sortWines([...getLocalInventory().filter((w) => w.id !== wine.id), wine]);
-  persistLocalInventory(next);
+  persistAndCacheInventory(next);
   await syncWineUpsert(wine);
   return wine;
 }
@@ -472,7 +499,7 @@ export async function updateWine(input: WineInput): Promise<Wine> {
   }
 
   const next = sortWines([...getLocalInventory().filter((w) => w.id !== wine.id), wine]);
-  persistLocalInventory(next);
+  persistAndCacheInventory(next);
   await syncWineUpsert(wine);
   return wine;
 }
@@ -487,7 +514,7 @@ export async function deleteWine(id: string): Promise<void> {
   }
 
   const next = getLocalInventory().filter((w) => w.id !== id);
-  persistLocalInventory(next);
+  persistAndCacheInventory(next);
   await syncWineDelete(id);
 }
 
@@ -544,7 +571,7 @@ export async function replaceAllWines(inputRows: ArchiveCsvWineInput[]): Promise
   }
 
   const sorted = sortWines(persisted);
-  persistLocalInventory(sorted);
+  persistAndCacheInventory(sorted);
 
   for (const wine of sorted) {
     await syncWineUpsert(wine);
@@ -594,7 +621,7 @@ export async function appendWines(inputRows: ArchiveCsvWineInput[]): Promise<Win
   }
 
   const merged = sortWines([...current, ...inserted]);
-  persistLocalInventory(merged);
+  persistAndCacheInventory(merged);
 
   for (const wine of inserted) {
     await syncWineUpsert(wine);
@@ -621,7 +648,7 @@ export async function updateThresholdForAllWines(rawThreshold: number): Promise<
   }
 
   const updated = sortWines(current.map((wine) => ({ ...wine, threshold })));
-  persistLocalInventory(updated);
+  persistAndCacheInventory(updated);
 
   for (const wine of updated) {
     await syncWineUpsert(wine);
@@ -668,7 +695,7 @@ export async function clearWineArchive(): Promise<number> {
     await Promise.all([clearSupabaseCategories(), clearSupabaseSuppliers()]);
   }
 
-  persistLocalInventory([]);
+  persistAndCacheInventory([]);
   window.dispatchEvent(new CustomEvent(archiveResetEvent));
   return deletedCount;
 }
@@ -706,7 +733,7 @@ export async function renameWineRegistryValue(
   });
 
   if (changed > 0) {
-    persistLocalInventory(sortWines(next));
+    persistAndCacheInventory(sortWines(next));
   }
   return changed;
 }

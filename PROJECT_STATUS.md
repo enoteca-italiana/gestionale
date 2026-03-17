@@ -1,6 +1,31 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **17/03/2026 01:41 CET**.
+Ultimo aggiornamento: **17/03/2026 02:38 CET**.
+
+## Ultimi aggiornamenti (17/03/2026 - wave 18, PIN hardening + UX sicurezza admin)
+
+- Modale `Richiesta PIN` (`/admin`):
+  - doppio controllo PIN nello stesso modale:
+    - `Richiesta PIN all'avvio App`
+    - `Richiesta PIN pagina IMPOSTAZIONI`
+  - controlli aggiornati a switch orizzontali touch-friendly `ON/OFF` visibili.
+  - stato colore switch:
+    - `ON` attivo verde;
+    - `OFF` attivo viola;
+    - stato non attivo bianco.
+  - pulsante `Chiudi` centrato, larghezza coerente agli switch e stile viola.
+- Sicurezza accesso `Impostazioni`:
+  - rimosso sblocco persistente della pagina impostazioni;
+  - con richiesta PIN impostazioni attiva, il PIN viene richiesto a ogni nuovo accesso alla route `/admin`.
+- Sicurezza avvio app:
+  - fix runtime toggle: `ON` su PIN avvio app attiva subito il gate (nessuno stato sbloccato residuo).
+- Cambio password admin:
+  - aggiunto campo `Conferma nuova password`;
+  - validazione match obbligatoria prima della conferma.
+- Quality gate sessione:
+  - `npm run lint -w @enoteca/scarichi-vini` ✅
+  - `npm run typecheck -w @enoteca/scarichi-vini` ✅
+  - `npm run test -w @enoteca/scarichi-vini -- --run` ✅ (15 test)
 
 ## Scopo di questo file
 

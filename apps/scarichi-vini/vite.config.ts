@@ -54,6 +54,19 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('exceljs')) return 'vendor_excel';
+          if (id.includes('jspdf') || id.includes('jspdf-autotable')) return 'vendor_pdf';
+          if (id.includes('@supabase/supabase-js')) return 'vendor_supabase';
+          return undefined;
+        }
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname

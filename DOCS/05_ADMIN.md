@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **17/03/2026 01:41 CET**.
+Ultimo aggiornamento: **17/03/2026 02:38 CET**.
 
 ## Accesso
 
@@ -53,6 +53,41 @@ Modali attivi:
 - import archivio CSV (aggiunta o sostituzione)
 - imposta soglia unica su tutti i vini
 - reset archivio con PIN
+- richiesta PIN (avvio app + accesso impostazioni)
+
+### Richiesta PIN (modale unico)
+
+Nel modale `Richiesta PIN` sono disponibili due controlli distinti:
+
+- `Richiesta PIN all'avvio App`
+- `Richiesta PIN pagina IMPOSTAZIONI`
+
+UI:
+
+- switch orizzontali touch-friendly con `ON/OFF` sempre visibili;
+- `ON` attivo: verde;
+- `OFF` attivo: viola;
+- stato non attivo: bianco;
+- pulsante `Chiudi` viola.
+
+Comportamento:
+
+- PIN avvio app:
+  - `ON` attiva subito il gate PIN in runtime;
+  - `OFF` disattiva subito il gate.
+- PIN impostazioni:
+  - `ON` richiede PIN per accesso a `/admin`;
+  - lo sblocco non resta persistente tra accessi (nuova richiesta PIN a ogni rientro in Impostazioni).
+
+### Cambio password admin
+
+Nel modale `Aggiorna password admin` è stato aggiunto:
+
+- campo `Conferma nuova password`.
+
+Regola:
+
+- la modifica è consentita solo se `Nuova password` e `Conferma nuova password` coincidono.
 
 ### Importa archivio CSV
 

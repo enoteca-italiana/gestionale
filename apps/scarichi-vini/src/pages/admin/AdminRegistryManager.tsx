@@ -228,6 +228,7 @@ export function AdminRegistryManager() {
     if (hasFreshCache && registryManagerCache) {
       applyRegistrySnapshot(registryManagerCache);
       setLoading(false);
+      return;
     } else {
       setWines(localInventory);
       setManagedCategories(localManaged.managedCategories);

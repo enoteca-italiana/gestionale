@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type { Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import {
@@ -37,7 +37,6 @@ import {
 } from '@/data/wineRepository';
 import { AdminArchiveToolbar } from '@/pages/admina/components/AdminArchiveToolbar';
 import { AdminArchiveTable } from '@/pages/admina/components/AdminArchiveTable';
-import { AiAssistantModal } from '@/pages/admina/components/AiAssistantModal';
 import { BulkEditFilteredModal } from '@/pages/admina/components/BulkEditFilteredModal';
 import { CategoryCreateModal } from '@/pages/admina/components/CategoryCreateModal';
 import { DischargeNoteDrawer } from '@/pages/admina/components/DischargeNoteDrawer';
@@ -51,6 +50,12 @@ import {
   type Mode,
   type WineFormState
 } from '@/pages/admina/types';
+
+const AiAssistantModal = lazy(() =>
+  import('@/pages/admina/components/AiAssistantModal').then((m) => ({
+    default: m.AiAssistantModal
+  }))
+);
 
 export function WineAdminPage() {
   const [wines, setWines] = useState<Wine[]>([]);
@@ -682,7 +687,13 @@ export function WineAdminPage() {
         onCancel={closeForm}
       />
       {aiModalOpen ? (
-        <AiAssistantModal open={aiModalOpen} wines={wines} onClose={() => setAiModalOpen(false)} />
+        <Suspense fallback={null}>
+          <AiAssistantModal
+            open={aiModalOpen}
+            wines={wines}
+            onClose={() => setAiModalOpen(false)}
+          />
+        </Suspense>
       ) : null}
       <BulkEditFilteredModal
         open={bulkEditModalOpen}

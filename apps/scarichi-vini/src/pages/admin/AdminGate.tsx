@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { clearWineArchive } from '@/data/wineRepository';
 import { useDischargeSessions } from '@/data/useDischargeSessions';
-import { AdminHistory } from '@/pages/admin/AdminHistory';
 import { AdminHome, type AdminRootSection } from '@/pages/admin/AdminHome';
-import { AdminRegistryManager } from '@/pages/admin/AdminRegistryManager';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { useAdminAuth } from '@/pages/admin/useAdminAuth';
 
 type AdminSection = 'home' | 'history' | 'registryManager';
 type SettingsAction = 'password' | 'import' | 'threshold' | 'pinRequest' | 'reset' | null;
+
+const AdminHistory = lazy(() =>
+  import('@/pages/admin/AdminHistory').then((m) => ({ default: m.AdminHistory }))
+);
+const AdminRegistryManager = lazy(() =>
+  import('@/pages/admin/AdminRegistryManager').then((m) => ({ default: m.AdminRegistryManager }))
+);
 
 export function AdminGate() {
   const { ready, logout, changePassword } = useAdminAuth();
@@ -63,18 +68,24 @@ export function AdminGate() {
             <div className="errorText mt6">{sessionsError}</div>
           </div>
         ) : (
-          <AdminHistory
-            history={history}
-            onReset={(retention) => {
-              void clearHistory(retention).catch((error) => {
-                console.error('[AdminGate] clearHistory failed', error);
-              });
-            }}
-          />
+          <Suspense fallback={<div className="card adminCard">Caricamento…</div>}>
+            <AdminHistory
+              history={history}
+              onReset={(retention) => {
+                void clearHistory(retention).catch((error) => {
+                  console.error('[AdminGate] clearHistory failed', error);
+                });
+              }}
+            />
+          </Suspense>
         )
       ) : null}
 
-      {section === 'registryManager' ? <AdminRegistryManager /> : null}
+      {section === 'registryManager' ? (
+        <Suspense fallback={<div className="card adminCard">Caricamento…</div>}>
+          <AdminRegistryManager />
+        </Suspense>
+      ) : null}
 
       <AdminSettings
         hidePanel

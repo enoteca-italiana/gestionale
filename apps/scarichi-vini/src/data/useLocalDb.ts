@@ -9,9 +9,14 @@ import {
   resetDb,
   saveDb
 } from '@/data/localDb';
-import { listWines } from '@/data/wineRepository';
 
 const WRITE_COALESCE_MS = 120;
+let wineRepositoryModulePromise: Promise<typeof import('@/data/wineRepository')> | null = null;
+
+async function loadWineRepositoryModule() {
+  wineRepositoryModulePromise ??= import('@/data/wineRepository');
+  return wineRepositoryModulePromise;
+}
 
 export function useLocalDb() {
   const [db, setDb] = useState<LocalDbState>(() => loadDb());
@@ -115,12 +120,13 @@ export function useLocalDb() {
     setDb(loadDb());
   }, []);
 
-  const refreshInventory = useCallback(async () => {
+  const refreshInventory = useCallback(async (options?: { forceRemote?: boolean }) => {
     if (refreshInFlightRef.current) return refreshInFlightRef.current;
     const task = (async () => {
       try {
-        const wines = await listWines();
-        setDb((prev) => ({ ...prev, inventory: wines }));
+        const { listWines } = await loadWineRepositoryModule();
+        const wines = await listWines({ forceRemote: options?.forceRemote });
+        setDb((prev) => (prev.inventory === wines ? prev : { ...prev, inventory: wines }));
         return wines;
       } catch (error) {
         console.error('[useLocalDb] refreshInventory failed', error);

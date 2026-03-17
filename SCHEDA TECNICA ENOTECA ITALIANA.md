@@ -1,6 +1,6 @@
 # SCHEDA TECNICA — APP GESTIONE SCARICHI VINI ENOTECA
 
-Ultimo aggiornamento: **17/03/2026 01:42 CET**.
+Ultimo aggiornamento: **17/03/2026 02:38 CET**.
 
 ## Introduzione
 
@@ -38,6 +38,14 @@ L’app sarà sviluppata su **Replit**, con repository sincronizzato su **GitHub
   - sincronizzazione locale + Supabase al salvataggio.
 - Gestione voci filtri (`/admin`):
   - caricamento ottimizzato con warm start locale e cache breve su riapertura.
+- Sicurezza PIN admin:
+  - modale unico con due controlli separati:
+    - richiesta PIN all'avvio App;
+    - richiesta PIN accesso pagina Impostazioni;
+  - toggle `ON/OFF` touch-friendly;
+  - richiesta PIN impostazioni non persistente tra accessi.
+- Cambio password admin:
+  - aggiunto campo `Conferma nuova password` con validazione match obbligatoria.
 
 ---
 
