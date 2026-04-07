@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **07/04/2026 17:39 CEST**.
+Ultimo aggiornamento: **07/04/2026 17:49 CEST**.
 
 ## Quick Start
 
@@ -54,6 +54,7 @@ Nota tecnica (07/04/2026):
   - modale `Inserisci PIN` con focus lock:
     - il cursore resta sempre nel campo PIN mentre il gate è aperto;
     - bloccata digitazione accidentale nei campi sottostanti.
+  - gate PIN avvio app: mostrato solo titolo `Inserisci PIN` (testo descrittivo rimosso).
   - azione `Reset archivio` con PIN:
     - cancella archivio vini e pulisce i registry/cache filtri correlati
     - storico sessioni preservato (indipendente dall'archivio vini)
@@ -122,7 +123,7 @@ Nota tecnica (07/04/2026):
   - modale aggiungi/modifica vino:
     - `Acquisto`/`Vendita` supportano decimali e centesimi in digitazione (`virgola`/`punto`) con parsing numerico al salvataggio
   - pulsante reset filtri:
-    - con filtri attivi cambia colore e lampeggia;
+    - con filtri attivi cambia colore e lampeggia rapidamente;
     - dopo reset torna allo stato normale
   - export archivio: Excel/PDF con icone dockate in alto a destra (solo icone)
   - pulsante `Totali` (ambra) in ultima posizione a destra, dopo `Foglio Google`

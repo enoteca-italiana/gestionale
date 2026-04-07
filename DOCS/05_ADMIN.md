@@ -1,6 +1,6 @@
 # Admin
 
-Ultimo aggiornamento: **07/04/2026 17:39 CEST**.
+Ultimo aggiornamento: **07/04/2026 17:49 CEST**.
 
 ## Accesso
 
@@ -82,6 +82,7 @@ Comportamento:
 - Focus sicurezza modale PIN:
   - quando il modale `Inserisci PIN` è visibile, il cursore resta vincolato all'input PIN;
   - eventuali tentativi di focus su campi sottostanti vengono reindirizzati automaticamente all'input PIN.
+  - nel gate PIN di avvio app è mostrato solo il titolo `Inserisci PIN` (rimosso testo descrittivo ridondante).
 
 ### Cambio password admin
 
@@ -275,7 +276,7 @@ Funzioni principali:
 - pulsante reset filtri dedicato (tondo bianco, icona frecce viola) tra box statistiche e comandi a destra
   - resetta tutti i filtri allo stato default (`Totale` + select su `Tutti` + ricerca vuota);
   - resetta anche stati tabella (ordinamenti colonne verdi e stati inline aperti).
-  - con filtri attivi cambia colore e lampeggia; dopo reset torna normale.
+  - con filtri attivi cambia colore e lampeggia rapidamente; dopo reset torna normale.
 - filtri complementari:
   - `Cerca...`, `Categoria`, `Produttore`, `Provenienza` si restringono reciprocamente.
 - CRUD vini

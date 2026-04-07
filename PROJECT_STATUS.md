@@ -1,6 +1,19 @@
 # Enoteca — Scarichi Vini (PWA)
 
-Ultimo aggiornamento: **07/04/2026 17:39 CEST**.
+Ultimo aggiornamento: **07/04/2026 17:49 CEST**.
+
+## Ultimi aggiornamenti (07/04/2026 - wave 27, rifinitura PIN gate + feedback reset)
+
+- Modale PIN avvio app:
+  - rimosso testo descrittivo `Richiesta PIN attiva...` su richiesta UX;
+  - mantenuto focus lock input PIN (nessuna digitazione nei campi sottostanti finché il gate è aperto).
+- Archivio `/admina`:
+  - stato `Reset` attivo con lampeggio rapido e cambio colore (`archiveResetPulse`) per feedback più evidente.
+- Quality gate post-rifinitura:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run test` ✅
+  - `npm run build` ✅
 
 ## Ultimi aggiornamenti (07/04/2026 - wave 26, focus lock PIN + stabilizzazione toolbar archivio)
 
