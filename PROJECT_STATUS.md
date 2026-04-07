@@ -2,6 +2,16 @@
 
 Ultimo aggiornamento: **07/04/2026 00:25 CEST**.
 
+## Ultimi aggiornamenti (07/04/2026 - switch Supabase project ref)
+
+- Variabili frontend Supabase aggiornate su nuovo progetto:
+  - `VITE_SUPABASE_URL=https://aezqtgadyaxdcptwlpci.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=...aezqtgadyaxdcptwlpci...`
+- File aggiornati:
+  - `apps/scarichi-vini/.env.local`
+  - `apps/scarichi-vini/.env.example`
+  - documentazione operativa `.md` allineata al nuovo ref Supabase.
+
 ## Ultimi aggiornamenti (07/04/2026 - wave 22, hardening archivio filtri + rimozione fornitore)
 
 - Rimozione completa dominio `Fornitore` dal runtime:

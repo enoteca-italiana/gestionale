@@ -2,7 +2,7 @@
 
 Questa cartella contiene la documentazione operativa allineata allo stato reale del progetto.
 
-Ultimo aggiornamento: **07/04/2026 00:25 CEST**.
+Ultimo aggiornamento: **07/04/2026 02:30 CEST**.
 
 ## Documenti
 
@@ -31,6 +31,7 @@ Documenti root correlati:
 
 - `PROJECT_STATUS.md` (stato sintetico + quick start nuovo PC)
 - `SCHEDA TECNICA ENOTECA ITALIANA.md` (documento esteso di riferimento)
+- `Refactoring supabase.md` (playbook completo per ricreare Supabase + GitHub integration + Apps Script)
 
 ## Regola di manutenzione
 

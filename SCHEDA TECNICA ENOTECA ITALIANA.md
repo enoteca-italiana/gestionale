@@ -810,6 +810,9 @@ Questa scheda rappresenta la base tecnica e funzionale su cui costruire il proge
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
   - `OPENAI_API_KEY` (secret server-side per Function `/api/ai`)
+- Valori Supabase correnti (07/04/2026):
+  - `VITE_SUPABASE_URL=https://aezqtgadyaxdcptwlpci.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlenF0Z2FkeWF4ZGNwdHdscGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NTE3MzYsImV4cCI6MjA5MTEyNzczNn0.XHygA3zVLT10OICJMsKJ8EmVK1-VUkIop9jFG4aZciQ`
 
 ### UX / UI — area Sessione (touch-first)
 
