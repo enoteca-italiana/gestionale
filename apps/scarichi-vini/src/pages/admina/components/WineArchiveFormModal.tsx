@@ -47,6 +47,11 @@ function normalizeYear(value?: string) {
   return /^\d{4}$/.test(normalized) ? normalized : '';
 }
 
+function computeSalePriceFromPurchase(purchasePrice?: number): number | undefined {
+  if (typeof purchasePrice !== 'number' || !Number.isFinite(purchasePrice)) return undefined;
+  return Number((purchasePrice * 1.3).toFixed(2));
+}
+
 export function WineArchiveFormModal({
   open,
   mode,
@@ -61,7 +66,6 @@ export function WineArchiveFormModal({
 }: Props) {
   const [state, setState] = useState<WineFormState>(initial);
   const [purchasePriceInput, setPurchasePriceInput] = useState('');
-  const [salePriceInput, setSalePriceInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const yearOptions = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -90,10 +94,13 @@ export function WineArchiveFormModal({
         qty: Number.isFinite(initial.qty) ? Math.max(0, Math.min(99, Math.round(initial.qty))) : 0
       });
       setPurchasePriceInput(formatNumberForPriceInput(initial.purchasePrice));
-      setSalePriceInput(formatNumberForPriceInput(initial.salePrice));
       setError(null);
     }
   }, [open, initial]);
+
+  const salePriceInput = useMemo(() => {
+    return formatNumberForPriceInput(computeSalePriceFromPurchase(asNumber(purchasePriceInput)));
+  }, [purchasePriceInput]);
 
   const canSubmit = useMemo(() => {
     return (
@@ -120,11 +127,12 @@ export function WineArchiveFormModal({
   const submit = async () => {
     if (!canSubmit || busy) return;
     try {
+      const parsedPurchasePrice = asNumber(purchasePriceInput);
       await onSubmit({
         ...state,
         age: normalizeYear(state.age),
-        purchasePrice: asNumber(purchasePriceInput),
-        salePrice: asNumber(salePriceInput),
+        purchasePrice: parsedPurchasePrice,
+        salePrice: computeSalePriceFromPurchase(parsedPurchasePrice),
         qty: Number.isFinite(state.qty) ? Math.max(0, Math.round(state.qty)) : 0
       });
     } catch (err) {
@@ -294,7 +302,9 @@ export function WineArchiveFormModal({
                   className="input archiveCurrencyInput"
                   inputMode="decimal"
                   value={salePriceInput}
-                  onChange={(e) => setSalePriceInput(normalizePriceInput(e.target.value))}
+                  readOnly
+                  aria-readonly="true"
+                  tabIndex={-1}
                 />
               </div>
             </label>

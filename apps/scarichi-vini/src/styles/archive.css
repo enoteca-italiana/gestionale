@@ -271,9 +271,11 @@
   padding: 0 12px;
 }
 
-.archiveGoogleSheetButton:hover {
-  border-color: #166534;
-  background: #166534;
+.archiveExportButton.archiveGoogleSheetButton:hover,
+.archiveExportButton.archiveGoogleSheetButton:focus-visible,
+.archiveExportButton.archiveGoogleSheetButton:active {
+  border-color: #15803d;
+  background: #15803d;
   color: #ffffff;
 }
 

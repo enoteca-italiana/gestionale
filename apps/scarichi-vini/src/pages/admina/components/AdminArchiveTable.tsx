@@ -860,7 +860,7 @@ export function AdminArchiveTable({
                 </div>
               </th>
               <th>Acquisto</th>
-              <th>Vendita</th>
+              <th>Vendita +30%</th>
               <th>Q.tà</th>
               <th>Magazzino</th>
               <th>Margine</th>
