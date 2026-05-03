@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { clearWineArchive } from '@/data/wineRepository';
 import { useDischargeSessions } from '@/data/useDischargeSessions';
 import { AdminHome, type AdminRootSection } from '@/pages/admin/AdminHome';
+import { AdminLogin } from '@/pages/admin/AdminLogin';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { useAdminAuth } from '@/pages/admin/useAdminAuth';
 
@@ -23,7 +24,7 @@ const AdminRegistryManager = lazy(() =>
 );
 
 export function AdminGate() {
-  const { ready, logout, changePassword } = useAdminAuth();
+  const { ready, isAuthed, login, logout, changePassword } = useAdminAuth();
   const [section, setSection] = useState<AdminSection>('home');
   const [settingsAction, setSettingsAction] = useState<SettingsAction>(null);
   const {
@@ -62,6 +63,10 @@ export function AdminGate() {
         <div className="subtle mt6">Caricamento…</div>
       </div>
     );
+  }
+
+  if (!isAuthed) {
+    return <AdminLogin onLogin={login} />;
   }
 
   return (
