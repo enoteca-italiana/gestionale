@@ -27,6 +27,12 @@ export function AdminGate() {
   const { ready, isAuthed, login, logout, changePassword } = useAdminAuth();
   const [section, setSection] = useState<AdminSection>('home');
   const [settingsAction, setSettingsAction] = useState<SettingsAction>(null);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('scarichi:adminSectionChange', { detail: { section } })
+    );
+  }, [section]);
   const {
     history,
     loading: sessionsLoading,
