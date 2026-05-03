@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **03/05/2026 — CEST**.
+Ultimo aggiornamento: **03/05/2026 22:20 CEST**.
 
 ## Quick Start
 
