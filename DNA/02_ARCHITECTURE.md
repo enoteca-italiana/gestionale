@@ -15,31 +15,32 @@ Monorepo npm workspaces. Root `package.json` coordina i workspace.
 
 ## Stack
 
-| Layer | Tecnologia |
-|---|---|
-| UI | React 18 + TypeScript strict |
-| Build | Vite 5 |
-| Routing | wouter |
-| PWA | vite-plugin-pwa (Workbox) |
-| Backend | Supabase (PostgreSQL + PostgREST + RPC) |
-| CSS | CSS Modules-style (classi globali per file), zero framework |
-| Test | Vitest |
-| Linting | ESLint + Prettier |
+| Layer   | Tecnologia                                                  |
+| ------- | ----------------------------------------------------------- |
+| UI      | React 18 + TypeScript strict                                |
+| Build   | Vite 5                                                      |
+| Routing | wouter                                                      |
+| PWA     | vite-plugin-pwa (Workbox)                                   |
+| Backend | Supabase (PostgreSQL + PostgREST + RPC)                     |
+| CSS     | CSS Modules-style (classi globali per file), zero framework |
+| Test    | Vitest                                                      |
+| Linting | ESLint + Prettier                                           |
 
 ---
 
 ## Routing
 
-| Percorso | Componente | Descrizione |
-|---|---|---|
-| `/` | `HomePage` | Schermata principale scarichi |
-| `/admina` | `WineAdminPage` | Archivio vini desktop-first |
-| `/impostazioni` | `AdminPage` | Impostazioni admin |
-| `/admin` | `AdminPage` | Alias legacy di `/impostazioni` |
+| Percorso        | Componente      | Descrizione                     |
+| --------------- | --------------- | ------------------------------- |
+| `/`             | `HomePage`      | Schermata principale scarichi   |
+| `/admina`       | `WineAdminPage` | Archivio vini desktop-first     |
+| `/impostazioni` | `AdminPage`     | Impostazioni admin              |
+| `/admin`        | `AdminPage`     | Alias legacy di `/impostazioni` |
 
 Tutte le route sono lazy-loaded via `React.lazy()` in `App.tsx`.
 
 Costanti route in `src/app/routes.ts`:
+
 - `APP_ROUTES.HOME = '/'`
 - `APP_ROUTES.ARCHIVE = '/admina'`
 - `APP_ROUTES.SETTINGS = '/impostazioni'`
@@ -70,6 +71,7 @@ Componente root. Gestisce:
 7. **Reazione a `settingsChangedEvent`**: aggiorna in tempo reale i flag PIN senza refresh pagina.
 
 Chiavi `sessionStorage`:
+
 - `scarichi.app.pinUnlocked.v1` → PIN avvio app verificato nella sessione browser corrente.
 
 PIN default: `1909` (SHA-256 Base64, calcolato al primo uso se assente in localStorage).
@@ -185,19 +187,19 @@ apps/scarichi-vini/
 
 ```ts
 type Wine = {
-  id: string;           // UUID o wine_<ts>_<rand>
-  category?: string;    // UPPERCASE (opzionale)
-  name: string;         // UPPERCASE
-  age?: string;         // anno vendemmia (label UI: ANNO), stringa libera
-  producer: string;     // Initcap
-  origin: string;       // UPPERCASE
-  threshold?: number;   // soglia allerta (intero >= 1, undefined = nessuna soglia)
+  id: string; // UUID o wine_<ts>_<rand>
+  category?: string; // UPPERCASE (opzionale)
+  name: string; // UPPERCASE
+  age?: string; // anno vendemmia (label UI: ANNO), stringa libera
+  producer: string; // Initcap
+  origin: string; // UPPERCASE
+  threshold?: number; // soglia allerta (intero >= 1, undefined = nessuna soglia)
   purchasePrice?: number;
   salePrice?: number;
-  vintage?: string;     // campo legacy (non più usato attivamente)
-  qty: number;          // intero >= 0
-  warehouse?: number;   // calcolato: purchasePrice × qty
-  margin?: number;      // calcolato: salePrice − purchasePrice
+  vintage?: string; // campo legacy (non più usato attivamente)
+  qty: number; // intero >= 0
+  warehouse?: number; // calcolato: purchasePrice × qty
+  margin?: number; // calcolato: salePrice − purchasePrice
   notes?: string;
 };
 ```
@@ -225,15 +227,15 @@ type SessionItem = {
 
 ## Build e chunking (vite.config.ts)
 
-| Chunk | Contenuto | Dimensione gzip |
-|---|---|---|
-| `vendor_supabase` | @supabase/supabase-js | ~46 KB |
-| `vendor_excel` | exceljs | ~270 KB (lazy) |
-| `vendor_pdf` | jspdf + jspdf-autotable | ~137 KB (lazy) |
-| `html2canvas` | html2canvas | ~48 KB (lazy) |
-| `index` | React + wouter + core app | ~54 KB |
-| `WineAdminPage` | archivio vini | ~12 KB |
-| `HomePage` | schermata scarichi | ~7 KB |
+| Chunk             | Contenuto                 | Dimensione gzip |
+| ----------------- | ------------------------- | --------------- |
+| `vendor_supabase` | @supabase/supabase-js     | ~46 KB          |
+| `vendor_excel`    | exceljs                   | ~270 KB (lazy)  |
+| `vendor_pdf`      | jspdf + jspdf-autotable   | ~137 KB (lazy)  |
+| `html2canvas`     | html2canvas               | ~48 KB (lazy)   |
+| `index`           | React + wouter + core app | ~54 KB          |
+| `WineAdminPage`   | archivio vini             | ~12 KB          |
+| `HomePage`        | schermata scarichi        | ~7 KB           |
 
 `vendor_excel` e `vendor_pdf` sono **lazy-loaded** (dynamic import in `archiveExport.ts`): scaricati solo all'azione export, non al caricamento iniziale.
 

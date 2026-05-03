@@ -1,8 +1,9 @@
 import { Route, Switch, useLocation } from 'wouter';
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { BottomNav } from '@/components/BottomNav';
 import { APP_ROUTES, isSettingsPath } from '@/app/routes';
 import { useOfflineDischargeQueueSync } from '@/app/useOfflineDischargeQueueSync';
+import { useSupabaseKeepalive } from '@/lib/useSupabaseKeepalive';
 import { sha256Base64 } from '@/pages/admin/crypto';
 import { getBool, settingsChangedEvent, storageKeys } from '@/pages/admin/storage';
 
@@ -10,9 +11,6 @@ const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default:
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })));
 const WineAdminPage = lazy(() =>
   import('@/pages/admina/WineAdminPage').then((m) => ({ default: m.WineAdminPage }))
-);
-const WineTotalsPage = lazy(() =>
-  import('@/pages/admina/WineTotalsPage').then((m) => ({ default: m.WineTotalsPage }))
 );
 
 const APP_PIN_UNLOCKED_SESSION_KEY = 'scarichi.app.pinUnlocked.v1';
@@ -40,6 +38,7 @@ function writePinUnlockedSession(unlocked: boolean) {
 
 export function App() {
   useOfflineDischargeQueueSync();
+  useSupabaseKeepalive();
 
   const [location] = useLocation();
   const [hideNav, setHideNav] = useState(() => location === '/');
@@ -58,8 +57,6 @@ export function App() {
   const [settingsPin, setSettingsPin] = useState('');
   const [settingsPinError, setSettingsPinError] = useState<string | null>(null);
   const [settingsPinBusy, setSettingsPinBusy] = useState(false);
-  const appPinInputRef = useRef<HTMLInputElement | null>(null);
-  const settingsPinInputRef = useRef<HTMLInputElement | null>(null);
 
   const ensureAdminPinHash = useCallback(async () => {
     const storedHash = localStorage.getItem(storageKeys.adminPasswordHash);
@@ -186,45 +183,10 @@ export function App() {
     !introVisible &&
     !showAppPinGate;
 
-  useEffect(() => {
-    if (!showAppPinGate && !showSettingsPinGate) return;
-
-    const getActivePinInput = () =>
-      showAppPinGate ? appPinInputRef.current : settingsPinInputRef.current;
-
-    const focusPinInput = () => {
-      const input = getActivePinInput();
-      if (!input) return;
-      input.focus({ preventScroll: true });
-      const cursor = input.value.length;
-      try {
-        input.setSelectionRange(cursor, cursor);
-      } catch {
-        // Ignore selection failures on non-text-capable inputs.
-      }
-    };
-
-    const frame = window.requestAnimationFrame(focusPinInput);
-    const onFocusIn = (event: FocusEvent) => {
-      const input = getActivePinInput();
-      const target = event.target as Node | null;
-      if (!input || !target) return;
-      if (target === input || input.contains(target)) return;
-      focusPinInput();
-    };
-
-    document.addEventListener('focusin', onFocusIn, true);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('focusin', onFocusIn, true);
-    };
-  }, [showAppPinGate, showSettingsPinGate]);
-
   return (
     <>
       <Suspense fallback={<div className="container">Caricamento…</div>}>
         <Switch>
-          <Route path={APP_ROUTES.ARCHIVE_TOTALS} component={WineTotalsPage} />
           <Route path={APP_ROUTES.ARCHIVE} component={WineAdminPage} />
           <Route path={APP_ROUTES.SETTINGS} component={AdminPage} />
           <Route path={APP_ROUTES.SETTINGS_LEGACY} component={AdminPage} />
@@ -242,10 +204,11 @@ export function App() {
         >
           <div className="modalCard">
             <div className="modalTitle">Inserisci PIN</div>
+            <div className="modalDescription">
+              Richiesta PIN attiva. Inserisci il PIN per accedere all&apos;app.
+            </div>
             <div className="mt12">
               <input
-                ref={appPinInputRef}
-                autoFocus
                 className="input"
                 type="password"
                 inputMode="numeric"
@@ -292,8 +255,6 @@ export function App() {
             </div>
             <div className="mt12">
               <input
-                ref={settingsPinInputRef}
-                autoFocus
                 className="input"
                 type="password"
                 inputMode="numeric"

@@ -16,7 +16,6 @@ type Props = {
   onRequestAddOrigin: (onResult: (created: string | null) => void) => void;
   onResetFilters: () => void;
   onOpenCreate: () => void;
-  onOpenTotals: () => void;
 };
 
 type StickyFilterSelectProps = {
@@ -144,21 +143,33 @@ export function AdminArchiveToolbar({
   onRequestAddProducer,
   onRequestAddOrigin,
   onResetFilters,
-  onOpenCreate,
-  onOpenTotals
+  onOpenCreate
 }: Props) {
   const setStockFilter = (stock: StockFilter) => onFiltersChange({ ...filters, stock });
   const hasActiveFilters = hasActiveArchiveFilters(filters);
 
   return (
     <section className="archiveTopBar">
+      <div className="archiveExportDock" aria-label="Collegamento foglio Google">
+        <a
+          className="archiveExportButton archiveGoogleSheetButton"
+          href="https://docs.google.com/spreadsheets/d/1GjstQi4nf4oEaW1Ch36QVD7_kr3-zA-aEzBYCmUSQm8/edit?usp=sharing"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Apri Foglio Google"
+          title="Apri Foglio Google"
+        >
+          Foglio Google
+        </a>
+      </div>
+
       <div className="archiveFilters">
         <button className="button buttonAuto archiveAddButton" type="button" onClick={onOpenCreate}>
           Aggiungi vino
         </button>
 
         <input
-          className="input archiveFilterControl archiveSearchInput"
+          className="input archiveFilterControl"
           placeholder="Cerca..."
           value={filters.term}
           onChange={(e) => onFiltersChange({ ...filters, term: e.target.value })}
@@ -264,26 +275,6 @@ export function AdminArchiveToolbar({
           onClick={onResetFilters}
         >
           <RefreshCcw size={18} strokeWidth={2.2} />
-        </button>
-
-        <a
-          className="archiveExportButton archiveGoogleSheetButton"
-          href="https://docs.google.com/spreadsheets/d/1GjstQi4nf4oEaW1Ch36QVD7_kr3-zA-aEzBYCmUSQm8/edit?usp=sharing"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Apri Foglio Google"
-          title="Apri Foglio Google"
-        >
-          Foglio Google
-        </a>
-
-        <button
-          className="archiveExportButton archiveTotalsButton"
-          type="button"
-          onClick={onOpenTotals}
-          aria-label="Apri pagina totali"
-        >
-          Totali
         </button>
       </div>
     </section>

@@ -7,6 +7,7 @@ Ultimo aggiornamento: **02/05/2026 — CEST**.
 ## Scopo
 
 Persistenza locale per:
+
 - inventario vini (cache sincronizzata da Supabase)
 - cronologia sessioni locale (legacy — non usato nel flusso operativo attuale)
 - coda sessioni offline in attesa di sync Supabase
@@ -17,21 +18,21 @@ Persistenza locale per:
 
 ## Chiavi localStorage
 
-| Chiave | Tipo | Contenuto |
-|---|---|---|
-| `scarichi.localDb.v1` | JSON | `{ inventory: Wine[], history: LocalSession[] }` |
-| `scarichi.inventory.supabaseBootstrap.v1` | string `'1'` | Flag migrazione one-shot: inventario legacy azzerato |
-| `scarichi.dischargeQueue.v1` | JSON | `PendingDischargeQueueItem[]` (coda offline FIFO) |
-| `scarichi.admin.auth` | JSON | `{ hash: string, authedUntil: number }` |
-| `scarichi.admin.pinRequiredOnStart` | string `'true'/'false'` | Gate PIN avvio app |
-| `scarichi.admin.pinRequiredForSettings` | string `'true'/'false'` | Gate PIN impostazioni |
-| `scarichi.admin.passwordHash` | string | SHA-256 Base64 password admin |
-| `supabase_keepalive_ts` | string (epoch ms) | Timestamp ultimo ping Supabase keepalive |
+| Chiave                                    | Tipo                    | Contenuto                                            |
+| ----------------------------------------- | ----------------------- | ---------------------------------------------------- |
+| `scarichi.localDb.v1`                     | JSON                    | `{ inventory: Wine[], history: LocalSession[] }`     |
+| `scarichi.inventory.supabaseBootstrap.v1` | string `'1'`            | Flag migrazione one-shot: inventario legacy azzerato |
+| `scarichi.dischargeQueue.v1`              | JSON                    | `PendingDischargeQueueItem[]` (coda offline FIFO)    |
+| `scarichi.admin.auth`                     | JSON                    | `{ hash: string, authedUntil: number }`              |
+| `scarichi.admin.pinRequiredOnStart`       | string `'true'/'false'` | Gate PIN avvio app                                   |
+| `scarichi.admin.pinRequiredForSettings`   | string `'true'/'false'` | Gate PIN impostazioni                                |
+| `scarichi.admin.passwordHash`             | string                  | SHA-256 Base64 password admin                        |
+| `supabase_keepalive_ts`                   | string (epoch ms)       | Timestamp ultimo ping Supabase keepalive             |
 
 Chiavi sessionStorage:
 
-| Chiave | Tipo | Contenuto |
-|---|---|---|
+| Chiave                        | Tipo         | Contenuto                                               |
+| ----------------------------- | ------------ | ------------------------------------------------------- |
 | `scarichi.app.pinUnlocked.v1` | string `'1'` | PIN avvio app già verificato in questa sessione browser |
 
 ---
@@ -42,19 +43,24 @@ Chiavi sessionStorage:
 
 ```ts
 type LocalSessionItem = { wineId: string; qty: number };
-type LocalSession = { id: string; createdAt: number; submittedAt?: number; items: LocalSessionItem[] };
+type LocalSession = {
+  id: string;
+  createdAt: number;
+  submittedAt?: number;
+  items: LocalSessionItem[];
+};
 type LocalDbState = { inventory: Wine[]; history: LocalSession[] };
 ```
 
 ### Funzioni esportate
 
-| Funzione | Comportamento |
-|---|---|
-| `loadDb(): LocalDbState` | Legge e deserializza da `scarichi.localDb.v1`. Se chiave assente o corrotta, scrive seed vuoto e ritorna. Applica migrazione one-shot: se flag `supabaseBootstrap.v1` assente, azzera `inventory` (verrà ripopolato da Supabase). |
-| `saveDb(db)` | Serializza e scrive su `scarichi.localDb.v1`. |
-| `resetDb()` | Rimuove la chiave `scarichi.localDb.v1`. |
-| `notifyDbChanged(sourceId?)` | Emette `scarichi:dbChanged` (CustomEvent intra-tab) e messaggio su `BroadcastChannel('scarichi:dbChangedChannel')` (cross-tab). Il `sourceId` evita che il mittente riprocessi il proprio evento. |
-| `newId(prefix)` | Genera ID univoco: `prefix_<epoch>_<rand16>`. |
+| Funzione                     | Comportamento                                                                                                                                                                                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loadDb(): LocalDbState`     | Legge e deserializza da `scarichi.localDb.v1`. Se chiave assente o corrotta, scrive seed vuoto e ritorna. Applica migrazione one-shot: se flag `supabaseBootstrap.v1` assente, azzera `inventory` (verrà ripopolato da Supabase). |
+| `saveDb(db)`                 | Serializza e scrive su `scarichi.localDb.v1`.                                                                                                                                                                                     |
+| `resetDb()`                  | Rimuove la chiave `scarichi.localDb.v1`.                                                                                                                                                                                          |
+| `notifyDbChanged(sourceId?)` | Emette `scarichi:dbChanged` (CustomEvent intra-tab) e messaggio su `BroadcastChannel('scarichi:dbChangedChannel')` (cross-tab). Il `sourceId` evita che il mittente riprocessi il proprio evento.                                 |
+| `newId(prefix)`              | Genera ID univoco: `prefix_<epoch>_<rand16>`.                                                                                                                                                                                     |
 
 ### Costanti
 
@@ -67,6 +73,7 @@ type LocalDbState = { inventory: Wine[]; history: LocalSession[] };
 ## Hook: `src/data/useLocalDb.ts`
 
 Espone il DB locale come stato React. Gestisce:
+
 - lettura iniziale sincrona (`useState(() => loadDb())`)
 - ascolto modifiche esterne: `dbChangedEvent` (stessa tab), `StorageEvent` (cross-tab), `BroadcastChannel` (cross-tab robusto)
 - scritture coalescenti: le `commit()` ravvicinate vengono debounced di 120ms prima di `saveDb()`
@@ -75,13 +82,13 @@ Espone il DB locale come stato React. Gestisce:
 
 ```ts
 const {
-  inventory,         // Wine[]
-  history,           // LocalSession[]
-  setInventory,      // (Wine[] | updater) => void
-  clearHistory,      // () => void
-  hardResetAll,      // () => void — rimuove chiave e ricarica seed
-  refreshInventory,  // (opts?: { forceRemote? }) => Promise<Wine[]>
-  summary            // { totalQty: number, winesCount: number }
+  inventory, // Wine[]
+  history, // LocalSession[]
+  setInventory, // (Wine[] | updater) => void
+  clearHistory, // () => void
+  hardResetAll, // () => void — rimuove chiave e ricarica seed
+  refreshInventory, // (opts?: { forceRemote? }) => Promise<Wine[]>
+  summary // { totalQty: number, winesCount: number }
 } = useLocalDb();
 ```
 
@@ -117,12 +124,12 @@ const {
 
 ```ts
 type PendingDischargeQueueItem = {
-  id: string;                          // dq_<epoch>_<rand16>
-  createdAt: number;                   // epoch ms
-  source: string;                      // 'web'
-  items: DischargeItemInput[];         // { wineId, qty }[]
-  expectedQtyByWineId?: Record<string, number>;  // giacenza attesa post-sessione
-  attempts: number;                    // tentativi di invio
+  id: string; // dq_<epoch>_<rand16>
+  createdAt: number; // epoch ms
+  source: string; // 'web'
+  items: DischargeItemInput[]; // { wineId, qty }[]
+  expectedQtyByWineId?: Record<string, number>; // giacenza attesa post-sessione
+  attempts: number; // tentativi di invio
   lastError?: string;
   lastAttemptAt?: number;
 };
@@ -130,14 +137,14 @@ type PendingDischargeQueueItem = {
 
 ### Funzioni esportate
 
-| Funzione | Comportamento |
-|---|---|
-| `enqueuePendingDischargeSession(input)` | Aggiunge item in coda, emette `scarichi:dischargeQueueChanged` e `scarichi:dischargeQueueStatus` (type: 'enqueued') |
-| `flushPendingDischargeQueue(opts?)` | Loop FIFO: invia ogni sessione via `createAndSubmitDischargeSession`. Deduplicato (in-flight singleton). Distingue errori recoverable (rete) da non-recoverable (logici). |
-| `listPendingDischargeQueueItems()` | Legge e restituisce la coda corrente |
-| `getPendingDischargeQueueCount()` | Restituisce lunghezza coda |
-| `clearPendingDischargeQueue()` | Svuota la coda |
-| `isDischargeQueueRecoverableError(err)` | Classifica errore: recoverable se HTTP 5xx, ECONNRESET, ETIMEDOUT, 'failed to fetch', ecc. |
+| Funzione                                | Comportamento                                                                                                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enqueuePendingDischargeSession(input)` | Aggiunge item in coda, emette `scarichi:dischargeQueueChanged` e `scarichi:dischargeQueueStatus` (type: 'enqueued')                                                       |
+| `flushPendingDischargeQueue(opts?)`     | Loop FIFO: invia ogni sessione via `createAndSubmitDischargeSession`. Deduplicato (in-flight singleton). Distingue errori recoverable (rete) da non-recoverable (logici). |
+| `listPendingDischargeQueueItems()`      | Legge e restituisce la coda corrente                                                                                                                                      |
+| `getPendingDischargeQueueCount()`       | Restituisce lunghezza coda                                                                                                                                                |
+| `clearPendingDischargeQueue()`          | Svuota la coda                                                                                                                                                            |
+| `isDischargeQueueRecoverableError(err)` | Classifica errore: recoverable se HTTP 5xx, ECONNRESET, ETIMEDOUT, 'failed to fetch', ecc.                                                                                |
 
 ### Eventi emessi
 
@@ -149,11 +156,13 @@ type PendingDischargeQueueItem = {
 ## Seed e migrazione
 
 Seed vuoto:
+
 ```ts
 { inventory: [], history: [] }
 ```
 
 Migrazione one-shot (eseguita in `loadDb()`):
+
 - Se `scarichi.inventory.supabaseBootstrap.v1` assente: `inventory` viene azzerato e il flag viene impostato.
 - Motivazione: evitare che un inventario locale legacy (pre-Supabase) rimanga in uso dopo la migrazione al backend remoto.
 - Il ripopolamento avviene automaticamente via `refreshInventory()` alla prima apertura di `HomePage`.
@@ -162,8 +171,8 @@ Migrazione one-shot (eseguita in `loadDb()`):
 
 ## Reset
 
-| Operazione | Effetto |
-|---|---|
-| `clearHistory()` | Azzera `history` in localDb |
-| `hardResetAll()` | Cancella chiave `scarichi.localDb.v1` e ricarica seed vuoto |
+| Operazione                | Effetto                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `clearHistory()`          | Azzera `history` in localDb                                                                                         |
+| `hardResetAll()`          | Cancella chiave `scarichi.localDb.v1` e ricarica seed vuoto                                                         |
 | Reset archivio (da admin) | Cancella `public.wines` su Supabase + svuota `listWinesCache` + chiama `clearManagedCategories/Origins/Producers()` |

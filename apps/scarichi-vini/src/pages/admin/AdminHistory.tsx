@@ -1,93 +1,13 @@
-import type { DischargeSessionSummary } from '@/data/dischargeRepository';
-import { ConfirmModal } from '@/components/ConfirmModal';
-import { useEffect, useRef, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
-import { sha256Base64 } from '@/pages/admin/crypto';
-import { storageKeys } from '@/pages/admin/storage';
-import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
-import {
-  listSubmittedDischargeSessionItems,
-  type DischargeSessionItemDetail,
-  type SubmittedHistoryRetention
+import type {
+  DischargeSessionSummary,
+  SubmittedHistoryRetention
 } from '@/data/dischargeRepository';
-
-function formatDateTime(ts: number) {
-  const d = new Date(ts);
-  const italyTz = 'Europe/Rome';
-  const dateParts = new Intl.DateTimeFormat('it-IT', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    timeZone: italyTz
-  }).formatToParts(d);
-  const day = dateParts.find((part) => part.type === 'day')?.value ?? '';
-  const monthRaw = dateParts.find((part) => part.type === 'month')?.value ?? '';
-  const year = dateParts.find((part) => part.type === 'year')?.value ?? '';
-  const formattedMonth = monthRaw ? monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1) : '';
-  const formattedDate = `${day} ${formattedMonth} ${year}`.trim();
-  const time = d.toLocaleTimeString('it-IT', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: italyTz
-  });
-  return { formattedDate, formattedTime: time };
-}
-
-function formatDateTimeLabel(ts: number) {
-  const value = formatDateTime(ts);
-  return `${value.formattedDate}, ${value.formattedTime}`;
-}
-
-function toLocalDateKey(ts: number) {
-  const d = new Date(ts);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-type DatePreset = 'all' | 'today' | '7d' | '30d' | '90d' | '6m' | '12m' | 'ytd' | 'custom';
-const HISTORY_RENDER_BATCH = 120;
-
-function toInputDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function subtractCalendarMonthsClamped(baseDate: Date, months: number): Date {
-  const day = baseDate.getDate();
-  const targetMonthStart = new Date(baseDate.getFullYear(), baseDate.getMonth() - months, 1);
-  const targetYear = targetMonthStart.getFullYear();
-  const targetMonth = targetMonthStart.getMonth();
-  const maxDayInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-  return new Date(targetYear, targetMonth, Math.min(day, maxDayInTargetMonth));
-}
-
-function getPresetRange(preset: DatePreset): { from: string; to: string } | null {
-  if (preset === 'all' || preset === 'custom') return null;
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const start = new Date(end);
-  if (preset === 'today') {
-    return { from: toInputDate(start), to: toInputDate(end) };
-  }
-  if (preset === '7d') start.setDate(start.getDate() - 6);
-  if (preset === '30d') start.setDate(start.getDate() - 29);
-  if (preset === '90d') start.setDate(start.getDate() - 89);
-  if (preset === '6m') {
-    const exact = subtractCalendarMonthsClamped(end, 6);
-    start.setFullYear(exact.getFullYear(), exact.getMonth(), exact.getDate());
-  }
-  if (preset === '12m') {
-    const exact = subtractCalendarMonthsClamped(end, 12);
-    start.setFullYear(exact.getFullYear(), exact.getMonth(), exact.getDate());
-  }
-  if (preset === 'ytd') start.setMonth(0, 1);
-  return { from: toInputDate(start), to: toInputDate(end) };
-}
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { RefreshCcw } from 'lucide-react';
+import { formatDateTime, formatDateTimeLabel } from '@/pages/admin/historyUtils';
+import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
+import { useAdminHistory } from '@/pages/admin/useAdminHistory';
+import { HISTORY_RENDER_BATCH } from '@/pages/admin/historyUtils';
 
 export function AdminHistory({
   history,
@@ -96,102 +16,40 @@ export function AdminHistory({
   history: DischargeSessionSummary[];
   onReset: (retention: SubmittedHistoryRetention) => void;
 }) {
-  const [datePreset, setDatePreset] = useState<DatePreset>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [confirm1, setConfirm1] = useState(false);
-  const [confirm2, setConfirm2] = useState(false);
-  const [resetPin, setResetPin] = useState('');
-  const [resetRetention, setResetRetention] = useState<SubmittedHistoryRetention>('12m');
-  const [resetPinError, setResetPinError] = useState<string | null>(null);
-  const [resetBusy, setResetBusy] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [selectedSession, setSelectedSession] = useState<DischargeSessionSummary | null>(null);
-  const [detailItems, setDetailItems] = useState<DischargeSessionItemDetail[]>([]);
-  const [visibleCount, setVisibleCount] = useState(HISTORY_RENDER_BATCH);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const normalizedDateFrom = dateFrom && dateTo && dateFrom > dateTo ? dateTo : dateFrom;
-  const normalizedDateTo = dateFrom && dateTo && dateFrom > dateTo ? dateFrom : dateTo;
-  const hasActiveDateFilter =
-    datePreset !== 'all' || normalizedDateFrom.length > 0 || normalizedDateTo.length > 0;
-  const filteredHistory = history.filter((session) => {
-    const sessionDate = toLocalDateKey(session.submittedAt ?? session.createdAt);
-    if (normalizedDateFrom && sessionDate < normalizedDateFrom) return false;
-    if (normalizedDateTo && sessionDate > normalizedDateTo) return false;
-    return true;
-  });
-  const renderedHistory = filteredHistory.slice(0, visibleCount);
-  const hasMoreRows = renderedHistory.length < filteredHistory.length;
-
-  useEffect(() => {
-    setVisibleCount(HISTORY_RENDER_BATCH);
-  }, [dateFrom, dateTo, datePreset, history]);
-
-  useEffect(() => {
-    if (!hasMoreRows) return;
-    const target = loadMoreRef.current;
-    if (!target) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisibleCount((prev) => prev + HISTORY_RENDER_BATCH);
-        }
-      },
-      { rootMargin: '220px 0px' }
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [hasMoreRows, renderedHistory.length, filteredHistory.length]);
-
-  const closeSessionDetail = () => {
-    setDetailOpen(false);
-    setSelectedSession(null);
-    setDetailItems([]);
-    setDetailError(null);
-    setDetailLoading(false);
-  };
-
-  const openSessionDetail = async (session: DischargeSessionSummary) => {
-    setSelectedSession(session);
-    setDetailOpen(true);
-    setDetailLoading(true);
-    setDetailError(null);
-    try {
-      const items = await listSubmittedDischargeSessionItems(session.id);
-      setDetailItems(items);
-    } catch (error) {
-      console.error('[AdminHistory] load session detail failed', error);
-      setDetailError('Impossibile caricare il contenuto della sessione.');
-      setDetailItems([]);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const confirmResetWithPin = async () => {
-    if (resetBusy) return;
-    setResetPinError(null);
-    setResetBusy(true);
-    try {
-      const storedHash = localStorage.getItem(storageKeys.adminPasswordHash);
-      if (!storedHash) {
-        setResetPinError('PIN admin non disponibile');
-        return;
-      }
-      const pinHash = await sha256Base64(resetPin.trim());
-      if (pinHash !== storedHash) {
-        setResetPinError('PIN non corretto');
-        return;
-      }
-      setConfirm2(false);
-      setResetPin('');
-      onReset(resetRetention);
-    } finally {
-      setResetBusy(false);
-    }
-  };
+  const {
+    datePreset,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    confirm1,
+    setConfirm1,
+    confirm2,
+    setConfirm2,
+    resetPin,
+    setResetPin,
+    resetRetention,
+    setResetRetention,
+    resetPinError,
+    setResetPinError,
+    resetBusy,
+    detailOpen,
+    detailLoading,
+    detailError,
+    selectedSession,
+    detailItems,
+    setVisibleCount,
+    loadMoreRef,
+    hasActiveDateFilter,
+    filteredHistory,
+    renderedHistory,
+    hasMoreRows,
+    closeSessionDetail,
+    openSessionDetail,
+    confirmResetWithPin,
+    handlePresetChange,
+    resetDateFilter
+  } = useAdminHistory({ history, onReset });
 
   return (
     <>
@@ -206,20 +64,7 @@ export function AdminHistory({
               id="admin-history-date-preset"
               className="input adminHistoryDateFilterInput adminHistoryPresetInput"
               value={datePreset}
-              onChange={(event) => {
-                const nextPreset = event.target.value as DatePreset;
-                setDatePreset(nextPreset);
-                const nextRange = getPresetRange(nextPreset);
-                if (!nextRange) {
-                  if (nextPreset === 'all') {
-                    setDateFrom('');
-                    setDateTo('');
-                  }
-                  return;
-                }
-                setDateFrom(nextRange.from);
-                setDateTo(nextRange.to);
-              }}
+              onChange={(event) => handlePresetChange(event.target.value as typeof datePreset)}
               aria-label="Periodo rapido filtri sessioni"
             >
               <option value="all">Tutto</option>
@@ -243,7 +88,7 @@ export function AdminHistory({
               type="date"
               value={dateFrom}
               onChange={(event) => {
-                setDatePreset('custom');
+                handlePresetChange('custom');
                 setDateFrom(event.target.value);
               }}
               aria-label="Data inizio filtro sessioni"
@@ -259,7 +104,7 @@ export function AdminHistory({
               type="date"
               value={dateTo}
               onChange={(event) => {
-                setDatePreset('custom');
+                handlePresetChange('custom');
                 setDateTo(event.target.value);
               }}
               aria-label="Data fine filtro sessioni"
@@ -270,11 +115,7 @@ export function AdminHistory({
             type="button"
             aria-label="Reset filtri data"
             title="Reset filtri"
-            onClick={() => {
-              setDatePreset('all');
-              setDateFrom('');
-              setDateTo('');
-            }}
+            onClick={resetDateFilter}
             disabled={!hasActiveDateFilter}
           >
             <RefreshCcw size={18} strokeWidth={2.2} />

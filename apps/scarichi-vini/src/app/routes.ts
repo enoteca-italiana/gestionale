@@ -1,7 +1,6 @@
 export const APP_ROUTES = {
   HOME: '/',
   ARCHIVE: '/admina',
-  ARCHIVE_TOTALS: '/admina/totali',
   SETTINGS: '/impostazioni',
   SETTINGS_LEGACY: '/admin'
 } as const;

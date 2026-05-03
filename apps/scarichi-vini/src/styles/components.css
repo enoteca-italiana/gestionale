@@ -9,6 +9,8 @@
   font-size: 11px;
   line-height: 1.15;
   text-decoration: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .navNavItem svg {
@@ -50,6 +52,9 @@
   font-size: 16px;
   font-weight: 700;
   width: 100%;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .buttonSecondary {
@@ -61,6 +66,7 @@
   background: #15803d;
   color: #ffffff;
   animation: homeConfirmPulse 0.55s ease-in-out infinite;
+  will-change: opacity;
 }
 
 @keyframes homeConfirmPulse {

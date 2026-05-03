@@ -13,6 +13,7 @@
     Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -109,17 +110,14 @@ a {
   text-align: center;
   opacity: 0;
   transform: translateY(6px) scale(0.99);
-  filter: blur(2px);
   transition:
-    opacity 520ms ease,
-    transform 520ms ease,
-    filter 520ms ease;
+    opacity 420ms ease,
+    transform 420ms ease;
 }
 
 .introVisible {
   opacity: 1;
   transform: translateY(0) scale(1);
-  filter: blur(0);
 }
 
 .introByline {
@@ -136,7 +134,6 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .introCenter {
     transition: none;
-    filter: none;
     transform: none;
     opacity: 1;
   }
@@ -202,6 +199,8 @@ a {
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--border);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .navbarInner {

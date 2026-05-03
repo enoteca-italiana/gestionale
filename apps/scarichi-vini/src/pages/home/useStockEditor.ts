@@ -1,0 +1,82 @@
+import { useState } from 'react';
+import type { Wine } from '@/domain/types';
+
+type UseStockEditorOptions = {
+  sessionOpen: boolean;
+  onToast: (message: string) => void;
+  onRefreshInventory: () => Promise<unknown>;
+};
+
+let wineRepositoryPromise: Promise<typeof import('@/data/wineRepository')> | null = null;
+
+async function loadWineRepository() {
+  wineRepositoryPromise ??= import('@/data/wineRepository');
+  return wineRepositoryPromise;
+}
+
+export function useStockEditor({
+  sessionOpen,
+  onToast,
+  onRefreshInventory
+}: UseStockEditorOptions) {
+  const [editingStockWine, setEditingStockWine] = useState<Wine | null>(null);
+  const [editingStockQty, setEditingStockQty] = useState(0);
+  const [stockSaveBusy, setStockSaveBusy] = useState(false);
+
+  const openStockEditor = (wine: Wine) => {
+    if (sessionOpen) return;
+    setEditingStockWine(wine);
+    setEditingStockQty(Math.max(0, Math.round(Number(wine.qty) || 0)));
+  };
+
+  const closeStockEditor = () => {
+    if (stockSaveBusy) return;
+    setEditingStockWine(null);
+  };
+
+  const confirmStockSave = async () => {
+    if (!editingStockWine || stockSaveBusy) return;
+    const nextQty = Math.max(0, Math.min(999, Math.round(editingStockQty)));
+    const currentQty = Math.max(0, Math.round(Number(editingStockWine.qty) || 0));
+    if (nextQty === currentQty) {
+      closeStockEditor();
+      return;
+    }
+    setStockSaveBusy(true);
+    try {
+      const wineRepository = await loadWineRepository();
+      await wineRepository.updateWine({
+        id: editingStockWine.id,
+        category: editingStockWine.category ?? '',
+        name: editingStockWine.name,
+        age: editingStockWine.age ?? '',
+        producer: editingStockWine.producer,
+        origin: editingStockWine.origin,
+        threshold: editingStockWine.threshold,
+        purchasePrice: editingStockWine.purchasePrice,
+        salePrice: editingStockWine.salePrice,
+        vintage: editingStockWine.vintage ?? '',
+        qty: nextQty,
+        notes: editingStockWine.notes ?? ''
+      });
+      await onRefreshInventory();
+      onToast('Giacenza aggiornata');
+      setEditingStockWine(null);
+    } catch (error) {
+      console.error('[HomePage] update stock qty failed', error);
+      onToast('Errore aggiornamento giacenza');
+    } finally {
+      setStockSaveBusy(false);
+    }
+  };
+
+  return {
+    editingStockWine,
+    editingStockQty,
+    stockSaveBusy,
+    openStockEditor,
+    closeStockEditor,
+    confirmStockSave,
+    setEditingStockQty
+  };
+}

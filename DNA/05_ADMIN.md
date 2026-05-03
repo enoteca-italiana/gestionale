@@ -13,6 +13,7 @@ Ultimo aggiornamento: **02/05/2026 — CEST**.
 - Hash calcolato via `sha256Base64()` in `src/pages/admin/crypto.ts` (Web Crypto API)
 
 Hook autenticazione: `src/pages/admin/useAdminAuth.ts`
+
 - `login(password)` → confronta hash, imposta sessione 12h
 - `logout()` → rimuove sessione
 - `authed: boolean`, `error: string | null`, `busy: boolean`
@@ -90,10 +91,10 @@ Ordine pulsanti in `AdminHome.tsx`:
 
 Due switch indipendenti orizzontali (touch-friendly):
 
-| Switch | Comportamento ON | Comportamento OFF |
-|---|---|---|
-| PIN avvio app | Gate PIN attivo subito, forza nuova verifica sessione | Gate disattivato subito, unlocked senza verifica |
-| PIN impostazioni | Richiede PIN ad ogni accesso a `/impostazioni` | Nessun gate su impostazioni |
+| Switch           | Comportamento ON                                      | Comportamento OFF                                |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| PIN avvio app    | Gate PIN attivo subito, forza nuova verifica sessione | Gate disattivato subito, unlocked senza verifica |
+| PIN impostazioni | Richiede PIN ad ogni accesso a `/impostazioni`        | Nessun gate su impostazioni                      |
 
 UI: `ON` verde, `OFF` viola, stato inattivo bianco.
 
@@ -119,6 +120,7 @@ UI: `ON` verde, `OFF` viola, stato inattivo bianco.
 ### `ImportModal.tsx` — Import CSV
 
 Flusso:
+
 1. Selezione file `.csv`
 2. Conferma con scelta modalità:
    - `Aggiungi record ad archivio esistente` → `appendWines()`
@@ -131,6 +133,7 @@ Parsing: `parseArchiveCsv()` — auto-detect separatore, alias header flessibili
 ### `ExportModal.tsx` — Export archivio
 
 Formati disponibili:
+
 - **CSV** — sincrono, via `buildArchiveCsv()` + download Blob
 - **Excel** — lazy load `exceljs`, XLSX con header stilizzati
 - **PDF** — lazy load `jspdf` + `jspdf-autotable`, con logo e pagine `1/N`
@@ -159,13 +162,13 @@ Pulsante reset filtri con icona frecce.
 1. Conferma iniziale
 2. Conferma finale con scelta retention + PIN admin
 
-| Opzione | Comportamento |
-|---|---|
-| Niente (cancella tutto) | DELETE tutte le sessioni `submitted` |
-| Ultimi 7 giorni | DELETE sessioni `submitted` con `submitted_at < now - 7d` |
-| Ultimi 30 giorni | DELETE sessioni `submitted` con `submitted_at < now - 30d` |
-| Ultimi 3 mesi | DELETE sessioni `submitted` con `submitted_at < now - 3m` |
-| Ultimi 12 mesi | DELETE sessioni `submitted` con `submitted_at < now - 12m` |
+| Opzione                 | Comportamento                                              |
+| ----------------------- | ---------------------------------------------------------- |
+| Niente (cancella tutto) | DELETE tutte le sessioni `submitted`                       |
+| Ultimi 7 giorni         | DELETE sessioni `submitted` con `submitted_at < now - 7d`  |
+| Ultimi 30 giorni        | DELETE sessioni `submitted` con `submitted_at < now - 30d` |
+| Ultimi 3 mesi           | DELETE sessioni `submitted` con `submitted_at < now - 3m`  |
+| Ultimi 12 mesi          | DELETE sessioni `submitted` con `submitted_at < now - 12m` |
 
 Funzione: `clearSubmittedHistoryByRetention(retention)` in `dischargeRepository.ts`.
 
@@ -176,6 +179,7 @@ Funzione: `clearSubmittedHistoryByRetention(retention)` in `dischargeRepository.
 Gestisce le liste di: `Categorie`, `Produttori`, `Provenienze`.
 
 Comportamento:
+
 - Apertura ottimizzata: warm start da dati locali → sync remoto in background
 - Cache in-memory con TTL breve per riaperture ravvicinate
 - **Modifica voce**: doppio step conferma (`Conferma` + modale `Confermare modifica?`)
@@ -195,6 +199,7 @@ Route dedicata, lazy-loaded. Vedi `09_CODE_REFERENCE.md` per dettagli tecnici.
 Ordine da sinistra: `Aggiungi vino` | `Cerca...` | `Categoria` | `Produttore` | `Provenienza` | box `Totale/Soglia/Esauriti` | pulsante reset filtri | azioni (export, AI)
 
 Box statistiche:
+
 - `Totale` (verde) — tutti i vini in archivio
 - `Soglia` (ambra) — vini con `qty <= threshold`
 - `Esauriti` (rosso) — vini con `qty = 0`
@@ -202,18 +207,21 @@ Box statistiche:
 - Stato selezionato: testo bianco su sfondo colorato
 
 Pulsante reset filtri (tondo, bianco, icona frecce viola):
+
 - Resetta: term, category, producer, origin, stockFilter → default
 - Resetta anche: ordinamenti colonne, stati inline aperti
 - Con filtri attivi: cambia colore + animazione pulse (`archiveResetPulse`, `will-change: opacity`)
 - Dopo reset: torna allo stato normale
 
 Filtri complementari:
+
 - `Cerca`, `Categoria`, `Produttore`, `Provenienza` si restringono reciprocamente
 - Le opzioni dei selector mostrano solo valori presenti nei vini già filtrati dagli altri criteri
 
 ### Selector con creazione rapida
 
 Componente `InlineStickyAddSelect.tsx`:
+
 - Voce `+ Aggiungi ...` sempre fissa in cima (sticky) mentre la lista scorre
 - Disponibile sia in toolbar sia nelle celle inline della tabella
 - Dopo creazione nuovo valore: il filtro resta su `Tutte/Tutti` (non seleziona il nuovo valore)
@@ -241,6 +249,7 @@ Componente `InlineStickyAddSelect.tsx`:
 ### Guardia abbandono sessione
 
 Se l'utente ha una sessione scarico aperta con almeno 1 vino e clicca su un link Navbar:
+
 - Non naviga subito
 - Apre modale di conferma (`Annulla` / `Conferma abbandono`)
 - Conferma: `endSession()` → navigazione a `/`

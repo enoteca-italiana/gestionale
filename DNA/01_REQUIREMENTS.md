@@ -31,6 +31,7 @@ L'app gestisce gli **scarichi di bottiglie** durante il servizio in enoteca.
 L'utente lavora sempre dentro una **sessione attiva**.
 
 Flusso:
+
 1. **Avvia sessione** (pulsante viola)
 2. **Ricerca** per nome vino (real-time, locale)
 3. **Scarico rapido** con bottoni `-1`, `-2`, `-3` per ogni risultato
@@ -107,12 +108,12 @@ Flusso:
 
 Obbligatoria ovunque (input, CSV, DB, storico):
 
-| Campo | Regola |
-|---|---|
-| `Categoria` | UPPERCASE |
-| `Nome` | UPPERCASE |
-| `Provenienza` | UPPERCASE |
-| `Produttore` | Initcap (prima lettera maiuscola) |
+| Campo         | Regola                            |
+| ------------- | --------------------------------- |
+| `Categoria`   | UPPERCASE                         |
+| `Nome`        | UPPERCASE                         |
+| `Provenienza` | UPPERCASE                         |
+| `Produttore`  | Initcap (prima lettera maiuscola) |
 
 ---
 

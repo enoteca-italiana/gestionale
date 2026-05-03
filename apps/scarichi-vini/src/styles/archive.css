@@ -33,6 +33,18 @@
   padding: 4px 0 10px;
 }
 
+.archiveExportDock {
+  position: absolute;
+  top: -58px;
+  right: 0;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  z-index: 10;
+  transform: scale(1.125);
+  transform-origin: top right;
+}
+
 .archiveTopRow {
   display: flex;
   justify-content: flex-end;
@@ -63,21 +75,15 @@
   margin-top: 10px;
   display: grid;
   grid-template-columns:
-    10%
-    18.96%
-    minmax(0, 1fr)
-    minmax(0, 1fr)
-    minmax(0, 1fr)
+    auto
+    minmax(320px, 1.15fr)
+    minmax(500px, 1.35fr)
+    minmax(192px, auto)
     auto
     auto
-    6.8%
-    8.6%;
+    auto;
   gap: 10px;
   align-items: center;
-}
-
-.archiveFilters > * {
-  min-width: 0;
 }
 
 .archiveFilterControl {
@@ -85,17 +91,11 @@
   padding: 10px 12px;
 }
 
-.archiveSearchInput {
-  min-width: 0;
-  grid-column: 2;
-}
-
 .archiveFilterGroup {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   min-width: 0;
-  grid-column: 3 / 6;
 }
 
 .archiveFilterField {
@@ -177,6 +177,7 @@
 .archiveFilterCustomOptions {
   max-height: 220px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .archiveFilterCustomOption {
@@ -271,11 +272,9 @@
   padding: 0 12px;
 }
 
-.archiveExportButton.archiveGoogleSheetButton:hover,
-.archiveExportButton.archiveGoogleSheetButton:focus-visible,
-.archiveExportButton.archiveGoogleSheetButton:active {
-  border-color: #15803d;
-  background: #15803d;
+.archiveGoogleSheetButton:hover {
+  border-color: #166534;
+  background: #166534;
   color: #ffffff;
 }
 
@@ -287,8 +286,6 @@
   background: transparent;
   border-radius: 0;
   padding: 0;
-  grid-column: 6;
-  width: 100%;
 }
 
 .archiveStatsBox .archiveStatLabel {
@@ -380,13 +377,11 @@
 }
 
 .archiveAddButton {
-  grid-column: 1;
-  justify-self: center;
-  min-width: 0;
-  width: 100%;
+  justify-self: end;
+  min-width: 170px;
   min-height: var(--archive-top-action-size);
   height: var(--archive-top-action-size);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   padding: 0 14px;
   display: inline-flex;
@@ -394,29 +389,7 @@
   justify-content: center;
 }
 
-.archiveTotalsButton {
-  grid-column: 9;
-  appearance: none;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 0;
-  width: 100%;
-  padding: 0 12px;
-  border-radius: 16px;
-  border: 1px solid #ca8a04;
-  background: #fbbf24;
-  color: #111827;
-}
-
-.archiveTotalsButton:hover {
-  border-color: #b45309;
-  background: #f59e0b;
-}
-
 .archiveResetButton {
-  grid-column: 7;
-  justify-self: center;
   appearance: none;
   border: 1px solid #d1d5db;
   background: #ffffff;
@@ -432,13 +405,13 @@
 }
 
 .archiveResetButton:hover {
-  border-color: #c4cad4;
+  border-color: #c3cad4;
   background: #fcfcfd;
 }
 
 .archiveResetButton svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
 }
 
@@ -446,7 +419,8 @@
   border-color: #7c164a;
   background: #f9eaf2;
   color: #7c164a;
-  animation: archiveResetPulse 0.45s ease-in-out infinite;
+  animation: archiveResetPulse 0.55s ease-in-out infinite;
+  will-change: opacity;
 }
 
 .archiveResetButtonActive:hover {
@@ -456,182 +430,26 @@
 
 @keyframes archiveResetPulse {
   0% {
-    border-color: #7c164a;
-    background: #f9eaf2;
-    color: #7c164a;
+    box-shadow: 0 0 0 0 rgba(124, 22, 74, 0.22);
+    opacity: 1;
   }
   50% {
-    border-color: #9f2a63;
-    background: #f5d2e4;
-    color: #9f2a63;
+    box-shadow: 0 0 0 6px rgba(124, 22, 74, 0.08);
+    opacity: 0.7;
   }
   100% {
-    border-color: #7c164a;
-    background: #f9eaf2;
-    color: #7c164a;
+    box-shadow: 0 0 0 0 rgba(124, 22, 74, 0.22);
+    opacity: 1;
   }
 }
 
-.archiveGoogleSheetButton {
-  grid-column: 8;
-  min-width: 0;
-  width: 100%;
-}
-
-.archiveTotalsTopBar {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-.archiveTotalsContent {
-  width: min(42vw, 588px);
-  margin: 0 auto;
-}
-
-.archiveTotalsTitleWrap {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.archiveTotalsTitle {
-  margin: 0;
-  font-size: 34px;
-  line-height: 1.08;
-  letter-spacing: -0.3px;
-}
-
-.archiveTotalsSubtitle {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.35;
-  white-space: nowrap;
-}
-
-.archiveTotalsExitButton {
-  min-width: 180px;
-  min-height: var(--archive-top-action-size);
-  height: var(--archive-top-action-size);
-  border-radius: 12px;
-  border: 1px solid #7c164a;
-  background: #7c164a;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.archiveTotalsExitButton:hover {
-  border-color: #5e1741;
-  background: #5e1741;
-}
-
-.archiveTotalsBottomActions {
-  margin-top: auto;
-  padding-top: 16px;
-  display: flex;
-  justify-content: center;
-  width: min(42vw, 588px);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.archiveTotalsBottomActions .archiveTotalsExitButton {
-  width: 100%;
-}
-
-.archiveTotalsFilters {
-  margin-top: 44px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: end;
-}
-
-.archiveTotalsFilterField {
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.archiveTotalsFilterField .archiveFilterControl {
-  text-align: center;
-  text-align-last: center;
-  min-height: 40px;
-}
-
-.archiveTotalsGrid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.archiveTotalsCard {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 12px 14px;
-  text-align: center;
-}
-
-.archiveTotalsCardWarehouse {
-  border-color: #15803d;
-  background: #f0fdf4;
-}
-
-.archiveTotalsCardLabel {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--muted);
-}
-
-.archiveTotalsCardValue {
-  margin-top: 6px;
-  font-size: 26px;
-  font-weight: 800;
-  color: #111827;
-  line-height: 1.15;
-  text-align: center;
-}
-
-.archiveTotalsCardCalc {
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.35;
-  color: #6b7280;
-  text-align: center;
-}
-
-.archiveTotalsMeta {
-  margin-top: 10px;
-  font-size: 17px;
-  color: #7c164a;
-  font-weight: 700;
-  text-align: center;
-}
-
-.archiveTotalsMetaTop {
-  margin-top: 44px;
+.archiveLoadMoreButton {
+  min-width: 240px;
 }
 
 @media (max-width: 1500px) {
   .archiveFilters {
-    grid-template-columns:
-      10%
-      18.96%
-      minmax(0, 1fr)
-      minmax(0, 1fr)
-      minmax(0, 1fr)
-      auto
-      auto
-      6.8%
-      8.6%;
+    grid-template-columns: auto minmax(292px, 1fr) minmax(420px, 1.2fr) auto auto auto;
   }
 }
 
@@ -652,6 +470,7 @@
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .archiveTable {
@@ -668,7 +487,7 @@
 
 .archiveTable th:nth-child(2),
 .archiveTable td:nth-child(2) {
-  width: 18.96%;
+  width: 20.6%;
 }
 
 .archiveTable th:nth-child(3),
@@ -702,7 +521,7 @@
 
 .archiveTable th:nth-child(8),
 .archiveTable td:nth-child(8) {
-  width: 3.64%;
+  width: 2%;
   padding-left: 4px;
   padding-right: 4px;
 }
@@ -842,10 +661,6 @@
   text-align: center;
 }
 
-.archiveTable tbody td:nth-child(1) .archiveInlineCategoryButton {
-  text-align: center;
-}
-
 .archiveInlineTextInput,
 .archiveInlineYearInput {
   width: 100%;
@@ -955,6 +770,7 @@
 .archiveInlineSelectOptions {
   max-height: 188px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .archiveInlineSelectOption {
@@ -1316,36 +1132,6 @@
     width: 100%;
   }
 
-  .archiveTotalsButton {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .archiveTotalsTopBar {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .archiveTotalsContent {
-    width: min(96vw, 680px);
-  }
-
-  .archiveTotalsBottomActions {
-    width: min(96vw, 680px);
-  }
-
-  .archiveTotalsFilters {
-    grid-template-columns: 1fr;
-  }
-
-  .archiveTotalsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .archiveTotalsSubtitle {
-    white-space: nowrap;
-    font-size: 13px;
-  }
   .archiveTableWrap {
     height: auto;
     max-height: 62vh;

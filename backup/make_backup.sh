@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage:
-#   ./backup/make_backup.sh "backup_12 Martedi_02.11"
+# Uso:
+#   ./backup/make_backup.sh              # nome auto: Backup_2 Maggio_16.00
+#   ./backup/make_backup.sh "Backup_2 Maggio_16.00"  # nome manuale
 
-NAME="${1:-}"
-if [[ -z "$NAME" ]]; then
-  echo "Missing backup name. Example: ./backup/make_backup.sh \"backup_12 Martedi_02.11\"" >&2
-  exit 1
-fi
+MESI=("" "Gennaio" "Febbraio" "Marzo" "Aprile" "Maggio" "Giugno"
+           "Luglio" "Agosto" "Settembre" "Ottobre" "Novembre" "Dicembre")
+
+GIORNO=$(date +%-d)
+MESE_NUM=$(date +%-m)
+ORA=$(date +%H.%M)
+NOME_AUTO="Backup_${GIORNO} ${MESI[$MESE_NUM]}_${ORA}"
+
+NAME="${1:-$NOME_AUTO}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_DIR="$ROOT_DIR/backup"
-
-mkdir -p "$BACKUP_DIR"
 
 ARCHIVE="$BACKUP_DIR/${NAME}.tar.gz"
 
 rm -f "$ARCHIVE"
 
-# Create a lean backup: exclude generated/personal files.
 (
   cd "$ROOT_DIR"
   tar -czf "$ARCHIVE" \
@@ -29,8 +31,10 @@ rm -f "$ARCHIVE"
     --exclude="./apps/scarichi-vini/node_modules" \
     --exclude="./dist" \
     --exclude="./apps/scarichi-vini/dist" \
-    --exclude="./apps/scarichi-vini/.vite" \
     --exclude="./apps/scarichi-vini/dev-dist" \
+    --exclude="./apps/scarichi-vini/coverage" \
+    --exclude="./.cache" \
+    --exclude="./.local" \
     --exclude="./.DS_Store" \
     --exclude="./apps/scarichi-vini/.DS_Store" \
     --exclude="./.env" \
@@ -38,4 +42,5 @@ rm -f "$ARCHIVE"
     .
 )
 
-echo "Backup created: $ARCHIVE"
+SIZE=$(du -sh "$ARCHIVE" | cut -f1)
+echo "Backup creato: $ARCHIVE ($SIZE)"

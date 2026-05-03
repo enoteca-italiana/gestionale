@@ -33,9 +33,9 @@ Config in `vite.config.ts`:
 
 ```ts
 workbox: {
-  globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}']
+  globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'];
 }
-includeAssets: ['logo.png', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png']
+includeAssets: ['logo.png', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'];
 ```
 
 Tutti i chunk JS/CSS/HTML e le icone PWA vengono precachati al primo caricamento.
@@ -44,18 +44,19 @@ Tutti i chunk JS/CSS/HTML e le icone PWA vengono precachati al primo caricamento
 
 ## Manifest PWA
 
-| Campo | Valore |
-|---|---|
-| `id` | `/` |
-| `name` | Enoteca Italiana |
-| `short_name` | Enoteca |
-| `display` | standalone |
-| `orientation` | portrait |
-| `theme_color` | `#7c164a` |
-| `background_color` | `#fbf6ea` |
-| `start_url` | `/` |
+| Campo              | Valore           |
+| ------------------ | ---------------- |
+| `id`               | `/`              |
+| `name`             | Enoteca Italiana |
+| `short_name`       | Enoteca          |
+| `display`          | standalone       |
+| `orientation`      | portrait         |
+| `theme_color`      | `#7c164a`        |
+| `background_color` | `#fbf6ea`        |
+| `start_url`        | `/`              |
 
 Icone:
+
 - `pwa-192x192.png` (any)
 - `pwa-512x512.png` (any)
 - `pwa-192x192-maskable.png` (maskable)
@@ -82,13 +83,13 @@ Flusso:
 
 ### Trigger flush automatico
 
-| Trigger | Evento |
-|---|---|
-| Avvio app | mount hook |
-| Ritorno online | `window 'online'` |
-| Focus finestra | `window 'focus'` |
-| Ritorno da background | `window 'pageshow'` |
-| Tab torna visibile | `document 'visibilitychange'` |
+| Trigger                | Evento                           |
+| ---------------------- | -------------------------------- |
+| Avvio app              | mount hook                       |
+| Ritorno online         | `window 'online'`                |
+| Focus finestra         | `window 'focus'`                 |
+| Ritorno da background  | `window 'pageshow'`              |
+| Tab torna visibile     | `document 'visibilitychange'`    |
 | Nuova sessione in coda | `scarichi:dischargeQueueChanged` |
 
 ### Classificazione errori
@@ -110,12 +111,12 @@ Hook: `src/app/useOnlineStatus.ts`
 
 ## Compatibilità installazione
 
-| Platform | Metodo installazione |
-|---|---|
-| Android / Chrome | Manifest + icone `any` + `maskable` → pulsante "Installa app" |
-| iPhone / iPad Safari | `apple-touch-icon` + meta `apple-mobile-web-app-*` → "Aggiungi a schermata Home" |
-| Desktop Chrome / Edge | PWA standard → icona in barra indirizzi |
-| Desktop Safari | "Aggiungi al Dock" con icona dedicata |
+| Platform              | Metodo installazione                                                             |
+| --------------------- | -------------------------------------------------------------------------------- |
+| Android / Chrome      | Manifest + icone `any` + `maskable` → pulsante "Installa app"                    |
+| iPhone / iPad Safari  | `apple-touch-icon` + meta `apple-mobile-web-app-*` → "Aggiungi a schermata Home" |
+| Desktop Chrome / Edge | PWA standard → icona in barra indirizzi                                          |
+| Desktop Safari        | "Aggiungi al Dock" con icona dedicata                                            |
 
 ---
 

@@ -1,439 +1,58 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'wouter';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { Logo } from '@/components/Logo';
 import { Toast } from '@/components/Toast';
-import { useOnlineStatus } from '@/app/useOnlineStatus';
-import type { DischargeQueueStatusDetail } from '@/data/offlineDischargeQueue';
-import {
-  dischargeQueueChangedEvent,
-  dischargeQueueStatusEvent,
-  enqueuePendingDischargeSession,
-  getPendingDischargeQueueCount,
-  isDischargeQueueRecoverableError
-} from '@/data/offlineDischargeQueue';
-import { useLocalDb } from '@/data/useLocalDb';
 import { ResultsList } from '@/pages/home/ResultsList';
 import { SessionConfirmModal } from '@/pages/home/SessionConfirmModal';
+import { StockEditorModal } from '@/pages/home/StockEditorModal';
 import { SummaryList } from '@/pages/home/SummaryList';
-import { useLocalSession } from '@/pages/home/useLocalSession';
+import { useHomePage } from '@/pages/home/useHomePage';
 import { RefreshCcw } from 'lucide-react';
-import type { Wine } from '@/domain/types';
-
-type StockFilter = 'all' | 'threshold' | 'out';
-const INTRO_SEEN_SESSION_KEY = 'scarichi:intro-seen';
-const FORCE_HOME_ONCE_SESSION_KEY = 'scarichi:force-home-once';
-const BEFORE_NAV_EVENT = 'scarichi:beforeNav';
-let dischargeRepositoryPromise: Promise<typeof import('@/data/dischargeRepository')> | null = null;
-let wineRepositoryPromise: Promise<typeof import('@/data/wineRepository')> | null = null;
-
-async function loadDischargeRepository() {
-  dischargeRepositoryPromise ??= import('@/data/dischargeRepository');
-  return dischargeRepositoryPromise;
-}
-
-async function loadWineRepository() {
-  wineRepositoryPromise ??= import('@/data/wineRepository');
-  return wineRepositoryPromise;
-}
-
-function isInThreshold(qty: number, threshold?: number) {
-  const parsedQty = Number(qty);
-  const parsedThreshold = Number(threshold);
-  if (!Number.isFinite(parsedQty) || parsedQty <= 0) return false;
-  if (!Number.isFinite(parsedThreshold) || parsedThreshold < 1) return false;
-  return parsedQty <= parsedThreshold;
-}
-
-function isDesktopDevice() {
-  return window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)').matches;
-}
-
-function hasSeenIntroInSession() {
-  try {
-    return window.sessionStorage.getItem(INTRO_SEEN_SESSION_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function markIntroSeenInSession() {
-  try {
-    window.sessionStorage.setItem(INTRO_SEEN_SESSION_KEY, '1');
-  } catch {
-    // Ignore storage failures and keep runtime behavior.
-  }
-}
-
-function consumeForcedHomeNavigation() {
-  try {
-    const forced = window.sessionStorage.getItem(FORCE_HOME_ONCE_SESSION_KEY) === '1';
-    if (forced) {
-      window.sessionStorage.removeItem(FORCE_HOME_ONCE_SESSION_KEY);
-    }
-    return forced;
-  } catch {
-    return false;
-  }
-}
 
 export function HomePage({
   onIntroVisibilityChange
 }: {
   onIntroVisibilityChange?: (visible: boolean) => void;
 }) {
-  const [forceHomeOnMount] = useState(() => consumeForcedHomeNavigation());
-  const [shouldShowIntroOnMount] = useState(() => !forceHomeOnMount && !hasSeenIntroInSession());
-  const [showIntro, setShowIntro] = useState(shouldShowIntroOnMount);
-  const [autoRedirectToArchiveAfterIntro] = useState(
-    () => !forceHomeOnMount && shouldShowIntroOnMount && isDesktopDevice()
-  );
-  const [introVisible, setIntroVisible] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [leaveSessionConfirmOpen, setLeaveSessionConfirmOpen] = useState(false);
-  const [pendingNavPath, setPendingNavPath] = useState<string | null>(null);
-  const [pendingQueueCount, setPendingQueueCount] = useState(() => getPendingDischargeQueueCount());
-  const [toast, setToast] = useState<string | null>(null);
-  const [stockFilter, setStockFilter] = useState<StockFilter>('all');
-  const [forceRefreshBusy, setForceRefreshBusy] = useState(false);
-  const [editingStockWine, setEditingStockWine] = useState<Wine | null>(null);
-  const [editingStockQty, setEditingStockQty] = useState(0);
-  const [stockSaveBusy, setStockSaveBusy] = useState(false);
-  const [location, setLocation] = useLocation();
-
-  const online = useOnlineStatus();
-  const previousOnlineRef = useRef(online);
-
-  const { inventory, setInventory, refreshInventory } = useLocalDb();
-
   const {
+    showIntro,
+    introVisible,
+    online,
+    pendingQueueCount,
     sessionOpen,
-    query,
-    filtered,
-    sessionList,
     sessionCount,
+    query,
     setQuery,
-    resetSession,
-    endSession,
-    startSession,
-    addToSession,
+    stockFilter,
+    setStockFilter,
+    visibleWines,
+    getSessionQty,
+    showResults,
+    forceRefreshBusy,
+    sessionList,
+    inventory,
     incrementItem,
     decrementItem,
-    deleteItem
-  } = useLocalSession({ inventory, setInventory });
-
-  useEffect(() => {
-    if (!shouldShowIntroOnMount) return;
-    markIntroSeenInSession();
-    const r = window.requestAnimationFrame(() => setIntroVisible(true));
-    const t = window.setTimeout(() => setShowIntro(false), 2500);
-    return () => {
-      window.cancelAnimationFrame(r);
-      window.clearTimeout(t);
-    };
-  }, [shouldShowIntroOnMount]);
-
-  useEffect(() => {
-    onIntroVisibilityChange?.(showIntro);
-    return () => onIntroVisibilityChange?.(false);
-  }, [onIntroVisibilityChange, showIntro]);
-
-  useEffect(() => {
-    if (showIntro) return;
-    if (!autoRedirectToArchiveAfterIntro) return;
-    if (location !== '/') return;
-    setLocation('/admina', { replace: true });
-  }, [autoRedirectToArchiveAfterIntro, location, setLocation, showIntro]);
-
-  useEffect(() => {
-    void refreshInventory();
-  }, [refreshInventory]);
-
-  useEffect(() => {
-    setPendingQueueCount(getPendingDischargeQueueCount());
-    const onQueueChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ pendingCount?: unknown }>).detail;
-      const pendingCount = Number(detail?.pendingCount);
-      if (Number.isFinite(pendingCount) && pendingCount >= 0) {
-        setPendingQueueCount(Math.round(pendingCount));
-        return;
-      }
-      setPendingQueueCount(getPendingDischargeQueueCount());
-    };
-    window.addEventListener(dischargeQueueChangedEvent, onQueueChanged as EventListener);
-    return () => {
-      window.removeEventListener(dischargeQueueChangedEvent, onQueueChanged as EventListener);
-    };
-  }, []);
-
-  useEffect(() => {
-    const previousOnline = previousOnlineRef.current;
-    if (previousOnline !== online) {
-      setToast(
-        online
-          ? 'Online: sincronizzazione automatica in corso'
-          : 'Offline: sessioni salvate in coda'
-      );
-    }
-    previousOnlineRef.current = online;
-  }, [online]);
-
-  useEffect(() => {
-    const onQueueStatus = (event: Event) => {
-      const detail = (event as CustomEvent<DischargeQueueStatusDetail>).detail;
-      if (!detail) return;
-      if (detail.type === 'sync_success' && detail.processed > 0) {
-        const label =
-          detail.processed === 1
-            ? '1 sessione in coda inviata'
-            : `${detail.processed} sessioni in coda inviate`;
-        setToast(label);
-        void refreshInventory();
-        return;
-      }
-      if (detail.type === 'sync_error') {
-        setToast('Errore sincronizzazione coda');
-      }
-    };
-
-    window.addEventListener(dischargeQueueStatusEvent, onQueueStatus as EventListener);
-    return () => {
-      window.removeEventListener(dischargeQueueStatusEvent, onQueueStatus as EventListener);
-    };
-  }, [refreshInventory]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      void refreshInventory();
-    };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void refreshInventory();
-      }
-    };
-
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('pageshow', onFocus);
-    window.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('pageshow', onFocus);
-      window.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [refreshInventory]);
-
-  useEffect(() => {
-    if (!sessionOpen) return;
-
-    const onBeforeNav = (event: Event) => {
-      const navEvent = event as CustomEvent<{ href?: string }>;
-      const href = navEvent.detail?.href;
-      if (!href) return;
-
-      // If session is open but summary is empty, allow quick return to Home
-      // by closing the session immediately (no confirmation modal needed).
-      if (sessionCount <= 0 && href === '/') {
-        endSession();
-        return;
-      }
-
-      if (sessionCount > 0) {
-        navEvent.preventDefault();
-        setPendingNavPath(href);
-        setLeaveSessionConfirmOpen(true);
-      }
-    };
-
-    window.addEventListener(BEFORE_NAV_EVENT, onBeforeNav as EventListener);
-    return () => {
-      window.removeEventListener(BEFORE_NAV_EVENT, onBeforeNav as EventListener);
-    };
-  }, [endSession, sessionCount, sessionOpen]);
-
-  useEffect(() => {
-    if (sessionOpen && sessionCount > 0) return;
-    if (!leaveSessionConfirmOpen && !pendingNavPath) return;
-    setLeaveSessionConfirmOpen(false);
-    setPendingNavPath(null);
-  }, [leaveSessionConfirmOpen, pendingNavPath, sessionCount, sessionOpen]);
-
-  const confirmSubmit = () => {
-    if (sessionCount <= 0) return;
-    setConfirmOpen(true);
-  };
-
-  const submitSession = async () => {
-    const items = sessionList.map((item) => ({ wineId: item.wineId, qty: item.qty }));
-    const expectedQtyByWineId = Object.fromEntries(
-      sessionList.map((item) => [item.wineId, inventoryQtyByWineId.get(item.wineId) ?? 0])
-    );
-
-    const enqueueSession = (message: string) => {
-      enqueuePendingDischargeSession({ items, expectedQtyByWineId });
-      setConfirmOpen(false);
-      resetSession();
-      setToast(message);
-    };
-
-    if (!online) {
-      try {
-        enqueueSession('Offline: sessione salvata in coda');
-      } catch (error) {
-        console.error('[HomePage] enqueue offline session failed', error);
-        setToast('Offline: errore salvataggio coda');
-      }
-      return;
-    }
-
-    try {
-      const dischargeRepository = await loadDischargeRepository();
-      await dischargeRepository.createAndSubmitDischargeSession({
-        items,
-        expectedQtyByWineId
-      });
-      await refreshInventory();
-      setToast('Sessione inviata');
-    } catch (error) {
-      if (isDischargeQueueRecoverableError(error)) {
-        try {
-          enqueueSession('Rete instabile: sessione salvata in coda');
-          return;
-        } catch (enqueueError) {
-          console.error('[HomePage] enqueue recoverable session failed', enqueueError);
-        }
-      }
-      console.error('[HomePage] submitSession failed', error);
-      setToast('Errore invio sessione');
-      return;
-    }
-
-    setConfirmOpen(false);
-    resetSession();
-  };
-
-  const confirmLeaveSession = () => {
-    if (!pendingNavPath) {
-      setLeaveSessionConfirmOpen(false);
-      return;
-    }
-    endSession();
-    setLeaveSessionConfirmOpen(false);
-    setLocation('/');
-    setPendingNavPath(null);
-  };
-
-  const cancelLeaveSession = () => {
-    setLeaveSessionConfirmOpen(false);
-    setPendingNavPath(null);
-  };
-
-  const sessionQtyByWineId = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const i of sessionList) m.set(i.wineId, i.qty);
-    return m;
-  }, [sessionList]);
-  const inventoryQtyByWineId = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const wine of inventory) m.set(wine.id, wine.qty);
-    return m;
-  }, [inventory]);
-
-  const visibleWines = useMemo(() => {
-    const baseSelection = sessionOpen
-      ? filtered.filter((wine) => !sessionQtyByWineId.has(wine.id))
-      : filtered;
-
-    if (stockFilter === 'threshold') {
-      return baseSelection.filter((wine) => isInThreshold(wine.qty, wine.threshold));
-    }
-    if (stockFilter === 'out') {
-      return baseSelection.filter((wine) => wine.qty <= 0);
-    }
-    return baseSelection;
-  }, [filtered, sessionOpen, sessionQtyByWineId, stockFilter]);
-
-  const getSessionQty = (wineId: string) => sessionQtyByWineId.get(wineId) ?? 0;
-  const showResults = !sessionOpen || query.trim().length > 0 || stockFilter !== 'all';
-
-  const forceRefreshHome = async () => {
-    if (forceRefreshBusy) return;
-    setForceRefreshBusy(true);
-    try {
-      // Reset filters first so UI always restarts from default state.
-      setQuery('');
-      setStockFilter('all');
-
-      // Force a SW update check before refreshing inventory.
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(
-          registrations.map(async (registration) => {
-            try {
-              await registration.update();
-            } catch {
-              // Ignore update errors and continue with hard refresh flow.
-            }
-          })
-        );
-      }
-
-      await refreshInventory({ forceRemote: true });
-      setToast('Archivio aggiornato');
-    } catch (error) {
-      console.error('[HomePage] force refresh failed', error);
-      setToast('Errore refresh archivio');
-    } finally {
-      setForceRefreshBusy(false);
-    }
-  };
-
-  const openStockEditor = (wine: Wine) => {
-    if (sessionOpen) return;
-    setEditingStockWine(wine);
-    setEditingStockQty(Math.max(0, Math.round(Number(wine.qty) || 0)));
-  };
-
-  const closeStockEditor = () => {
-    if (stockSaveBusy) return;
-    setEditingStockWine(null);
-  };
-
-  const confirmStockSave = async () => {
-    if (!editingStockWine || stockSaveBusy) return;
-    const nextQty = Math.max(0, Math.min(999, Math.round(editingStockQty)));
-    const currentQty = Math.max(0, Math.round(Number(editingStockWine.qty) || 0));
-    if (nextQty === currentQty) {
-      closeStockEditor();
-      return;
-    }
-
-    setStockSaveBusy(true);
-    try {
-      const wineRepository = await loadWineRepository();
-      await wineRepository.updateWine({
-        id: editingStockWine.id,
-        category: editingStockWine.category ?? '',
-        name: editingStockWine.name,
-        age: editingStockWine.age ?? '',
-        producer: editingStockWine.producer,
-        origin: editingStockWine.origin,
-        threshold: editingStockWine.threshold,
-        purchasePrice: editingStockWine.purchasePrice,
-        salePrice: editingStockWine.salePrice,
-        vintage: editingStockWine.vintage ?? '',
-        qty: nextQty,
-        notes: editingStockWine.notes ?? ''
-      });
-      await refreshInventory();
-      setToast('Giacenza aggiornata');
-      setEditingStockWine(null);
-    } catch (error) {
-      console.error('[HomePage] update stock qty failed', error);
-      setToast('Errore aggiornamento giacenza');
-    } finally {
-      setStockSaveBusy(false);
-    }
-  };
+    deleteItem,
+    addToSession,
+    editingStockWine,
+    editingStockQty,
+    stockSaveBusy,
+    setEditingStockQty,
+    closeStockEditor,
+    confirmStockSave,
+    openStockEditor,
+    confirmOpen,
+    setConfirmOpen,
+    leaveSessionConfirmOpen,
+    toast,
+    setToast,
+    confirmSubmit,
+    startSession,
+    submitSession,
+    confirmLeaveSession,
+    cancelLeaveSession,
+    forceRefreshHome
+  } = useHomePage({ onIntroVisibilityChange });
 
   if (showIntro) {
     return (
@@ -441,6 +60,7 @@ export function HomePage({
         <div className={`introCenter ${introVisible ? 'introVisible' : ''}`}>
           <Logo variant="intro" />
         </div>
+        <div className="introByline">By DERO</div>
       </div>
     );
   }
@@ -478,9 +98,7 @@ export function HomePage({
           type="button"
           aria-label="Refresh forzato app"
           title="Refresh forzato app"
-          onClick={() => {
-            void forceRefreshHome();
-          }}
+          onClick={() => void forceRefreshHome()}
           disabled={forceRefreshBusy}
         >
           <RefreshCcw
@@ -545,56 +163,14 @@ export function HomePage({
       ) : null}
 
       {editingStockWine ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modalCard homeStockModalCard summaryEditModal">
-            <button
-              className="summaryEditClose"
-              type="button"
-              aria-label="Chiudi"
-              onClick={closeStockEditor}
-              disabled={stockSaveBusy}
-            >
-              ×
-            </button>
-            <div className="modalTitle centered">{editingStockWine.name}</div>
-            <div className="subtle centered mt6 homeStockQtyLabel">
-              GIACENZA ATTUALE: {Math.max(0, Math.round(Number(editingStockWine.qty) || 0))}
-            </div>
-
-            <div className="summaryEditControls mt14">
-              <button
-                className="resultControlButton resultControlButtonSecondary"
-                type="button"
-                disabled={stockSaveBusy || editingStockQty <= 0}
-                onClick={() => setEditingStockQty((prev) => Math.max(0, prev - 1))}
-              >
-                -
-              </button>
-              <div className="resultControlValue">{Math.max(0, Math.round(editingStockQty))}</div>
-              <button
-                className="resultControlButton"
-                type="button"
-                disabled={stockSaveBusy || editingStockQty >= 999}
-                onClick={() => setEditingStockQty((prev) => Math.min(999, prev + 1))}
-              >
-                +
-              </button>
-            </div>
-
-            <div className="summaryEditActionsSingle mt14">
-              <button
-                className="button buttonConfirmSoft"
-                type="button"
-                disabled={stockSaveBusy}
-                onClick={() => {
-                  void confirmStockSave();
-                }}
-              >
-                {stockSaveBusy ? 'Salvataggio…' : 'Conferma Nuova Giacenza'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <StockEditorModal
+          wine={editingStockWine}
+          qty={editingStockQty}
+          busy={stockSaveBusy}
+          onQtyChange={setEditingStockQty}
+          onClose={closeStockEditor}
+          onConfirm={() => void confirmStockSave()}
+        />
       ) : null}
 
       <SessionConfirmModal

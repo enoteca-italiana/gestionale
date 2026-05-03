@@ -20,6 +20,7 @@ Ultimo aggiornamento: **02/05/2026 — CEST**.
 Gestito da `useLocalSession` in `src/pages/home/useLocalSession.ts`.
 
 Stati principali:
+
 - `sessionOpen: boolean` — sessione attiva o meno
 - `items: SessionItem[]` — vini e quantità accumulate nella sessione corrente
 - `search: string` — termine di ricerca corrente
@@ -102,6 +103,7 @@ Stati principali:
 Hook: `src/app/useOfflineDischargeQueueSync.ts`
 
 Attiva `flushPendingDischargeQueue()` su:
+
 - startup app (mount)
 - evento `online`
 - evento `focus`
@@ -116,6 +118,7 @@ Invio: una sessione alla volta, FIFO per `createdAt`. Su errore recoverable (ret
 ## Tabella snapshot sessioni
 
 Ogni `discharge_session_items` inserita contiene snapshot dei metadati vino al momento dello scarico:
+
 - `wine_name`, `wine_age`, `wine_producer`, `wine_origin`, `wine_category`
 
 Questo garantisce che lo storico resti leggibile anche se il vino viene rimosso dall'archivio.
@@ -124,11 +127,11 @@ Questo garantisce che lo storico resti leggibile anche se il vino viene rimosso 
 
 ## Comportamento online/offline
 
-| Situazione | Comportamento |
-|---|---|
-| Online, conferma OK | Sessione inviata a Supabase, inventario aggiornato |
-| Offline, conferma | Sessione in coda localStorage, feedback visivo |
-| Ritorno online | Flush automatico coda in ordine cronologico |
-| Rete instabile (errore recoverable) | Sessione rimane in coda, ritentat al prossimo trigger |
-| Errore non-recoverable | Sessione in coda con `lastError`, toast errore utente |
-| Supabase paused (free tier) | `ERR_NAME_NOT_RESOLVED` — NON un bug del codice; soluzione: riattivare progetto dal dashboard Supabase |
+| Situazione                          | Comportamento                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Online, conferma OK                 | Sessione inviata a Supabase, inventario aggiornato                                                     |
+| Offline, conferma                   | Sessione in coda localStorage, feedback visivo                                                         |
+| Ritorno online                      | Flush automatico coda in ordine cronologico                                                            |
+| Rete instabile (errore recoverable) | Sessione rimane in coda, ritentat al prossimo trigger                                                  |
+| Errore non-recoverable              | Sessione in coda con `lastError`, toast errore utente                                                  |
+| Supabase paused (free tier)         | `ERR_NAME_NOT_RESOLVED` — NON un bug del codice; soluzione: riattivare progetto dal dashboard Supabase |

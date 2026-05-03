@@ -2,7 +2,7 @@
 
 App frontend del progetto Enoteca (workspace `@enoteca/scarichi-vini`).
 
-Ultimo aggiornamento: **07/04/2026 17:49 CEST**.
+Ultimo aggiornamento: **07/04/2026 00:25 CEST**.
 
 ## Quick Start
 
@@ -18,11 +18,6 @@ Comandi utili:
 - `npm run build`
 - `npm run preview`
 - `npm run dev -w @enoteca/scarichi-vini -- --port 5001` (porta dedicata)
-
-Nota tecnica (07/04/2026):
-
-- in sviluppo locale la PWA è disabilitata (`vite.config.ts -> VitePWA.devOptions.enabled = false`) per evitare cache/service worker stale che possono bloccare il bootstrap dev;
-- in build production la PWA resta attiva.
 
 ## Funzionalità principali
 
@@ -51,10 +46,6 @@ Nota tecnica (07/04/2026):
     - update sincronizzato su locale + Supabase;
     - toast `Giacenza aggiornata` in verde (2s).
 - Admin impostazioni (`/impostazioni`, compat legacy `/admin`) con autenticazione locale.
-  - modale `Inserisci PIN` con focus lock:
-    - il cursore resta sempre nel campo PIN mentre il gate è aperto;
-    - bloccata digitazione accidentale nei campi sottostanti.
-  - gate PIN avvio app: mostrato solo titolo `Inserisci PIN` (testo descrittivo rimosso).
   - azione `Reset archivio` con PIN:
     - cancella archivio vini e pulisce i registry/cache filtri correlati
     - storico sessioni preservato (indipendente dall'archivio vini)
@@ -68,26 +59,16 @@ Nota tecnica (07/04/2026):
   - `Gestione voci filtri` (`/admin`):
     - apertura ottimizzata con warm start locale + sync remoto in background;
     - cache in-memory a TTL breve per riaperture rapide;
-    - creazione nuova voce via modale standard (non inline);
-    - enforcement casing live su voci filtro:
-      - `Categorie` uppercase;
-      - `Produttori` iniziale maiuscola;
-      - `Provenienze` uppercase;
     - eliminazione voce: i vini collegati mantengono il record ma il campo viene svuotato (render `-`).
-  - `Esporta archivio` (modale):
-    - pulsante Excel verde;
-    - pulsante PDF rosso;
-    - stato `Esportazione...` mostrato solo sul pulsante del formato selezionato.
 - Archivio vini desktop-first (`/admina`) con CRUD completo:
   - colonne estese (categoria, nome, anno, produttore, provenienza, prezzi, q.tà, azioni)
   - toolbar filtri ottimizzata su una riga desktop con box statistiche compatto (`Totale`, `Soglia`, `Esauriti`)
   - pulsante `Aggiungi vino` in prima posizione a sinistra, prima del box `Cerca...`
-  - pulsante reset filtri tondo (tra box statistiche e comandi a destra), con diametro coerente agli action button:
+  - pulsante reset filtri tondo (tra box statistiche e pulsante AI), stesso diametro del pulsante AI:
     - reset completo filtri a default (`Totale` + tutti i select su `Tutti` + ricerca vuota)
     - stile: sfondo bianco, bordo grigio leggero, icona frecce viola
   - il box statistiche sostituisce il vecchio filtro `Tutte le giacenze`
   - filtri archivio (`Cerca...`, `Categoria`, `Produttore`, `Provenienza`) complementari tra loro
-  - riga filtri desktop stabilizzata con distribuzione equa su `Categoria`, `Produttore`, `Provenienza`
   - filtri archivio (`Categoria`, `Produttore`, `Provenienza`) con shortcut `+ Aggiungi ...` direttamente nelle tendine
     - la voce `+ Aggiungi ...` è sempre fissa in cima (toolbar + inline tabella), anche durante lo scroll opzioni
   - pulsanti statistiche con stato selezionato a colori invertiti (testo bianco)
@@ -119,19 +100,12 @@ Nota tecnica (07/04/2026):
   - policy campi testuali vino (input, CSV, visualizzazione, export):
     - `Categoria`, `Nome`, `Provenienza` sempre in **MAIUSCOLO**
     - `Produttore` sempre con **iniziale maiuscola**
-  - colonna `Categoria`: valori centrati nella cella (anche in rendering inline)
   - modale aggiungi/modifica vino:
     - `Acquisto`/`Vendita` supportano decimali e centesimi in digitazione (`virgola`/`punto`) con parsing numerico al salvataggio
   - pulsante reset filtri:
-    - con filtri attivi cambia colore e lampeggia rapidamente;
+    - con filtri attivi cambia colore e lampeggia;
     - dopo reset torna allo stato normale
   - export archivio: Excel/PDF con icone dockate in alto a destra (solo icone)
-  - pulsante `Totali` (ambra) in ultima posizione a destra, dopo `Foglio Google`
-  - pagina `Totali Archivio` (`/admina/totali`):
-    - filtri `Categoria`, `Produttore`, `Provenienza` complementari;
-    - card aggregate `Totale acquisto`, `Totale vendita`, `Totale margine`, `Totale magazzino`;
-    - indicatore centrale `N voci incluse nel calcolo`;
-    - pulsante `Esci` per ritorno a `/admina`.
   - performance avanzata (dataset grandi):
     - route lazy-loaded (`/`, `/impostazioni`, `/admin`, `/admina`) per startup più rapido
     - rendering progressivo liste (`Carica altri vini` / `Carica altre righe`)
@@ -142,12 +116,28 @@ Nota tecnica (07/04/2026):
     - autoload progressivo con `IntersectionObserver` su liste lunghe (Home/Archivio/Storico)
     - normalizzazione memoizzata campi filtro archivio per ridurre lavoro per-riga
     - fetch paginato `wines` allineato al limite API Supabase (page size 1000) per evitare blocco a 1000 righe
+- Assistente AI archivio:
+  - chat unica nel modale (nessuna vista impostazioni separata)
+  - modello selezionabile inline vicino a `Invia`
+  - contesto completo su archivio + sessioni storiche/sospese per risposte più affidabili
+  - supporto modalità web+app con vincoli di sicurezza su dati interni
+  - cache TTL locale su sessioni storiche AI + analytics inventario precomputati (meno latenza su invio)
+  - caricamento storico AI completo via paginazione (sessioni/items `submitted`) con blocco recency (`mai scaricati`, `>6 mesi`, `>12 mesi`)
+  - modalità analitica rigorosa:
+    - blocco `inventory.byProducer` (metriche aggregate per produttore),
+    - blocco `sessions.dataQuality` (anomalie deterministiche),
+    - blocco `sessions.outliers` (sessioni anomale su base statistica),
+    - risposta vincolata: niente stime/ipotesi, uso esplicito di `non disponibile nel contesto` quando manca dato.
+  - export report AI:
+    - formato disponibile: **PDF**;
+    - pulsante `Esporta PDF` visibile solo nei messaggi report richiesti esplicitamente in chat;
+    - PDF con logo `Enoteca Italiana` in alto (proporzioni preservate) e numerazione pagine `1/N`.
 - Logo applicativo ottimizzato in `public/logo.png` per ridurre peso asset.
 - Icone installazione PWA multi-device:
   - Android/desktop: `pwa-192x192.png`, `pwa-512x512.png` + `maskable`
   - iOS/Safari: `apple-touch-icon.png`
 - Tema PWA/title bar allineato al brand: `#7c164a` (manifest + meta theme-color)
-- Export PDF archivio: numerazione pagine in footer `1/N`.
+- Export PDF (Archivio + Assistente AI): numerazione pagine in footer `1/N`.
 
 ## Quality Gate
 
@@ -168,15 +158,17 @@ Nota tecnica (07/04/2026):
 ## Variabili ambiente
 
 - Crea `.env` da `.env.example`.
-- Supabase corrente (07/04/2026):
-  - `VITE_SUPABASE_URL=https://aezqtgadyaxdcptwlpci.supabase.co`
-  - `VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlenF0Z2FkeWF4ZGNwdHdscGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NTE3MzYsImV4cCI6MjA5MTEyNzczNn0.XHygA3zVLT10OICJMsKJ8EmVK1-VUkIop9jFG4aZciQ`
+- AI (sicuro su Cloudflare Pages Functions):
+  - secret server-side obbligatorio: `OPENAI_API_KEY`
+  - default model server-side opzionale: `OPENAI_MODEL`
+  - model pre-selezionato in UI opzionale: `VITE_OPENAI_MODEL`
+  - `VITE_OPENAI_API_KEY` non è più usata (chiave sempre server-side).
 - Con Supabase configurato, storico/sospesi sessioni usano le tabelle dedicate server-side.
 - Post-submit sessione: riconciliazione difensiva delle giacenze `wines.qty` per garantire allineamento archivio/storico anche in caso di RPC parziale.
 - Script SQL enterprise DB ops: `scripts/sql/supabase_enterprise_index_cleanup.sql`.
 - Script SQL policy casing campi vino: `scripts/sql/supabase_text_casing_policy.sql`.
 - Cloudflare Pages SPA routing:
-  - file `public/_redirects` incluso per deep-link client-side (`/impostazioni`, `/admin`, `/admina`).
+  - file `public/_redirects` incluso per deep-link client-side (`/impostazioni`, `/admin`, `/admina`) + bypass `/api/*`.
 
 ## Regole Deploy (Cloudflare Pages)
 
