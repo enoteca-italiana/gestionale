@@ -92,12 +92,16 @@ PIN SHA-256 locale (default "1909"), sessione 12h su `localStorage`.
 
 - Progetto: `aezqtgadyaxdcptwlpci` (https://aezqtgadyaxdcptwlpci.supabase.co)
 - Secret Replit: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`
-- `vite.config.ts` espone le variabili come `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (stripping `/rest/v1/`)
-- RPC `submit_discharge_session(uuid)` presente in DB (creata manualmente)
-- `SUPABASE_DB_URL`: usare URL **pooler** (`pooler.supabase.com:5432`), non la connessione diretta, perché Replit non raggiunge IPv6
+- `vite.config.ts` espone le variabili come `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (stripping `/rest/v1/`); accetta anche `VITE_SUPABASE_*` come fallback per Cloudflare Pages
+- RPC `submit_discharge_session(uuid)` presente in DB (SECURITY DEFINER, search_path fixato 03/05/2026)
+- `SUPABASE_DB_URL`: connessione diretta `db.*.supabase.co:5432` — funziona da Replit via psql
 - Schema documentato in `DNA/08_SUPABASE_SETUP.md`
 - Offline queue: `offlineDischargeQueue.ts` + `useOfflineDischargeQueueSync.ts`
 - Free tier: progetto può andare in pausa → `ERR_NAME_NOT_RESOLVED` non è un bug del codice
+- **⚠ API KEY MISMATCH (03/05/2026):** `SUPABASE_ANON_KEY` in Replit appartiene al vecchio progetto
+  `kuigzaqaewgcosfhahkv` → causa 401 su tutte le REST calls. Aggiornare il secret con la chiave
+  `anon public` dal dashboard Supabase progetto `aezqtgadyaxdcptwlpci`. Stesso aggiornamento in
+  Cloudflare Pages env vars. Vedere `DNA/07_OPERATIONS_BACKUP.md` per istruzioni complete.
 
 ## Pattern di refactoring consolidato
 
