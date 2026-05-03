@@ -5,9 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   define: {
     'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
-      (process.env.SUPABASE_URL || '').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '')
+      (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '')
+        .replace(/\/rest\/v1\/?$/, '')
+        .replace(/\/$/, '')
     ),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(
+      process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+    )
   },
   plugins: [
     react(),
