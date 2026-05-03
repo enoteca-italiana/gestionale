@@ -1,0 +1,22 @@
+node_modules
+dist
+.vite
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Backup and local archives (never deploy)
+backup/*.tar.gz
+backup/*.zip
+
+# Build/dev generated artifacts
+apps/scarichi-vini/dev-dist/
+apps/scarichi-vini/coverage/
+*.tsbuildinfo
+
+# Replit agent screenshots / pasted assets (never commit)
+attached_assets/
+
+# Replit / Nix system cache (mai committare)
+cache/
