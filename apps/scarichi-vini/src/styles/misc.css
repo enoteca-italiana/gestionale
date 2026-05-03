@@ -172,6 +172,7 @@
 .summaryDock .list {
   max-height: min(34vh, 320px);
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding-right: 2px;
 }
@@ -242,6 +243,11 @@
 
 .summaryItemButton .lineTitle {
   color: #111827;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .summaryItemButton:visited,
@@ -503,7 +509,7 @@
   min-height: calc(100dvh - 340px);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .adminRegistrySection {
@@ -898,6 +904,14 @@
   gap: 12px;
 }
 
+.adminHistoryDetailTopRow .lineTitle {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 .adminHistoryDetailQty {
   font-weight: 800;
   white-space: nowrap;
@@ -1188,20 +1202,36 @@
 
   .adminHistoryDateRangeWrap {
     display: flex;
-    justify-content: center;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     gap: 8px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
+    overflow-x: hidden;
+    padding-bottom: 0;
   }
 
-  .adminHistoryDateFilterInput {
-    width: 154px;
-    max-width: 154px;
+  .adminHistoryDateRangeWrap > .adminHistoryDateField:first-child {
+    flex: 0 0 100%;
+    width: 100%;
   }
 
   .adminHistoryPresetInput {
-    width: 170px;
-    max-width: 170px;
+    width: 100%;
+    max-width: none;
+  }
+
+  .adminHistoryDateRangeWrap > .adminHistoryDateField:not(:first-child) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .adminHistoryDateFilterInput {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .adminHistoryDateResetButton {
+    flex-shrink: 0;
+    align-self: center;
   }
 }
