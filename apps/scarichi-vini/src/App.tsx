@@ -42,6 +42,7 @@ export function App() {
 
   const [location] = useLocation();
   const [hideNav, setHideNav] = useState(() => location === '/');
+  const [adminSection, setAdminSection] = useState<string>('home');
   const [introVisible, setIntroVisible] = useState(() => location === '/');
   const [appPinRequiredOnStart, setAppPinRequiredOnStart] = useState(() =>
     getBool(storageKeys.appPinRequiredOnStart, false)
@@ -75,6 +76,18 @@ export function App() {
     setAppPinRequiredOnStart(getBool(storageKeys.appPinRequiredOnStart, false));
     setAppPinRequiredForSettings(getBool(storageKeys.appPinRequiredForSettings, false));
   }, []);
+
+  useEffect(() => {
+    const onSectionChange = (e: Event) => {
+      setAdminSection((e as CustomEvent<{ section: string }>).detail?.section ?? 'home');
+    };
+    window.addEventListener('scarichi:adminSectionChange', onSectionChange);
+    return () => window.removeEventListener('scarichi:adminSectionChange', onSectionChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isSettingsPath(location)) setAdminSection('home');
+  }, [location]);
 
   useEffect(() => {
     const onSettingsChanged = (event: Event) => {
@@ -287,7 +300,11 @@ export function App() {
           </div>
         </div>
       ) : null}
-      <BottomNav currentPath={location} hidden={hideNav || showAppPinGate || showSettingsPinGate} />
+      <BottomNav
+        currentPath={location}
+        hidden={hideNav || showAppPinGate || showSettingsPinGate}
+        adminInSubSection={isSettingsPath(location) && adminSection !== 'home'}
+      />
     </>
   );
 }
