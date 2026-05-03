@@ -28,6 +28,16 @@
   font-weight: 700;
 }
 
+.navNavItemBack {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 6px 8px;
+  cursor: pointer;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
 @media (max-width: 768px) {
   .navNavItemArchive {
     display: none;
