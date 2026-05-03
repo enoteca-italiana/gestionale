@@ -142,6 +142,27 @@ Il file `.replitignore` alla root esclude automaticamente dal "Download as zip":
 
 I chunk `vendor_excel` (938 KB) e `vendor_pdf` (422 KB) superano i 500 KB — comportamento atteso per questa tipologia di app; la PWA li precache correttamente.
 
+## Navigazione admin sub-sezioni
+
+`AdminGate` emette `scarichi:adminSectionChange` via `CustomEvent` ogni volta che `section` cambia.
+`App.tsx` ascolta l'evento e traccia `adminSection` → passa `adminInSubSection` a `BottomNav`.
+
+Logica tab sinistra navbar (mobile):
+
+| Stato                                       | Tab sinistra                                           |
+| ------------------------------------------- | ------------------------------------------------------ |
+| Pagina qualsiasi (Home, Archivio, ecc.)     | `Settings` ⚙️ + testo "Impostazioni" → `/impostazioni` |
+| Home impostazioni (`!adminInSubSection`)    | nascosto — solo `Home` centrato                        |
+| Sotto-sezione admin (`adminInSubSection`)   | `CircleArrowLeft` button → `scarichi:openAdminHome`    |
+
+CSS: `.navbarInnerCentered` (flex, justify-content: center) applicata quando `settingsHomeOnly=true`.
+
+## Riepilogo Conferma Scarico
+
+Card Riepilogo (`SummaryList`): nome vino completamente visibile su più righe — nessuno scroll orizzontale.
+Override CSS su `.summaryItemButton .lineTitle`: `white-space: normal; overflow: visible; overflow-wrap: break-word`.
+`.summaryDock .list`: `overflow-x: hidden`.
+
 ## Preferenze utente
 
 - Lingua di comunicazione: **italiano**
