@@ -12,19 +12,19 @@ Questo documento descrive ogni modulo, ogni funzione esportata, ogni hook e ogni
 type WineId = string;
 
 type Wine = {
-  id: WineId;           // UUID o wine_<ts>_<rand>
-  category?: string;    // UPPERCASE, opzionale
-  name: string;         // UPPERCASE
-  age?: string;         // anno vendemmia (label UI: ANNO), stringa libera
-  producer: string;     // Initcap
-  origin: string;       // UPPERCASE
-  threshold?: number;   // soglia allerta (intero >= 1, undefined = nessuna)
+  id: WineId; // UUID o wine_<ts>_<rand>
+  category?: string; // UPPERCASE, opzionale
+  name: string; // UPPERCASE
+  age?: string; // anno vendemmia (label UI: ANNO), stringa libera
+  producer: string; // Initcap
+  origin: string; // UPPERCASE
+  threshold?: number; // soglia allerta (intero >= 1, undefined = nessuna)
   purchasePrice?: number;
   salePrice?: number;
-  vintage?: string;     // campo legacy (non più usato attivamente)
-  qty: number;          // intero >= 0
-  warehouse?: number;   // calcolato: purchasePrice × qty (2 decimali)
-  margin?: number;      // calcolato: salePrice − purchasePrice (2 decimali)
+  vintage?: string; // campo legacy (non più usato attivamente)
+  qty: number; // intero >= 0
+  warehouse?: number; // calcolato: purchasePrice × qty (2 decimali)
+  margin?: number; // calcolato: salePrice − purchasePrice (2 decimali)
   notes?: string;
 };
 
@@ -38,10 +38,10 @@ type SessionItem = {
 
 ## `src/domain/normalizeWineText.ts`
 
-| Funzione | Firma | Comportamento |
-|---|---|---|
-| `normalizeWineCategory` | `(v: string) => string` | `UPPER(trim + collapse spazi multipli)` |
-| `normalizeWineName` | `(v: string) => string` | `UPPER(trim + collapse spazi multipli)` |
+| Funzione                | Firma                   | Comportamento                                    |
+| ----------------------- | ----------------------- | ------------------------------------------------ |
+| `normalizeWineCategory` | `(v: string) => string` | `UPPER(trim + collapse spazi multipli)`          |
+| `normalizeWineName`     | `(v: string) => string` | `UPPER(trim + collapse spazi multipli)`          |
 | `normalizeWineProducer` | `(v: string) => string` | `INITCAP(LOWER(trim + collapse spazi multipli))` |
 
 Algoritmo collapse spazi: `v.trim().replace(/\s+/g, ' ')`.
@@ -50,16 +50,16 @@ Algoritmo collapse spazi: `v.trim().replace(/\s+/g, ' ')`.
 
 ## `src/domain/normalizeOrigin.ts`
 
-| Funzione | Firma | Comportamento |
-|---|---|---|
+| Funzione          | Firma                   | Comportamento                                                                            |
+| ----------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
 | `normalizeOrigin` | `(v: string) => string` | `UPPER(trim + collapse spazi)` — identico a normalizeWineName ma semanticamente distinto |
 
 ---
 
 ## `src/domain/formatWineInfoLine.ts`
 
-| Funzione | Firma | Output |
-|---|---|---|
+| Funzione             | Firma                                                           | Output                                                                                   |
+| -------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `formatWineInfoLine` | `(wine: Pick<Wine, 'producer' \| 'age' \| 'origin'>) => string` | `"Produttore • Anno • Provenienza"` oppure `"Produttore • Provenienza"` se `age` assente |
 
 Usata in `ResultsList.tsx` e `SummaryList.tsx` per la riga metadati sotto al nome vino.
@@ -69,7 +69,7 @@ Usata in `ResultsList.tsx` e `SummaryList.tsx` per la riga metadati sotto al nom
 ## `src/lib/supabase.ts`
 
 ```ts
-export const supabase: SupabaseClient | null
+export const supabase: SupabaseClient | null;
 ```
 
 - Crea il client Supabase con `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
@@ -81,7 +81,7 @@ export const supabase: SupabaseClient | null
 ## `src/lib/useSupabaseKeepalive.ts`
 
 ```ts
-export function useSupabaseKeepalive(): void
+export function useSupabaseKeepalive(): void;
 ```
 
 Hook React montato in `App.tsx`. Previene la pausa automatica del progetto Supabase free tier.
@@ -96,21 +96,22 @@ Hook React montato in `App.tsx`. Previene la pausa automatica del progetto Supab
 
 ## `src/data/localDb.ts`
 
-| Esportazione | Tipo | Descrizione |
-|---|---|---|
-| `DB_KEY` | `const string` | `'scarichi.localDb.v1'` |
-| `dbChangedEvent` | `const string` | `'scarichi:dbChanged'` |
-| `dbChangedChannel` | `const string` | `'scarichi:dbChangedChannel'` |
-| `LocalSessionItem` | tipo | `{ wineId: string; qty: number }` |
-| `LocalSession` | tipo | `{ id, createdAt, submittedAt?, items }` |
-| `LocalDbState` | tipo | `{ inventory: Wine[]; history: LocalSession[] }` |
-| `loadDb()` | funzione | Deserializza da localStorage, applica seed + migrazione one-shot |
-| `saveDb(db)` | funzione | Serializza su localStorage |
-| `resetDb()` | funzione | Rimuove la chiave localStorage |
-| `notifyDbChanged(sourceId?)` | funzione | Emette CustomEvent intra-tab + BroadcastChannel cross-tab |
-| `newId(prefix)` | funzione | Genera `prefix_<epoch>_<rand16>` |
+| Esportazione                 | Tipo           | Descrizione                                                      |
+| ---------------------------- | -------------- | ---------------------------------------------------------------- |
+| `DB_KEY`                     | `const string` | `'scarichi.localDb.v1'`                                          |
+| `dbChangedEvent`             | `const string` | `'scarichi:dbChanged'`                                           |
+| `dbChangedChannel`           | `const string` | `'scarichi:dbChangedChannel'`                                    |
+| `LocalSessionItem`           | tipo           | `{ wineId: string; qty: number }`                                |
+| `LocalSession`               | tipo           | `{ id, createdAt, submittedAt?, items }`                         |
+| `LocalDbState`               | tipo           | `{ inventory: Wine[]; history: LocalSession[] }`                 |
+| `loadDb()`                   | funzione       | Deserializza da localStorage, applica seed + migrazione one-shot |
+| `saveDb(db)`                 | funzione       | Serializza su localStorage                                       |
+| `resetDb()`                  | funzione       | Rimuove la chiave localStorage                                   |
+| `notifyDbChanged(sourceId?)` | funzione       | Emette CustomEvent intra-tab + BroadcastChannel cross-tab        |
+| `newId(prefix)`              | funzione       | Genera `prefix_<epoch>_<rand16>`                                 |
 
 Migrazione one-shot in `loadDb()`:
+
 - Se `scarichi.inventory.supabaseBootstrap.v1` assente → azzera `inventory`, imposta flag.
 - Motivo: elimina inventario locale pre-Supabase.
 
@@ -127,20 +128,21 @@ export function useLocalDb(): {
   hardResetAll: () => void;
   refreshInventory: (opts?: { forceRemote?: boolean }) => Promise<Wine[]>;
   summary: { totalQty: number; winesCount: number };
-}
+};
 ```
 
 Comportamenti chiave:
 
-| Metodo | Comportamento |
-|---|---|
-| `setInventory(inv)` | Aggiorna `db.inventory` via `commit()` con coalescing 120ms |
-| `clearHistory()` | Azzera `db.history` |
-| `hardResetAll()` | Cancella chiave localStorage, cancella timer pending, ricarica seed |
+| Metodo                    | Comportamento                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `setInventory(inv)`       | Aggiorna `db.inventory` via `commit()` con coalescing 120ms                                                                                                        |
+| `clearHistory()`          | Azzera `db.history`                                                                                                                                                |
+| `hardResetAll()`          | Cancella chiave localStorage, cancella timer pending, ricarica seed                                                                                                |
 | `refreshInventory(opts?)` | Carica `wineRepository` lazy, chiama `listWines()`, aggiorna stato senza doppia scrittura se array identico. Deduplicato: riusa in-flight Promise se già in corso. |
-| `summary` | Memo: `{ totalQty: sum(qty), winesCount: inventory.length }` |
+| `summary`                 | Memo: `{ totalQty: sum(qty), winesCount: inventory.length }`                                                                                                       |
 
 Propagazione cambiamenti:
+
 - `commit()` → `setDb()` ottimistico → `saveDb()` dopo 120ms (debounced).
 - Ascolto: `scarichi:dbChanged` (stessa tab), `StorageEvent` (cross-tab), `BroadcastChannel` (cross-tab).
 - Anti-loop: ogni istanza ha `sourceId` univoco, ignora i propri eventi.
@@ -152,50 +154,78 @@ Propagazione cambiamenti:
 ### Tipi interni
 
 ```ts
-type WineRow = { id, category?, name, age?, producer, origin, threshold?, purchase_price?, sale_price?, vintage?, qty?, warehouse?, margin?, notes? }
-type WineRegistryField = 'category' | 'producer' | 'origin'
-type WineInput = { id?, category?, name, age?, producer, origin, threshold?, purchasePrice?, salePrice?, vintage?, qty, notes? }
+type WineRow = {
+  id;
+  category?;
+  name;
+  age?;
+  producer;
+  origin;
+  threshold?;
+  purchase_price?;
+  sale_price?;
+  vintage?;
+  qty?;
+  warehouse?;
+  margin?;
+  notes?;
+};
+type WineRegistryField = 'category' | 'producer' | 'origin';
+type WineInput = {
+  id?;
+  category?;
+  name;
+  age?;
+  producer;
+  origin;
+  threshold?;
+  purchasePrice?;
+  salePrice?;
+  vintage?;
+  qty;
+  notes?;
+};
 ```
 
 ### Funzioni esportate
 
-| Funzione | Firma | Comportamento |
-|---|---|---|
-| `listWines(opts?)` | `(opts?: { forceRemote? }) => Promise<Wine[]>` | Cache-first: se cache valida e uguale a localDb → ritorna cache. Se `forceRemote=true` → fetch Supabase. Deduplicato in-flight. |
-| `createWine(input)` | `(input: WineInput) => Promise<Wine>` | Normalizza input, insert Supabase (con fallback schema legacy), aggiorna cache locale, `syncWineUpsert`. |
-| `updateWine(input)` | `(input: WineInput) => Promise<Wine>` | Normalizza input (richiede `id`), update Supabase (con fallback), aggiorna cache locale, `syncWineUpsert`. |
-| `deleteWine(id)` | `(id: string) => Promise<void>` | Delete Supabase, rimuove da cache locale, `syncWineDelete`. |
-| `replaceAllWines(rows)` | `(rows: ArchiveCsvWineInput[]) => Promise<Wine[]>` | DELETE all → INSERT bulk (schema completo o legacy). Aggiorna cache. `syncWineUpsert` per ogni vino. |
-| `appendWines(rows)` | `(rows: ArchiveCsvWineInput[]) => Promise<Wine[]>` | INSERT bulk con deduplicazione ID. Su `UNIQUE violation` → rigenera ID e riprova. Merge con inventario locale. |
-| `updateThresholdForAllWines(raw)` | `(raw: number) => Promise<number>` | UPDATE bulk `threshold` su tutti i vini. Ritorna count aggiornati. |
-| `clearWineArchive()` | `() => Promise<number>` | DELETE all wines. Se `FK violation` → `detachDischargeItemsFromWines()` poi retry. Pulisce cache registry. Emette `scarichi:archiveReset`. |
-| `renameWineRegistryValue(field, from, to)` | `(field, from, to) => Promise<number>` | UPDATE ilike su campo specifico. Aggiorna cache locale. Ritorna count aggiornati. |
-| `deleteWineRegistryValue(field, value)` | `(field, value) => Promise<number>` | UPDATE SET `field = NULL` su tutti i vini con quel valore. Aggiorna cache locale. |
+| Funzione                                   | Firma                                              | Comportamento                                                                                                                              |
+| ------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `listWines(opts?)`                         | `(opts?: { forceRemote? }) => Promise<Wine[]>`     | Cache-first: se cache valida e uguale a localDb → ritorna cache. Se `forceRemote=true` → fetch Supabase. Deduplicato in-flight.            |
+| `createWine(input)`                        | `(input: WineInput) => Promise<Wine>`              | Normalizza input, insert Supabase (con fallback schema legacy), aggiorna cache locale, `syncWineUpsert`.                                   |
+| `updateWine(input)`                        | `(input: WineInput) => Promise<Wine>`              | Normalizza input (richiede `id`), update Supabase (con fallback), aggiorna cache locale, `syncWineUpsert`.                                 |
+| `deleteWine(id)`                           | `(id: string) => Promise<void>`                    | Delete Supabase, rimuove da cache locale, `syncWineDelete`.                                                                                |
+| `replaceAllWines(rows)`                    | `(rows: ArchiveCsvWineInput[]) => Promise<Wine[]>` | DELETE all → INSERT bulk (schema completo o legacy). Aggiorna cache. `syncWineUpsert` per ogni vino.                                       |
+| `appendWines(rows)`                        | `(rows: ArchiveCsvWineInput[]) => Promise<Wine[]>` | INSERT bulk con deduplicazione ID. Su `UNIQUE violation` → rigenera ID e riprova. Merge con inventario locale.                             |
+| `updateThresholdForAllWines(raw)`          | `(raw: number) => Promise<number>`                 | UPDATE bulk `threshold` su tutti i vini. Ritorna count aggiornati.                                                                         |
+| `clearWineArchive()`                       | `() => Promise<number>`                            | DELETE all wines. Se `FK violation` → `detachDischargeItemsFromWines()` poi retry. Pulisce cache registry. Emette `scarichi:archiveReset`. |
+| `renameWineRegistryValue(field, from, to)` | `(field, from, to) => Promise<number>`             | UPDATE ilike su campo specifico. Aggiorna cache locale. Ritorna count aggiornati.                                                          |
+| `deleteWineRegistryValue(field, value)`    | `(field, value) => Promise<number>`                | UPDATE SET `field = NULL` su tutti i vini con quel valore. Aggiorna cache locale.                                                          |
 
 ### Funzioni interne rilevanti
 
-| Funzione | Comportamento |
-|---|---|
-| `toWine(row)` | Mappa WineRow → Wine. Normalizza testi, calcola warehouse/margin se non in row, applica threshold. |
-| `toRowPayload(wine)` | Mappa Wine → payload Supabase (schema completo con warehouse/margin calcolati). |
-| `toLegacyPayload(wine)` | Mappa Wine → payload schema legacy (solo campi base). Usato come fallback se schema esteso non ancora applicato. |
-| `normalizeInput(input)` | Mappa WineInput → Wine normalizzata completa. Calcola warehouse/margin. Genera ID se assente. |
-| `listAllWineRows()` | Fetch paginata da Supabase (1000 rows/page). Se `count` disponibile: pagine parallele. Altrimenti: sequenziale con sentinel. |
-| `prepareInventory(source, fallback)` | `enrichThresholdsFromFallback` → `normalizeWineTextFields` → `sortWines`. |
-| `sameInventory(prev, next)` | Confronto campo per campo. Guard anti-write ridondanti. |
-| `persistAndCacheInventory(next)` | `persistLocalInventory` (se cambiata) + `setListWinesCache`. |
-| `isSchemaColumnError(err)` | True se messaggio contiene "column ... does not exist" → attiva fallback schema legacy. |
-| `isForeignKeyViolation(err)` | True se code `23503` o messaggio FK. |
-| `isUniqueViolation(err)` | True se code `23505` o messaggio "duplicate key". |
+| Funzione                             | Comportamento                                                                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `toWine(row)`                        | Mappa WineRow → Wine. Normalizza testi, calcola warehouse/margin se non in row, applica threshold.                           |
+| `toRowPayload(wine)`                 | Mappa Wine → payload Supabase (schema completo con warehouse/margin calcolati).                                              |
+| `toLegacyPayload(wine)`              | Mappa Wine → payload schema legacy (solo campi base). Usato come fallback se schema esteso non ancora applicato.             |
+| `normalizeInput(input)`              | Mappa WineInput → Wine normalizzata completa. Calcola warehouse/margin. Genera ID se assente.                                |
+| `listAllWineRows()`                  | Fetch paginata da Supabase (1000 rows/page). Se `count` disponibile: pagine parallele. Altrimenti: sequenziale con sentinel. |
+| `prepareInventory(source, fallback)` | `enrichThresholdsFromFallback` → `normalizeWineTextFields` → `sortWines`.                                                    |
+| `sameInventory(prev, next)`          | Confronto campo per campo. Guard anti-write ridondanti.                                                                      |
+| `persistAndCacheInventory(next)`     | `persistLocalInventory` (se cambiata) + `setListWinesCache`.                                                                 |
+| `isSchemaColumnError(err)`           | True se messaggio contiene "column ... does not exist" → attiva fallback schema legacy.                                      |
+| `isForeignKeyViolation(err)`         | True se code `23503` o messaggio FK.                                                                                         |
+| `isUniqueViolation(err)`             | True se code `23505` o messaggio "duplicate key".                                                                            |
 
 ### Variabili modulo
 
-| Variabile | Descrizione |
-|---|---|
-| `listWinesInFlight` | `Promise<Wine[]> \| null` — in-flight dedup per `listWines` |
-| `listWinesCache` | `Wine[] \| null` — cache in memoria post-fetch |
-| `WINES_PAGE_SIZE = 1000` | Dimensione pagina Supabase |
-| `archiveResetEvent = 'scarichi:archiveReset'` | CustomEvent emesso dopo `clearWineArchive()` |
+| Variabile                                     | Descrizione                                                 |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `listWinesInFlight`                           | `Promise<Wine[]> \| null` — in-flight dedup per `listWines` |
+| `listWinesCache`                              | `Wine[] \| null` — cache in memoria post-fetch              |
+| `WINES_PAGE_SIZE = 1000`                      | Dimensione pagina Supabase                                  |
+| `archiveResetEvent = 'scarichi:archiveReset'` | CustomEvent emesso dopo `clearWineArchive()`                |
 
 ---
 
@@ -204,38 +234,51 @@ type WineInput = { id?, category?, name, age?, producer, origin, threshold?, pur
 ### Tipi esportati
 
 ```ts
-type DischargeStatus = 'pending' | 'submitted' | 'cancelled'
+type DischargeStatus = 'pending' | 'submitted' | 'cancelled';
 
 type DischargeSessionSummary = {
-  id: string; createdAt: number; submittedAt?: number;
-  totalQty: number; itemsCount: number; status: DischargeStatus;
-}
+  id: string;
+  createdAt: number;
+  submittedAt?: number;
+  totalQty: number;
+  itemsCount: number;
+  status: DischargeStatus;
+};
 
-type DischargeItemInput = { wineId: string; qty: number }
+type DischargeItemInput = { wineId: string; qty: number };
 
 type DischargeSessionItemDetail = {
-  sessionId, sessionStatus, createdAt, submittedAt?,
-  wineId, wineName, age?, producer?, origin?, category?, qty
-}
+  sessionId;
+  sessionStatus;
+  createdAt;
+  submittedAt?;
+  wineId;
+  wineName;
+  age?;
+  producer?;
+  origin?;
+  category?;
+  qty;
+};
 
-type SubmittedHistoryRetention = 'all' | '7d' | '30d' | '3m' | '12m' | '18m' | '2y' | '3y'
+type SubmittedHistoryRetention = 'all' | '7d' | '30d' | '3m' | '12m' | '18m' | '2y' | '3y';
 ```
 
 ### Funzioni esportate
 
-| Funzione | Comportamento |
-|---|---|
-| `listDischargeSessions(status, opts?)` | Lista sessioni per status. Limit default 300, cap 2000. Include count items inline. |
-| `listAllDischargeSessions(status, opts?)` | Paginata FIFO, maxRows 50k. |
-| `createDischargeSession(input)` | Insert `discharge_sessions` + snapshot items in `discharge_session_items`. Fallback schema legacy se colonne snapshot assenti. |
-| `submitDischargeSession(sessionId)` | RPC `submit_discharge_session(p_session_id)` → aggiorna giacenze + status. |
-| `createAndSubmitDischargeSession(input)` | `createDischargeSession` + `submitDischargeSession` + `reconcileSubmittedSessionStock`. |
-| `clearDischargeSessionsByStatus(status)` | DELETE tutte le sessioni con dato status. |
-| `clearSubmittedHistoryByRetention(retention)` | DELETE sessioni submitted più vecchie del periodo scelto. `'all'` = tutte. |
-| `detachDischargeItemsFromWines()` | UPDATE `discharge_session_items.wine_id = NULL` su tutti i record. Usato prima di `clearWineArchive()` se FK violation. |
-| `listSubmittedDischargeItemsForAi(limit?)` | Items sessioni submitted per AI. Usa snapshot se disponibili, fallback a join `wines`. |
-| `listAllSubmittedDischargeItemsForAi(opts?)` | Paginata, max 50k. |
-| `listSubmittedDischargeSessionItems(sessionId)` | Items di una singola sessione, ordinati per `qty DESC, wineName ASC`. |
+| Funzione                                        | Comportamento                                                                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `listDischargeSessions(status, opts?)`          | Lista sessioni per status. Limit default 300, cap 2000. Include count items inline.                                            |
+| `listAllDischargeSessions(status, opts?)`       | Paginata FIFO, maxRows 50k.                                                                                                    |
+| `createDischargeSession(input)`                 | Insert `discharge_sessions` + snapshot items in `discharge_session_items`. Fallback schema legacy se colonne snapshot assenti. |
+| `submitDischargeSession(sessionId)`             | RPC `submit_discharge_session(p_session_id)` → aggiorna giacenze + status.                                                     |
+| `createAndSubmitDischargeSession(input)`        | `createDischargeSession` + `submitDischargeSession` + `reconcileSubmittedSessionStock`.                                        |
+| `clearDischargeSessionsByStatus(status)`        | DELETE tutte le sessioni con dato status.                                                                                      |
+| `clearSubmittedHistoryByRetention(retention)`   | DELETE sessioni submitted più vecchie del periodo scelto. `'all'` = tutte.                                                     |
+| `detachDischargeItemsFromWines()`               | UPDATE `discharge_session_items.wine_id = NULL` su tutti i record. Usato prima di `clearWineArchive()` se FK violation.        |
+| `listSubmittedDischargeItemsForAi(limit?)`      | Items sessioni submitted per AI. Usa snapshot se disponibili, fallback a join `wines`.                                         |
+| `listAllSubmittedDischargeItemsForAi(opts?)`    | Paginata, max 50k.                                                                                                             |
+| `listSubmittedDischargeSessionItems(sessionId)` | Items di una singola sessione, ordinati per `qty DESC, wineName ASC`.                                                          |
 
 ### `reconcileSubmittedSessionStock(items, expectedQtyByWineId?)`
 
@@ -268,7 +311,7 @@ export function useDischargeSessions(): {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-}
+};
 ```
 
 - Carica solo su mount della sezione `history` (on-demand, non al caricamento admin).
@@ -283,14 +326,14 @@ Vedi sezione dettagliata in `03_LOCAL_STORAGE_MODEL.md`.
 
 Funzioni principali:
 
-| Funzione | Firma |
-|---|---|
+| Funzione                                | Firma                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------- |
 | `enqueuePendingDischargeSession(input)` | `({ items, expectedQtyByWineId?, source? }) => PendingDischargeQueueItem` |
-| `flushPendingDischargeQueue(opts?)` | `({ reason? }) => Promise<FlushDischargeQueueSummary>` |
-| `listPendingDischargeQueueItems()` | `() => PendingDischargeQueueItem[]` |
-| `getPendingDischargeQueueCount()` | `() => number` |
-| `clearPendingDischargeQueue()` | `() => void` |
-| `isDischargeQueueRecoverableError(err)` | `(err: unknown) => boolean` |
+| `flushPendingDischargeQueue(opts?)`     | `({ reason? }) => Promise<FlushDischargeQueueSummary>`                    |
+| `listPendingDischargeQueueItems()`      | `() => PendingDischargeQueueItem[]`                                       |
+| `getPendingDischargeQueueCount()`       | `() => number`                                                            |
+| `clearPendingDischargeQueue()`          | `() => void`                                                              |
+| `isDischargeQueueRecoverableError(err)` | `(err: unknown) => boolean`                                               |
 
 ---
 
@@ -306,14 +349,15 @@ Funzioni principali:
 
 ### Funzioni esportate
 
-| Funzione | Firma | Comportamento |
-|---|---|---|
-| `buildArchiveCsv(wines)` | `(wines: Wine[]) => string` | CSV con separatore `;`, escape RFC 4180, normalizzazione campi, encoding UTF-8. |
-| `parseArchiveCsv(raw)` | `(raw: string) => ArchiveCsvWineInput[]` | Auto-detect separatore (`;` o `,`). Parser manuale RFC 4180 (gestisce quoted fields, escape `""`, CRLF). Rimozione BOM `\uFEFF`. Normalizzazione campi. Validazione: richiede `name` e `producer`. |
+| Funzione                 | Firma                                    | Comportamento                                                                                                                                                                                      |
+| ------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `buildArchiveCsv(wines)` | `(wines: Wine[]) => string`              | CSV con separatore `;`, escape RFC 4180, normalizzazione campi, encoding UTF-8.                                                                                                                    |
+| `parseArchiveCsv(raw)`   | `(raw: string) => ArchiveCsvWineInput[]` | Auto-detect separatore (`;` o `,`). Parser manuale RFC 4180 (gestisce quoted fields, escape `""`, CRLF). Rimozione BOM `\uFEFF`. Normalizzazione campi. Validazione: richiede `name` e `producer`. |
 
 ### `parseLooseNumber(raw)`
 
 Parser numerico flessibile per celle CSV:
+
 - Rimuove `€` e spazi
 - Gestisce virgola/punto come separatore decimale o migliaia
 - Esempio: `"1.234,56"` → `1234.56`, `"12,50"` → `12.50`
@@ -324,12 +368,12 @@ Parser numerico flessibile per celle CSV:
 
 Gestisce il registry categorie in-memory + Supabase.
 
-| Funzione | Comportamento |
-|---|---|
-| `listManagedCategories()` | Restituisce lista categorie (cache locale → Supabase) |
+| Funzione                      | Comportamento                                                               |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| `listManagedCategories()`     | Restituisce lista categorie (cache locale → Supabase)                       |
 | `ensureManagedCategory(name)` | Crea la categoria su Supabase se non esiste (upsert). Normalizza uppercase. |
-| `clearManagedCategories()` | Svuota cache locale |
-| `clearSupabaseCategories()` | DELETE tutte le categorie su Supabase (usato in reset archivio) |
+| `clearManagedCategories()`    | Svuota cache locale                                                         |
+| `clearSupabaseCategories()`   | DELETE tutte le categorie su Supabase (usato in reset archivio)             |
 
 ---
 
@@ -337,10 +381,10 @@ Gestisce il registry categorie in-memory + Supabase.
 
 Struttura analoga a `categoryRepository` ma solo cache locale (no Supabase).
 
-| Funzione | Comportamento |
-|---|---|
-| `listManagedProducers()` / `listManagedOrigins()` | Lista da cache locale (derivata da inventory) |
-| `clearManagedProducers()` / `clearManagedOrigins()` | Svuota cache |
+| Funzione                                            | Comportamento                                 |
+| --------------------------------------------------- | --------------------------------------------- |
+| `listManagedProducers()` / `listManagedOrigins()`   | Lista da cache locale (derivata da inventory) |
+| `clearManagedProducers()` / `clearManagedOrigins()` | Svuota cache                                  |
 
 ---
 
@@ -352,12 +396,12 @@ export const APP_ROUTES = {
   ARCHIVE: '/admina',
   SETTINGS: '/impostazioni',
   SETTINGS_LEGACY: '/admin'
-}
+};
 
-export function isSettingsPath(path: string): boolean
+export function isSettingsPath(path: string): boolean;
 // true se path === '/impostazioni' || path === '/admin'
 
-export function isArchivePath(path: string): boolean
+export function isArchivePath(path: string): boolean;
 // true se path === '/admina'
 ```
 
@@ -366,10 +410,11 @@ export function isArchivePath(path: string): boolean
 ## `src/app/useOfflineDischargeQueueSync.ts`
 
 ```ts
-export function useOfflineDischargeQueueSync(): void
+export function useOfflineDischargeQueueSync(): void;
 ```
 
 Hook montato in `App.tsx`. Attiva `flushPendingDischargeQueue()` su:
+
 - mount (startup)
 - `window 'online'`
 - `window 'focus'`
@@ -384,7 +429,7 @@ Gestisce feedback utente: toast "tornato online" e toast errore sync non-recover
 ## `src/app/useOnlineStatus.ts`
 
 ```ts
-export function useOnlineStatus(): boolean
+export function useOnlineStatus(): boolean;
 ```
 
 - Stato iniziale: `navigator.onLine`
@@ -395,7 +440,7 @@ export function useOnlineStatus(): boolean
 ## `src/app/useDebouncedValue.ts`
 
 ```ts
-export function useDebouncedValue<T>(value: T, delay: number): T
+export function useDebouncedValue<T>(value: T, delay: number): T;
 ```
 
 Hook generico debounce. Usato in `WineAdminPage` per il campo ricerca archivio.
@@ -405,7 +450,7 @@ Hook generico debounce. Usato in `WineAdminPage` per il campo ricerca archivio.
 ## `src/pages/admin/crypto.ts`
 
 ```ts
-export async function sha256Base64(input: string): Promise<string>
+export async function sha256Base64(input: string): Promise<string>;
 ```
 
 - Usa `window.crypto.subtle.digest('SHA-256', ...)`.
@@ -420,14 +465,14 @@ export async function sha256Base64(input: string): Promise<string>
 export const storageKeys = {
   adminPasswordHash: 'scarichi.admin.passwordHash',
   appPinRequiredOnStart: 'scarichi.admin.pinRequiredOnStart',
-  appPinRequiredForSettings: 'scarichi.admin.pinRequiredForSettings',
+  appPinRequiredForSettings: 'scarichi.admin.pinRequiredForSettings'
   // ... altre chiavi admin
-}
+};
 
-export const settingsChangedEvent = 'scarichi:settingsChanged'
+export const settingsChangedEvent = 'scarichi:settingsChanged';
 
-export function getBool(key: string, defaultValue: boolean): boolean
-export function setBool(key: string, value: boolean): void
+export function getBool(key: string, defaultValue: boolean): boolean;
+export function setBool(key: string, value: boolean): void;
 // setBool emette settingsChangedEvent con { key } nel detail
 ```
 
@@ -444,7 +489,7 @@ export function useAdminAuth(): {
   busy: boolean;
   login: (password: string) => Promise<void>;
   logout: () => void;
-}
+};
 ```
 
 - Hash SHA-256 della password confrontato con `scarichi.admin.passwordHash`.
@@ -458,6 +503,7 @@ export function useAdminAuth(): {
 Orchestratore principale archivio vini (~689 righe).
 
 Stato gestito:
+
 - `wines: Wine[]` — inventario caricato
 - `filterState: FilterState` — term, category, producer, origin, stockFilter
 - `sortState: SortState` — campo, direzione
@@ -465,11 +511,13 @@ Stato gestito:
 - `modalState` — quale modale è aperto e su quale vino
 
 Comportamento caricamento:
+
 1. Hydration immediata da localStorage (warm start)
 2. Sync Supabase in background (`listWines({ forceRemote: true })`)
 3. Lista `useDeferredValue` sul termine ricerca per non bloccare l'input
 
 Filtri complementari:
+
 - `filteredWines` = wines filtrate per tutti i criteri attivi
 - Le opzioni dei selector categoria/produttore/provenienza si restringono in base ai filtri già applicati
 
@@ -480,6 +528,7 @@ Filtri complementari:
 Tabella inline-editable (~1219 righe).
 
 Comportamenti chiave:
+
 - Rendering progressivo: `sortedWines.slice(0, Math.max(TABLE_RENDER_BATCH, visibleRows))`
 - `TABLE_RENDER_BATCH` = costante in `archiveTableUtils.ts`
 - Pulsante "Carica altre righe" per caricare il batch successivo
@@ -495,11 +544,11 @@ Comportamenti chiave:
 
 Export archivio: tutte le librerie sono **lazy-loaded** (dynamic import al momento dell'uso).
 
-| Funzione | Libreria | Comportamento |
-|---|---|---|
-| `exportToExcel(wines)` | `exceljs` (lazy) | Genera XLSX con header stilizzati, colonne formattate, download automatico |
-| `exportToPdf(wines)` | `jspdf` + `jspdf-autotable` (lazy) | PDF con logo in alto, tabella vini, numerazione pagine `1/N` |
-| `exportToCsv(wines)` | nessuna (sync) | Usa `buildArchiveCsv` + download Blob |
+| Funzione               | Libreria                           | Comportamento                                                              |
+| ---------------------- | ---------------------------------- | -------------------------------------------------------------------------- |
+| `exportToExcel(wines)` | `exceljs` (lazy)                   | Genera XLSX con header stilizzati, colonne formattate, download automatico |
+| `exportToPdf(wines)`   | `jspdf` + `jspdf-autotable` (lazy) | PDF con logo in alto, tabella vini, numerazione pagine `1/N`               |
+| `exportToCsv(wines)`   | nessuna (sync)                     | Usa `buildArchiveCsv` + download Blob                                      |
 
 ---
 
@@ -508,8 +557,8 @@ Export archivio: tutte le librerie sono **lazy-loaded** (dynamic import al momen
 Integrazione opzionale Google Sheets via webhook.
 
 ```ts
-export async function syncWineUpsert(wine: Wine): Promise<void>
-export async function syncWineDelete(wineId: string): Promise<void>
+export async function syncWineUpsert(wine: Wine): Promise<void>;
+export async function syncWineDelete(wineId: string): Promise<void>;
 ```
 
 - Invio silenzioso: errori loggati ma non propagati all'utente.
@@ -521,8 +570,12 @@ export async function syncWineDelete(wineId: string): Promise<void>
 ## `src/components/BottomNav.tsx`
 
 Props:
+
 ```ts
-{ currentPath: string; hidden: boolean }
+{
+  currentPath: string;
+  hidden: boolean;
+}
 ```
 
 - `hidden = true` durante intro e gate PIN.
@@ -535,7 +588,7 @@ Props:
 ## `src/components/Toast.tsx`
 
 ```ts
-type ToastProps = { message: string; type?: 'success' | 'error' | 'info'; onClose: () => void }
+type ToastProps = { message: string; type?: 'success' | 'error' | 'info'; onClose: () => void };
 ```
 
 - Posizionato `fixed`, `bottom: 86px` (sopra la navbar).
@@ -547,6 +600,7 @@ type ToastProps = { message: string; type?: 'success' | 'error' | 'info'; onClos
 ## `src/components/ConfirmModal.tsx`
 
 Modale generica riutilizzabile. Props:
+
 ```ts
 { title: string; description?: string; confirmLabel?: string; cancelLabel?: string; onConfirm: () => void; onCancel: () => void; busy?: boolean }
 ```
@@ -557,21 +611,19 @@ Modale generica riutilizzabile. Props:
 
 4 file distinti, importati in barrel da `styles/styles.css`:
 
-| File | Contenuto |
-|---|---|
-| `base.css` | Variabili CSS (`:root`), reset, layout `.container`, intro animazione, `.navbar` fixed |
-| `components.css` | `.button`, `.card`, `.navNavItem`, animazioni pulse, spinner |
-| `archive.css` | Tabella archivio, toolbar filtri, modali archivio, inline select |
-| `misc.css` | Modali generici, toast, `.summaryDock`, impostazioni admin, registry manager |
+| File             | Contenuto                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `base.css`       | Variabili CSS (`:root`), reset, layout `.container`, intro animazione, `.navbar` fixed |
+| `components.css` | `.button`, `.card`, `.navNavItem`, animazioni pulse, spinner                           |
+| `archive.css`    | Tabella archivio, toolbar filtri, modali archivio, inline select                       |
+| `misc.css`       | Modali generici, toast, `.summaryDock`, impostazioni admin, registry manager           |
 
 Variabili CSS principali:
+
 ```css
---brand: #7c164a    /* viola enoteca */
---ink: #111827      /* testo principale */
---muted: #6b7280    /* testo secondario */
---bg: #fdfaf2       /* sfondo caldo */
---surface: #fffdf8  /* sfondo card */
---border: #e5e7eb   /* bordi */
+--brand: #7c164a /* viola enoteca */ --ink: #111827 /* testo principale */ --muted: #6b7280
+  /* testo secondario */ --bg: #fdfaf2 /* sfondo caldo */ --surface: #fffdf8 /* sfondo card */
+  --border: #e5e7eb /* bordi */;
 ```
 
 ---
