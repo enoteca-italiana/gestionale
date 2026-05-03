@@ -120,24 +120,30 @@ export function useLocalDb() {
     setDb(loadDb());
   }, []);
 
-  const refreshInventory = useCallback(async (options?: { forceRemote?: boolean }) => {
-    if (refreshInFlightRef.current) return refreshInFlightRef.current;
-    const task = (async () => {
-      try {
-        const { listWines } = await loadWineRepositoryModule();
-        const wines = await listWines({ forceRemote: options?.forceRemote });
-        setDb((prev) => (prev.inventory === wines ? prev : { ...prev, inventory: wines }));
-        return wines;
-      } catch (error) {
-        console.error('[useLocalDb] refreshInventory failed', error);
-        throw error;
-      } finally {
-        refreshInFlightRef.current = null;
-      }
-    })();
-    refreshInFlightRef.current = task;
-    return task;
-  }, []);
+  const refreshInventory = useCallback(
+    async (options?: { forceRemote?: boolean; skipTtl?: boolean }) => {
+      if (refreshInFlightRef.current) return refreshInFlightRef.current;
+      const task = (async () => {
+        try {
+          const { listWines } = await loadWineRepositoryModule();
+          const wines = await listWines({
+            forceRemote: options?.forceRemote,
+            skipTtl: options?.skipTtl
+          });
+          setDb((prev) => (prev.inventory === wines ? prev : { ...prev, inventory: wines }));
+          return wines;
+        } catch (error) {
+          console.error('[useLocalDb] refreshInventory failed', error);
+          throw error;
+        } finally {
+          refreshInFlightRef.current = null;
+        }
+      })();
+      refreshInFlightRef.current = task;
+      return task;
+    },
+    []
+  );
 
   const summary = useMemo(() => {
     const totalQty = inventory.reduce((sum, w) => sum + (w.qty ?? 0), 0);
