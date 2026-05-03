@@ -47,6 +47,14 @@ TOKEN = os.environ.get('GITHUB_TOKEN', '')
 REPO  = 'enoteca-italiana/gestionale'
 BASE  = 'https://api.github.com'
 
+SKIP_PREFIXES = ('backup/', 'attached_assets/', 'node_modules/', 'dist/',
+                 'apps/scarichi-vini/dist/', 'apps/scarichi-vini/dev-dist/',
+                 'apps/scarichi-vini/coverage/', '.local/', 'cache/')
+SKIP_FILES    = {'.env', '.env.local', '.replit'}
+SKIP_EXT      = ('.tar.gz', '.zip', '.tsbuildinfo')
+SKIP_BINARY_EXT = ('.png', '.jpg', '.jpeg', '.ico', '.webp', '.woff', '.woff2',
+                   '.ttf', '.eot', '.pdf')
+
 if not TOKEN:
     print("ERRORE: variabile GITHUB_TOKEN non impostata.")
     sys.exit(1)
@@ -64,56 +72,66 @@ def gh(method, path, data=None):
         req.data = json.dumps(data).encode()
     try:
         with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
+            return r.status, json.loads(r.read())
     except urllib.error.HTTPError as e:
-        return json.loads(e.read())
+        return e.code, json.loads(e.read())
 
-# File modificati/non-tracciati rispetto a HEAD locale
-result = subprocess.run(
-    ['git', '--no-optional-locks', 'status', '--porcelain'],
+# ── Recupera SHA corrente del branch main su GitHub ──
+status, branch_data = gh('GET', f'/repos/{REPO}/branches/main')
+if status != 200:
+    print(f"ERRORE: impossibile leggere branch main ({status}): {branch_data.get('message')}")
+    sys.exit(1)
+remote_sha = branch_data['commit']['sha']
+print(f"  GitHub main SHA: {remote_sha[:7]}")
+
+local_sha = subprocess.run(
+    ['git', '--no-optional-locks', 'rev-parse', 'HEAD'],
     capture_output=True, text=True
-)
-lines = [l for l in result.stdout.splitlines() if l.strip()]
+).stdout.strip()
+print(f"  Locale HEAD SHA: {local_sha[:7]}")
 
-# Se tutto è pulito localmente, cerca diff tra locale e remoto
-if not lines:
-    # Confronto locale vs remoto: usa git log --name-only
-    result2 = subprocess.run(
-        ['git', '--no-optional-locks', 'diff', '--name-only', 'HEAD~1', 'HEAD'],
-        capture_output=True, text=True
-    )
-    changed = [f.strip() for f in result2.stdout.splitlines() if f.strip()]
-    if not changed:
-        print("  Nessuna modifica locale da pushare.")
-        print("  Il repo GitHub è già aggiornato.")
-        sys.exit(0)
-    print(f"  Trovati {len(changed)} file nell'ultimo commit locale.")
-else:
-    # Staged + unstaged + untracked
-    changed = []
-    for line in lines:
-        status, fpath = line[:2].strip(), line[3:].strip()
-        if fpath and not fpath.startswith('backup/') and not fpath.startswith('attached_assets/'):
-            changed.append(fpath)
-    print(f"  Trovati {len(changed)} file modificati/non-tracciati.")
-
-if not changed:
-    print("  Niente da pushare.")
+if remote_sha == local_sha:
+    print("  GitHub è già aggiornato. Nulla da pushare.")
     sys.exit(0)
 
-pushed = 0
+# ── Diff tra SHA remoto e HEAD locale (tutti i commit non pushati) ──
+result = subprocess.run(
+    ['git', '--no-optional-locks', 'diff', '--name-only', remote_sha, 'HEAD'],
+    capture_output=True, text=True
+)
+all_changed = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+print(f"  File cambiati da pushare: {len(all_changed)}")
+
+def should_skip(fpath):
+    base = os.path.basename(fpath)
+    if base in SKIP_FILES:
+        return True, 'file riservato'
+    for p in SKIP_PREFIXES:
+        if fpath.startswith(p):
+            return True, 'prefisso escluso'
+    for ext in SKIP_EXT:
+        if fpath.endswith(ext):
+            return True, 'estensione esclusa'
+    return False, ''
+
+pushed  = 0
 skipped = 0
 errors  = []
 
-for fpath in changed:
-    # Salta binari grandi e directory
+for fpath in all_changed:
+    skip, reason = should_skip(fpath)
+    if skip:
+        print(f"  SKIP ({reason}) {fpath}")
+        skipped += 1
+        continue
     if not os.path.isfile(fpath):
+        print(f"  SKIP (non è un file) {fpath}")
         skipped += 1
         continue
-    if fpath.endswith(('.tar.gz', '.zip', '.png', '.jpg', '.ico', '.webp')):
-        print(f"  SKIP (binario) {fpath}")
-        skipped += 1
-        continue
+
+    # File binari: push solo se già presenti su GitHub (aggiornamento),
+    # altrimenti salta (evita caricare asset pesanti accidentalmente)
+    is_binary = any(fpath.endswith(ext) for ext in SKIP_BINARY_EXT)
 
     try:
         with open(fpath, 'rb') as f:
@@ -122,13 +140,19 @@ for fpath in changed:
         errors.append(f"{fpath}: {e}")
         continue
 
-    info = gh('GET', f'/repos/{REPO}/contents/{fpath}?ref=main')
-    sha  = info.get('sha')
-    body = {'message': MSG, 'content': content_b64, 'branch': 'main'}
-    if sha:
-        body['sha'] = sha
+    status_get, info = gh('GET', f'/repos/{REPO}/contents/{fpath}?ref=main')
+    remote_file_sha  = info.get('sha') if status_get == 200 else None
 
-    res = gh('PUT', f'/repos/{REPO}/contents/{fpath}', body)
+    if is_binary and remote_file_sha is None:
+        print(f"  SKIP (binario nuovo, non pushato) {fpath}")
+        skipped += 1
+        continue
+
+    body = {'message': MSG, 'content': content_b64, 'branch': 'main'}
+    if remote_file_sha:
+        body['sha'] = remote_file_sha
+
+    status_put, res = gh('PUT', f'/repos/{REPO}/contents/{fpath}', body)
     if 'content' in res:
         commit_sha = res['commit']['sha'][:7]
         print(f"  OK  {fpath}  → {commit_sha}")
