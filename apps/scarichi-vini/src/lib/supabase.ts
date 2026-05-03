@@ -18,7 +18,14 @@ if (supabaseUrl && supabaseAnonKey) {
   const urlRef = supabaseUrl.match(/https?:\/\/([^.]+)\.supabase\.co/i)?.[1] ?? null;
   const keyRef = decodeJwtRef(supabaseAnonKey);
   if (urlRef && keyRef && urlRef !== keyRef) {
-    console.error(`[supabase] La chiave anon appartiene al progetto "${keyRef}" ma VITE_SUPABASE_URL punta a "${urlRef}". Le chiamate REST falliranno con 401.`);
+    console.error(
+      `[supabase] ERRORE CONFIGURAZIONE: la chiave anon appartiene al progetto "${keyRef}" ` +
+        `ma VITE_SUPABASE_URL punta a "${urlRef}". ` +
+        `Tutte le chiamate REST falliranno con 401. ` +
+        `Aggiorna SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY con la chiave del progetto "${urlRef}".`
+    );
+  } else if (urlRef && keyRef && import.meta.env.DEV) {
+    console.warn(`[supabase] Client inizializzato — progetto: ${urlRef}`);
   }
 }
 
