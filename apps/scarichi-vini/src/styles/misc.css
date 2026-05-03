@@ -1220,7 +1220,7 @@
   }
 
   .adminHistoryDateRangeWrap > .adminHistoryDateField:not(:first-child) {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
   }
 
