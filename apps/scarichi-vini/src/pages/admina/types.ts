@@ -55,3 +55,10 @@ export const emptyWine: WineFormState = {
   qty: 0,
   notes: ''
 };
+
+export function sanitizeFiltersForSpirits(filters: Filters): Filters {
+  return {
+    ...filters,
+    origin: 'all'
+  };
+}

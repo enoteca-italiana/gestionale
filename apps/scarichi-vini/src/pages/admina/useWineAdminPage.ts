@@ -25,6 +25,7 @@ import {
   defaultFilters,
   emptyWine,
   hasActiveArchiveFilters,
+  sanitizeFiltersForSpirits,
   type Filters,
   type Mode,
   type WineFormState
@@ -133,6 +134,11 @@ export function useWineAdminPage(domain: AppDomain = 'wine') {
   }, [refreshCategoryRegistry]);
 
   useEffect(() => {
+    if (domain === 'wine') return;
+    setFilters((prev) => sanitizeFiltersForSpirits(prev));
+  }, [domain]);
+
+  useEffect(() => {
     const onArchiveReset = () => {
       setManagedCategories(loadManagedCategories());
       setManagedOrigins(loadManagedOrigins());
@@ -158,10 +164,10 @@ export function useWineAdminPage(domain: AppDomain = 'wine') {
     () => listProducerOptions(wines, managedProducers),
     [managedProducers, wines]
   );
-  const effectiveFilters = useMemo(
-    () => ({ ...filters, term: deferredTerm }),
-    [deferredTerm, filters]
-  );
+  const effectiveFilters = useMemo(() => {
+    const next = { ...filters, term: deferredTerm };
+    return domain === 'wine' ? next : sanitizeFiltersForSpirits(next);
+  }, [deferredTerm, domain, filters]);
   const searchTextByWineId = useMemo(() => {
     const map = new Map<string, string>();
     for (const wine of wines) {
@@ -410,7 +416,7 @@ export function useWineAdminPage(domain: AppDomain = 'wine') {
 
   const openCreate = () => {
     setModalMode('create');
-    setFormState(emptyWine);
+    setFormState(domain === 'wine' ? emptyWine : { ...emptyWine, origin: '' });
     setModalOpen(true);
   };
   const openEdit = (wine: Wine) => {

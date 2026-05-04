@@ -206,10 +206,10 @@ type WineInput = {
 
 | Funzione                             | Comportamento                                                                                                                |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `toWine(row)`                        | Mappa WineRow → Wine. Normalizza testi, calcola warehouse/margin se non in row, applica threshold.                           |
-| `toRowPayload(wine)`                 | Mappa Wine → payload Supabase (schema completo con warehouse/margin calcolati).                                              |
+| `toWine(row)`                        | Mappa WineRow → Wine. Normalizza testi, applica threshold, ricava `salePrice` da `purchasePrice * 1.3` se il dato manca.    |
+| `toRowPayload(wine)`                 | Mappa Wine → payload Supabase (schema completo con `sale_price`, `warehouse`, `margin` coerenti ai campi derivati).         |
 | `toLegacyPayload(wine)`              | Mappa Wine → payload schema legacy (solo campi base). Usato come fallback se schema esteso non ancora applicato.             |
-| `normalizeInput(input)`              | Mappa WineInput → Wine normalizzata completa. Calcola warehouse/margin. Genera ID se assente.                                |
+| `normalizeInput(input)`              | Mappa WineInput → Wine normalizzata completa. Se `salePrice` manca la auto-genera con `+30%`, poi calcola warehouse/margin. |
 | `listAllWineRows()`                  | Fetch paginata da Supabase (1000 rows/page). Se `count` disponibile: pagine parallele. Altrimenti: sequenziale con sentinel. |
 | `prepareInventory(source, fallback)` | `enrichThresholdsFromFallback` → `normalizeWineTextFields` → `sortWines`.                                                    |
 | `sameInventory(prev, next)`          | Confronto campo per campo. Guard anti-write ridondanti.                                                                      |
@@ -459,6 +459,16 @@ export async function sha256Base64(input: string): Promise<string>;
 
 ---
 
+## `src/pages/home/StartSessionDomainModal.tsx`
+
+Modale Home usato prima di aprire una nuova sessione di scarico.
+
+- propone scelta esplicita `Vini` / `Spirits`;
+- applica una resa visiva coerente con i due domini;
+- `HomePage` nasconde lo switch dominio durante la sessione attiva, così il contesto non cambia mentre si scarica.
+
+---
+
 ## `src/pages/admin/storage.ts`
 
 ```ts
@@ -559,11 +569,15 @@ Integrazione opzionale Google Sheets via webhook.
 ```ts
 export async function syncWineUpsert(wine: Wine): Promise<void>;
 export async function syncWineDelete(wineId: string): Promise<void>;
+export async function syncSpiritUpsert(spirit: Wine): Promise<void>;
+export async function syncSpiritDelete(spiritId: string): Promise<void>;
 ```
 
 - Invio silenzioso: errori loggati ma non propagati all'utente.
 - Usato in `createWine`, `updateWine`, `deleteWine`, `replaceAllWines`, `appendWines`.
+- Usato anche in `createSpirit`, `updateSpirit`, `deleteSpirit`, `replaceAllSpirits`, `appendSpirits`, `updateThresholdForAllSpirits`.
 - Non parte del flusso critico: fallimento non blocca l'operazione principale.
+- Nel repository il file resta placeholder non bloccante; in produzione la sync primaria verso Google è oggi attivata dai trigger DB `trg_wines_notify_google_sheets` e `trg_spirits_notify_google_sheets`.
 
 ---
 
@@ -625,6 +639,25 @@ Variabili CSS principali:
   /* testo secondario */ --bg: #fdfaf2 /* sfondo caldo */ --surface: #fffdf8 /* sfondo card */
   --border: #e5e7eb /* bordi */;
 ```
+
+Override dominio:
+
+```css
+body[data-domain='spirits'] {
+  --bg: #d6eaf4; /* azzurro naturale per l'intera sezione Spirits */
+}
+```
+
+Nota dominio Spirits:
+
+- `spiritsRepository` supporta anche `threshold` in lettura, scrittura, import e update massivo;
+- il tab Google `Spirits` attualmente è strutturato come mirror ridotto con colonne `NOME`, `PRODUTTORE`, `ACQUISTO`, `VENDITA`, `Q.tà`, `MAGAZZINO`;
+- i campi app `category` e `threshold` restano gestiti in Supabase/UI e non sono esposti nel tab Google ridotto mostrato in produzione;
+- lato repository `Spirits`, se `sale_price/vendita` manca ma `purchase_price/acquisto` è presente, `salePrice` viene derivata automaticamente con regola `+30%`;
+- lato DB è verificata la presenza del trigger `trg_spirits_notify_google_sheets` con funzione `integration.notify_google_sheets_spirits()`;
+- lato Google Apps Script il flusso corretto è distinto: `syncSpiritsFromSheetToSupabase` per caricare il foglio nel DB, `syncSpiritsFromSupabaseToSheet` per riscrivere il foglio a partire dal DB;
+- i vecchi trigger installabili Apps Script (`syncFromSheetToSupabase`, `syncFromSupabaseToSheet`) sono stati rimossi perché riferiti a funzioni legacy non più presenti nel nuovo script.
+- se `spirits_products` è stato creato prima dell’introduzione delle soglie, va eseguito `scripts/sql/2026-05-04_spirits_threshold_enable.sql`.
 
 ---
 

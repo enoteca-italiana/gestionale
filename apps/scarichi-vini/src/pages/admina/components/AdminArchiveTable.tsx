@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import type { Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { FileText, Pencil, Trash2 } from 'lucide-react';
@@ -17,13 +18,13 @@ import {
   TABLE_OFFSET,
   TABLE_RENDER_BATCH,
   TABLE_SORT_COLLATOR,
-  TOTAL_COLUMNS,
   type SortKey
 } from './archiveTableUtils';
 import { ArchiveTableHeader } from './ArchiveTableHeader';
 import { useArchiveInlineEdit } from './useArchiveInlineEdit';
 
 type Props = {
+  domain: AppDomain;
   wines: Wine[];
   categories: string[];
   producers: string[];
@@ -52,6 +53,7 @@ type Props = {
 };
 
 export function AdminArchiveTable({
+  domain,
   wines,
   categories,
   producers,
@@ -68,6 +70,10 @@ export function AdminArchiveTable({
   bulkEditEnabled,
   onOpenBulkEdit
 }: Props) {
+  const isWineDomain = domain === 'wine';
+  const totalColumns = isWineDomain ? 11 : 9;
+  const entityLabel = isWineDomain ? 'vino' : 'spirit';
+  const entityLabelPlural = isWineDomain ? 'vini' : 'spirits';
   const [, startTransition] = useTransition();
   const loadMoreRowRef = useRef<HTMLTableRowElement | null>(null);
   const autoLoadLockRef = useRef(false);
@@ -185,7 +191,7 @@ export function AdminArchiveTable({
     <section className="archiveTableSection">
       <div className="archiveTableWrap">
         <table
-          className="archiveTable"
+          className={`archiveTable ${isWineDomain ? '' : 'archiveTableSpirits'}`}
           onContextMenu={(event) => {
             if (!bulkEditEnabled) return;
             event.preventDefault();
@@ -193,6 +199,7 @@ export function AdminArchiveTable({
           }}
         >
           <ArchiveTableHeader
+            domain={domain}
             sortState={sortState}
             onToggleSort={toggleSort}
             getSortAriaLabel={getSortAriaLabel}
@@ -200,14 +207,14 @@ export function AdminArchiveTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={TOTAL_COLUMNS} className="archiveTableEmptyCell">
+                <td colSpan={totalColumns} className="archiveTableEmptyCell">
                   Caricamento…
                 </td>
               </tr>
             ) : sortedWines.length === 0 ? (
               <tr>
-                <td colSpan={TOTAL_COLUMNS} className="archiveTableEmptyCell">
-                  Nessun vino trovato con i filtri attivi.
+                <td colSpan={totalColumns} className="archiveTableEmptyCell">
+                  {`Nessun ${entityLabelPlural} trovato con i filtri attivi.`}
                 </td>
               </tr>
             ) : (
@@ -216,6 +223,7 @@ export function AdminArchiveTable({
                 const isZeroQty = Number.isFinite(qty) && qty === 0;
                 const threshold = Number(wine.threshold);
                 const isInThreshold =
+                  isWineDomain &&
                   Number.isFinite(qty) &&
                   qty > 0 &&
                   Number.isFinite(threshold) &&
@@ -324,40 +332,42 @@ export function AdminArchiveTable({
                         </button>
                       )}
                     </td>
-                    <td className="archiveColCenter">
-                      {edit.editingAgeWineId === wine.id ? (
-                        <div className="archiveInlineEditBox" ref={edit.ageInlineBoxRef}>
-                          <select
-                            className="archiveInlineYearInput archiveInlineYearSelect"
-                            value={edit.editingAgeValue}
-                            onChange={(e) => {
-                              const nextValue = e.target.value;
-                              edit.setEditingAgeValue(nextValue);
-                              void edit.saveAgeEditValue(wine, nextValue);
-                            }}
-                            aria-label={`Modifica anno ${wine.name}`}
-                            disabled={edit.savingInlineWineId === wine.id}
-                            autoFocus
+                    {isWineDomain ? (
+                      <td className="archiveColCenter">
+                        {edit.editingAgeWineId === wine.id ? (
+                          <div className="archiveInlineEditBox" ref={edit.ageInlineBoxRef}>
+                            <select
+                              className="archiveInlineYearInput archiveInlineYearSelect"
+                              value={edit.editingAgeValue}
+                              onChange={(e) => {
+                                const nextValue = e.target.value;
+                                edit.setEditingAgeValue(nextValue);
+                                void edit.saveAgeEditValue(wine, nextValue);
+                              }}
+                              aria-label={`Modifica anno ${wine.name}`}
+                              disabled={edit.savingInlineWineId === wine.id}
+                              autoFocus
+                            >
+                              <option value="">Vuoto</option>
+                              {yearOptions.map((year) => (
+                                <option key={year} value={year}>
+                                  {year}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <button
+                            className="archiveInlineYearButton"
+                            type="button"
+                            onClick={() => edit.beginAgeEdit(wine)}
+                            aria-label={`Modifica anno di ${wine.name}`}
                           >
-                            <option value="">Vuoto</option>
-                            {yearOptions.map((year) => (
-                              <option key={year} value={year}>
-                                {year}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      ) : (
-                        <button
-                          className="archiveInlineYearButton"
-                          type="button"
-                          onClick={() => edit.beginAgeEdit(wine)}
-                          aria-label={`Modifica anno di ${wine.name}`}
-                        >
-                          {formatYear(wine.age) || '—'}
-                        </button>
-                      )}
-                    </td>
+                            {formatYear(wine.age) || '—'}
+                          </button>
+                        )}
+                      </td>
+                    ) : null}
                     <td>
                       {edit.editingProducerWineId === wine.id ? (
                         <div className="archiveInlineEditBox" ref={edit.producerInlineBoxRef}>
@@ -407,55 +417,57 @@ export function AdminArchiveTable({
                         </button>
                       )}
                     </td>
-                    <td>
-                      {edit.editingOriginWineId === wine.id ? (
-                        <div className="archiveInlineEditBox" ref={edit.originInlineBoxRef}>
-                          <InlineStickyAddSelect
-                            value={edit.editingOriginValue}
-                            options={origins}
-                            addLabel="+ Aggiungi provenienza..."
-                            onChange={(next) => {
-                              edit.setEditingOriginValue(next);
-                              edit.requestInlineSelectEditConfirm(
-                                wine,
-                                'origin',
-                                wine.origin ?? '',
-                                next
-                              );
-                            }}
-                            onAdd={() => {
-                              onRequestAddOrigin((created) => {
-                                if (!created) return;
-                                edit.setEditingOriginValue(created);
+                    {isWineDomain ? (
+                      <td>
+                        {edit.editingOriginWineId === wine.id ? (
+                          <div className="archiveInlineEditBox" ref={edit.originInlineBoxRef}>
+                            <InlineStickyAddSelect
+                              value={edit.editingOriginValue}
+                              options={origins}
+                              addLabel="+ Aggiungi provenienza..."
+                              onChange={(next) => {
+                                edit.setEditingOriginValue(next);
                                 edit.requestInlineSelectEditConfirm(
                                   wine,
                                   'origin',
                                   wine.origin ?? '',
-                                  created
+                                  next
                                 );
-                              });
-                            }}
-                            onCancel={edit.cancelOriginEdit}
-                            ariaLabel={`Modifica provenienza ${wine.name}`}
-                            disabled={
-                              edit.savingInlineWineId === wine.id ||
-                              edit.inlineSelectConfirmModal !== null
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          className={`archiveInlineCategoryButton ${
-                            hasTextValue(wine.origin) ? '' : 'archiveInlineCategoryButtonEmpty'
-                          }`}
-                          type="button"
-                          onClick={() => edit.beginOriginEdit(wine)}
-                          aria-label={`Modifica provenienza di ${wine.name}`}
-                        >
-                          {formatText(wine.origin)}
-                        </button>
-                      )}
-                    </td>
+                              }}
+                              onAdd={() => {
+                                onRequestAddOrigin((created) => {
+                                  if (!created) return;
+                                  edit.setEditingOriginValue(created);
+                                  edit.requestInlineSelectEditConfirm(
+                                    wine,
+                                    'origin',
+                                    wine.origin ?? '',
+                                    created
+                                  );
+                                });
+                              }}
+                              onCancel={edit.cancelOriginEdit}
+                              ariaLabel={`Modifica provenienza ${wine.name}`}
+                              disabled={
+                                edit.savingInlineWineId === wine.id ||
+                                edit.inlineSelectConfirmModal !== null
+                              }
+                            />
+                          </div>
+                        ) : (
+                          <button
+                            className={`archiveInlineCategoryButton ${
+                              hasTextValue(wine.origin) ? '' : 'archiveInlineCategoryButtonEmpty'
+                            }`}
+                            type="button"
+                            onClick={() => edit.beginOriginEdit(wine)}
+                            aria-label={`Modifica provenienza di ${wine.name}`}
+                          >
+                            {formatText(wine.origin)}
+                          </button>
+                        )}
+                      </td>
+                    ) : null}
                     <td className="archiveColCenter">
                       {edit.editingPurchasePriceWineId === wine.id ? (
                         <div className="archiveInlineEditBox" ref={edit.purchasePriceInlineBoxRef}>
@@ -591,7 +603,7 @@ export function AdminArchiveTable({
                           className="archiveIconAction"
                           type="button"
                           onClick={() => onEdit(wine)}
-                          aria-label="Modifica vino"
+                          aria-label={`Modifica ${entityLabel}`}
                         >
                           <Pencil size={18} strokeWidth={1.4} />
                         </button>
@@ -599,7 +611,7 @@ export function AdminArchiveTable({
                           className="archiveIconAction archiveIconDanger"
                           type="button"
                           onClick={() => onDelete(wine.id)}
-                          aria-label="Elimina vino"
+                          aria-label={`Elimina ${entityLabel}`}
                         >
                           <Trash2 size={18} strokeWidth={1.4} />
                         </button>
@@ -611,7 +623,7 @@ export function AdminArchiveTable({
             )}
             {hasMoreRows ? (
               <tr ref={loadMoreRowRef}>
-                <td colSpan={TOTAL_COLUMNS} className="archiveTableEmptyCell">
+                <td colSpan={totalColumns} className="archiveTableEmptyCell">
                   <button
                     className="button buttonSecondary archiveLoadMoreButton"
                     type="button"
@@ -630,7 +642,7 @@ export function AdminArchiveTable({
             ) : null}
             {Array.from({ length: fillerRows }).map((_, idx) => (
               <tr key={`empty-${idx}`} className="archiveEmptyRow" aria-hidden="true">
-                {Array.from({ length: TOTAL_COLUMNS }).map((__, colIdx) => (
+                {Array.from({ length: totalColumns }).map((__, colIdx) => (
                   <td key={`empty-${idx}-${colIdx}`}>&nbsp;</td>
                 ))}
               </tr>
@@ -640,7 +652,12 @@ export function AdminArchiveTable({
       </div>
 
       {edit.notePreview ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="Note vino">
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Note ${entityLabel}`}
+        >
           <div className="modalCard archiveNoteModalCard">
             <div className="modalTitle">Note — {edit.notePreview.wineName}</div>
             <div className="modalDescription archiveNoteModalText">{edit.notePreview.note}</div>

@@ -10,6 +10,8 @@ import { useWineAdminPage } from '@/pages/admina/useWineAdminPage';
 
 export function WineAdminPage() {
   const { activeDomain } = useAppDomain();
+  const isWineDomain = activeDomain === 'wine';
+  const entityLabel = isWineDomain ? 'vino' : 'spirit';
   const [totalsOpen, setTotalsOpen] = useState(false);
   const {
     loading,
@@ -128,6 +130,7 @@ export function WineAdminPage() {
       ) : null}
 
       <AdminArchiveTable
+        domain={activeDomain}
         wines={filteredWines}
         categories={allCategories}
         producers={allProducers}
@@ -146,6 +149,7 @@ export function WineAdminPage() {
       />
 
       <WineArchiveFormModal
+        domain={activeDomain}
         open={modalOpen}
         mode={modalMode}
         busy={busy}
@@ -180,18 +184,20 @@ export function WineAdminPage() {
         onConfirm={confirmAddCategory}
       />
 
-      <CategoryCreateModal
-        open={originModalOpen}
-        existingValues={allOrigins}
-        forceUppercase
-        title="Nuova provenienza"
-        inputPlaceholder="Inserisci provenienza"
-        similarTitle="Provenienze già presenti simili"
-        duplicateMessage="Provenienza già esistente: se confermi, verrà riusata quella esistente."
-        ariaLabel="Nuova provenienza"
-        onCancel={cancelAddOrigin}
-        onConfirm={confirmAddOrigin}
-      />
+      {isWineDomain ? (
+        <CategoryCreateModal
+          open={originModalOpen}
+          existingValues={allOrigins}
+          forceUppercase
+          title="Nuova provenienza"
+          inputPlaceholder="Inserisci provenienza"
+          similarTitle="Provenienze già presenti simili"
+          duplicateMessage="Provenienza già esistente: se confermi, verrà riusata quella esistente."
+          ariaLabel="Nuova provenienza"
+          onCancel={cancelAddOrigin}
+          onConfirm={confirmAddOrigin}
+        />
+      ) : null}
 
       <CategoryCreateModal
         open={producerModalOpen}
@@ -207,7 +213,7 @@ export function WineAdminPage() {
 
       <ConfirmModal
         open={deleteId !== null}
-        title="Eliminare il vino?"
+        title={`Eliminare ${entityLabel === 'vino' ? 'il vino' : 'lo spirit'}?`}
         description="L'operazione aggiorna Supabase e la sync di backup."
         confirmLabel={busy ? 'Elimino…' : 'Elimina'}
         cancelLabel="Annulla"
@@ -218,7 +224,9 @@ export function WineAdminPage() {
       {totalsOpen ? (
         <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="Totali archivio">
           <div className="modalCard archiveTotalsModalCard">
-            <div className="modalTitle">Totali</div>
+            <div className="modalTitle">
+              {isWineDomain ? 'Totali' : 'Totali Spirits'}
+            </div>
             <div className="archiveTotalsGrid mt12">
               <div className="archiveTotalsRow">
                 <span>Righe filtrate</span>

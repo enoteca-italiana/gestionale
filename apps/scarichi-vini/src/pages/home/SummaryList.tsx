@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import type { SessionItem, Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { ChevronDown } from 'lucide-react';
@@ -7,16 +8,19 @@ import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
 export function SummaryList({
   items,
   wines,
+  domain = 'wine',
   onIncrement,
   onDecrement,
   onDelete
 }: {
   items: SessionItem[];
   wines: Wine[];
+  domain?: AppDomain;
   onIncrement: (wineId: string) => void;
   onDecrement: (wineId: string) => void;
   onDelete: (wineId: string) => void;
 }) {
+  const entityLabel = domain === 'wine' ? 'vino' : 'spirit';
   const [selectedWineId, setSelectedWineId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -98,7 +102,7 @@ export function SummaryList({
             <div className="list mt12">
               {items.length === 0 ? (
                 <div className="listItem centered">
-                  <div className="lineTitle">Nessun vino</div>
+                  <div className="lineTitle">{`Nessun ${entityLabel}`}</div>
                   <div className="subtle mt6">Aggiungi scarichi dai risultati.</div>
                 </div>
               ) : (
@@ -192,8 +196,8 @@ export function SummaryList({
 
       <ConfirmModal
         open={confirmDeleteOpen}
-        title="Eliminare vino dal riepilogo?"
-        description="Il vino verrà rimosso dal riepilogo della sessione."
+        title={`Eliminare ${entityLabel} dal riepilogo?`}
+        description={`Il ${entityLabel} verrà rimosso dal riepilogo della sessione.`}
         confirmLabel="Sì, elimina"
         cancelLabel="Annulla"
         onConfirm={handleDelete}

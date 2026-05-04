@@ -93,6 +93,7 @@ apps/scarichi-vini/
 
     app/
       routes.ts                 — costanti route + helper isSettingsPath/isArchivePath
+      appDomain.tsx             — contesto dominio attivo (`wine` | `spirits`) + persistenza localStorage
       useOfflineDischargeQueueSync.ts  — hook flush coda offline (startup/online/focus/visibility)
       useOnlineStatus.ts        — hook navigator.onLine + eventi online/offline
       useDebouncedValue.ts      — hook debounce generico (usato in ricerca archivio)
@@ -127,13 +128,14 @@ apps/scarichi-vini/
 
     integrations/
       googleSheetsSync.ts       — sync opzionale verso Google Sheets via webhook
-                                   (syncWineUpsert/syncWineDelete — silenzioso su errore)
+                                   (placeholder lato frontend; sync live principale demandata ai trigger DB su `wines` / `spirits_products`)
 
     pages/
       AdminPage.tsx             — wrapper minimo che monta AdminGate
 
       home/
         useLocalSession.ts      — hook gestione sessione scarico (items, qty, stati)
+        StartSessionDomainModal.tsx — modale scelta `Vini` / `Spirits` prima dell'apertura sessione
         ResultsList.tsx         — lista risultati ricerca con bottoni scarico -1/-2/-3
         SummaryList.tsx         — riepilogo vini in sessione con +1/-1/elimina
         SessionConfirmModal.tsx — modale conferma invio sessione
@@ -152,7 +154,7 @@ apps/scarichi-vini/
         settings/
           PasswordModal.tsx     — cambio password admin (con conferma)
           PinRequestModal.tsx   — toggle PIN avvio app e PIN impostazioni
-          ThresholdModal.tsx    — imposta soglia unica su tutti i vini
+          ThresholdModal.tsx    — imposta soglia unica su tutto l'archivio attivo (`vini` / `spirits`)
           ResetModal.tsx        — reset archivio con doppia conferma + PIN
           ImportModal.tsx       — import CSV con scelta modalità + PIN
           ExportModal.tsx       — export CSV/Excel/PDF archivio
@@ -173,11 +175,17 @@ apps/scarichi-vini/
 
     styles/
       styles.css                — import barrel dei 4 file CSS
-      base.css                  — variabili CSS, reset, layout, intro, navbar
+      base.css                  — variabili CSS, reset, layout, intro, navbar, override background Spirits
       components.css            — bottoni, card, nav items, animazioni
       archive.css               — tabella archivio, toolbar, filtri, modale archivio
       misc.css                  — modali generici, toast, summary dock, admin, impostazioni
 ```
+
+Nota UI dominio:
+
+- modalità `Vini`: sfondo base crema (`--bg: #fdfaf2`);
+- modalità `Spirits`: override globale `body[data-domain='spirits'] { --bg: #d6eaf4; }` per sfondo azzurro naturale;
+- pulsanti e palette funzionale restano invariati salvo elementi di switch dominio.
 
 ---
 
@@ -217,9 +225,11 @@ type SessionItem = {
 
 ## Campi calcolati (business rules)
 
+- `salePrice = purchasePrice × 1.30` quando `salePrice` manca in input (fallback applicativo centralizzato)
 - `warehouse = purchasePrice × qty` (arrotondato 2 decimali)
 - `margin = salePrice − purchasePrice` (arrotondato 2 decimali)
-- Calcolati sia lato frontend (`normalizeInput`) sia lato DB (trigger Supabase)
+- `warehouse` e `margin` sono calcolati sia lato frontend sia lato DB (trigger Supabase)
+- `salePrice` oggi è auto-derivata lato frontend/repository quando assente; lato DB non è ancora forzata dal trigger
 - `qty` mai sotto zero (vincolo frontend + DB)
 - `threshold` valida: intero >= 1 oppure assente (null/undefined). Mai `0`.
 

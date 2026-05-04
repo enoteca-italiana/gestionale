@@ -152,6 +152,7 @@ export function AdminSettings({
       />
 
       <ThresholdModal
+        entityLabelPlural={activeDomain === 'wine' ? 'vini' : 'spirits'}
         open={thresholdModalOpen}
         thresholdValue={thresholdValue}
         thresholdError={thresholdError}

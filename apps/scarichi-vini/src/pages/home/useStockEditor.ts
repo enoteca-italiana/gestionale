@@ -76,6 +76,7 @@ export function useStockEditor({
           category: editingStockWine.category ?? '',
           name: editingStockWine.name,
           producer: editingStockWine.producer,
+          threshold: editingStockWine.threshold,
           purchasePrice: editingStockWine.purchasePrice,
           salePrice: editingStockWine.salePrice,
           qty: nextQty

@@ -15,3 +15,15 @@ export async function syncWineDelete(_wineId: string): Promise<void> {
   // TODO: implementare chiamata reale alle API Google Sheets.
   return Promise.resolve();
 }
+
+export async function syncSpiritUpsert(_spirit: Wine): Promise<void> {
+  void _spirit;
+  // TODO: implementare chiamata reale alle API Google Sheets per il tab Spirits.
+  return Promise.resolve();
+}
+
+export async function syncSpiritDelete(_spiritId: string): Promise<void> {
+  void _spiritId;
+  // TODO: implementare chiamata reale alle API Google Sheets per il tab Spirits.
+  return Promise.resolve();
+}

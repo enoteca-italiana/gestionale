@@ -1,6 +1,7 @@
 import { ConfirmModal } from '@/components/ConfirmModal';
 
 type Props = {
+  entityLabelPlural: string;
   open: boolean;
   thresholdValue: string;
   thresholdError: string | null;
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export function ThresholdModal({
+  entityLabelPlural,
   open,
   thresholdValue,
   thresholdError,
@@ -46,7 +48,7 @@ export function ThresholdModal({
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Imposta soglia unica</div>
             <div className="modalDescription">
-              Imposta un valore soglia uguale per tutti i vini in archivio.
+              {`Imposta un valore soglia uguale per tutti gli ${entityLabelPlural} in archivio.`}
             </div>
             <div className="mt12">
               <input
@@ -87,7 +89,7 @@ export function ThresholdModal({
         cardClassName="adminSettingsModalCard"
         overlayClassName="adminSettingsOverlay"
         title="Confermare nuova soglia?"
-        description={`Confermando, tutti i vini in archivio verranno aggiornati con la soglia ${
+        description={`Confermando, tutti gli ${entityLabelPlural} in archivio verranno aggiornati con la soglia ${
           parsedThreshold ?? 'selezionata'
         }.`}
         confirmLabel="Continua"
@@ -101,7 +103,7 @@ export function ThresholdModal({
           <div className="modalCard adminSettingsModalCard">
             <div className="modalTitle">Conferma modifica soglie</div>
             <div className="modalDescription">
-              Inserisci il PIN admin per applicare la soglia a tutti i vini in archivio.
+              {`Inserisci il PIN admin per applicare la soglia a tutti gli ${entityLabelPlural} in archivio.`}
             </div>
             <div className="mt12">
               <input

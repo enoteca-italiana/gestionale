@@ -1,7 +1,9 @@
+import type { AppDomain } from '@/app/appDomain';
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react';
 import type { SortDir, SortKey } from './archiveTableUtils';
 
 type Props = {
+  domain: AppDomain;
   sortState: { key: SortKey; dir: SortDir };
   onToggleSort: (key: SortKey) => void;
   getSortAriaLabel: (key: SortKey) => string;
@@ -42,7 +44,13 @@ function SortableHeader({
   );
 }
 
-export function ArchiveTableHeader({ sortState, onToggleSort, getSortAriaLabel }: Props) {
+export function ArchiveTableHeader({
+  domain,
+  sortState,
+  onToggleSort,
+  getSortAriaLabel
+}: Props) {
+  const isWineDomain = domain === 'wine';
   return (
     <thead>
       <tr>
@@ -64,7 +72,7 @@ export function ArchiveTableHeader({ sortState, onToggleSort, getSortAriaLabel }
             getSortAriaLabel={getSortAriaLabel}
           />
         </th>
-        <th className="archiveColCenter">ANNO</th>
+        {isWineDomain ? <th className="archiveColCenter">ANNO</th> : null}
         <th>
           <SortableHeader
             label="PRODUTTORE"
@@ -74,15 +82,17 @@ export function ArchiveTableHeader({ sortState, onToggleSort, getSortAriaLabel }
             getSortAriaLabel={getSortAriaLabel}
           />
         </th>
-        <th>
-          <SortableHeader
-            label="PROVENIENZA"
-            sortKey="origin"
-            sortState={sortState}
-            onToggleSort={onToggleSort}
-            getSortAriaLabel={getSortAriaLabel}
-          />
-        </th>
+        {isWineDomain ? (
+          <th>
+            <SortableHeader
+              label="PROVENIENZA"
+              sortKey="origin"
+              sortState={sortState}
+              onToggleSort={onToggleSort}
+              getSortAriaLabel={getSortAriaLabel}
+            />
+          </th>
+        ) : null}
         <th>Acquisto</th>
         <th>Vendita</th>
         <th>Q.tà</th>

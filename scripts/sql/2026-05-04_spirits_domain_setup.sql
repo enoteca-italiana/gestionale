@@ -8,6 +8,7 @@ create table if not exists public.spirits_products (
   category text,
   name text not null,
   producer text not null,
+  threshold integer check (threshold is null or (threshold >= 1 and threshold <= 99)),
   purchase_price numeric(10,2) check (purchase_price is null or purchase_price >= 0),
   sale_price numeric(10,2) check (sale_price is null or sale_price >= 0),
   qty integer not null default 0 check (qty >= 0),
@@ -19,6 +20,7 @@ create table if not exists public.spirits_products (
 create index if not exists idx_spirits_products_category on public.spirits_products(category);
 create index if not exists idx_spirits_products_producer on public.spirits_products(producer);
 create index if not exists idx_spirits_products_qty on public.spirits_products(qty);
+create index if not exists idx_spirits_products_threshold on public.spirits_products(threshold);
 create index if not exists idx_spirits_products_name_lower on public.spirits_products(lower(name));
 
 create table if not exists public.spirits_sessions (

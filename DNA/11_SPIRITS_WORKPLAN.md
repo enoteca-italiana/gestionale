@@ -51,22 +51,23 @@ In UI introdurre switch globale contesto (`wine` | `spirits`) che decide quale d
 
 ## Struttura dati minima Spirits (Google Sheet)
 
-Tab consigliato: `spirits` (stesso spreadsheet).
+Tab operativo attuale: `Spirits` (stesso spreadsheet).
 
-Colonne (ordine fisso):
+Colonne rilevate nel tab attuale:
 
-1. `categoria`
-2. `nome`
-3. `produttore`
-4. `acquisto`
-5. `vendita`
-6. `quantita_magazzino`
+1. `nome`
+2. `produttore`
+3. `acquisto`
+4. `vendita`
+5. `q.tà`
+6. `magazzino`
 
 Regole:
 
 - una riga = un prodotto;
 - intestazioni stabili e non rinominabili in produzione;
 - numerici con formato coerente (no testo libero in prezzi/quantità).
+- il tab Google attuale è un mirror ridotto: `categoria` e `soglia` restano al momento campi gestiti in app/Supabase.
 
 ---
 
@@ -130,7 +131,7 @@ Deliverable: navigazione unica con due domini separati.
 ### Step 5 — UI Spirits (leggera differenza grafica)
 
 - riuso layout vini per coerenza UX;
-- applicare solo sfondo pagina verde chiaro naturale (in sostituzione del crema) in modalità Spirits;
+- applicare solo sfondo pagina azzurro chiaro naturale (in sostituzione del crema) in modalità Spirits;
 - mantenere invariati pulsanti, tabelle, badge e colori funzionali già esistenti;
 - mantenere componenti condivisibili solo dove neutrali.
 
@@ -201,23 +202,21 @@ Questa scheda è il piano guida del flusso Spirits. Prima di iniziare sviluppo e
 
 Decisione UI già approvata:
 
-- differenziazione grafica Spirits minima: **solo background verde chiaro naturale**;
+- differenziazione grafica Spirits minima: **solo background azzurro chiaro naturale**;
 - nessun refactor palette globale finché si è in dominio Vini.
 - in Archivio lo switch `Vini/Spirits` va posizionato **in alto a destra**, separato dalla riga filtri (nessuna modifica strutturale alla filter row).
 - la riga filtri Archivio deve restare perfettamente allineata alla larghezza della tabella (nessuna colonna griglia “vuota” lato destro).
 - Home: switch `Vini/Spirits` nella stessa riga di `Reset` + `Inizia sessione`, con `Reset` in prima posizione.
-- Archivio: switch dimensionato come `Totali`, con stato attivo `Vini` bordeaux e `Spirits` verde.
+- Archivio: switch dimensionato come `Totali`, con stato attivo `Vini` bordeaux e `Spirits` azzurro.
 - Archivio: testo pulsante `Foglio Google` centrato orizzontalmente e verticalmente.
 - Storico Sessioni: icona cestino rossa, senza contorno, posizionata a destra su ogni card.
 - Switch disponibile solo in **Home** e **Archivio**; in **Impostazioni/Admin** il dominio segue il contesto corrente e il cambio avviene tornando a Home/Archivio.
 - In **Impostazioni/Admin Home** è mostrato solo un indicatore testuale della modalità attiva (`Vini`/`Spirits`), senza controlli di switch.
 - Storico sessioni: hook reso domain-aware; in modalità `Spirits` non legge lo storico `Vini` (evita contaminazione finché non colleghiamo tabelle Spirits dedicate).
-- Home: `useLocalDb` reso domain-aware (in modalità `Spirits` inventario isolato, nessun refresh da `wines`).
-- Archivio: guard-rail attivo in modalità `Spirits` (placeholder informativo, CRUD Vini non montato).
+- Home: `useLocalDb` reso domain-aware (in modalità `Spirits` inventario isolato, refresh da `spirits_products`).
 - Rollback tecnico predisposto prima step inventory/domain: tag Git `rollback/pre-domain-inventory-2026-05-04`.
 - Aggiunto `spiritsRepository` read-only (`spirits_products`) con mapping tollerante colonne e fallback sicuro a lista vuota.
 - `useLocalDb.refreshInventory()` instrada ora per dominio: `listWines` (wine) / `listSpirits` (spirits).
-- Home in modalità `Spirits`: start/confirm sessione disabilitati e click edit giacenza disattivato (nessuna scrittura su flusso vino).
 - `spiritsRepository` esteso con CRUD base (`list/create/update/delete`) + `clearSpiritsArchive` per reset dominio Spirits.
 - Archivio collegato al dominio: `useWineAdminPage(activeDomain)` usa repository corretto (`wine` o `spirits`) per load/CRUD.
 - Hard reset in Impostazioni ora domain-aware: su `wine` pulisce `wines`, su `spirits` pulisce `spirits_products`.
@@ -227,10 +226,34 @@ Decisione UI già approvata:
 - Modalità offline: queue automatica mantenuta su Wine; su Spirits (fase attuale) invio consentito solo online.
 - Dettaglio storico sessione (modale) reso domain-aware: query `discharge_session_items` per Wine e `spirits_session_items` per Spirits.
 - UI labels domain-aware: Home placeholder ricerca, Archivio CTA creazione, Storico conteggi (`vini`/`spirits`) allineati al contesto attivo.
-- Sfondo Spirits globale applicato via `body[data-domain='spirits']` con tono verde naturale (`#eef6ed`), senza alterare la palette del dominio Vini.
+- Sfondo Spirits globale applicato via `body[data-domain='spirits']` con tono azzurro naturale (`#d6eaf4`), senza alterare la palette del dominio Vini.
 - `#root` allineato a `--bg` per garantire resa visibile dello sfondo Spirits anche in locale/dev.
 - Coda offline resa domain-aware (`offlineDischargeQueue`): supporta enqueue/flush sia `wine` che `spirits`.
 - Home: editing giacenza domain-aware (update su `wineRepository` o `spiritsRepository` in base al contesto).
 - Admin > Gestione voci filtri protetta per evitare contaminazione: in modalità Spirits mostra placeholder (manager legacy attivo solo su Vini).
 - Admin > Import/Export archivio resi domain-aware: in modalità Spirits operano su `spirits_products` (nessuna scrittura su `wines`).
-- Admin > Imposta Soglie protetto da contaminazione: pulsante disabilitato in modalità Spirits e guard-rail runtime attivo nel relativo hook.
+- Admin > Imposta Soglie reso domain-aware: in modalità Spirits aggiorna `spirits_products.threshold` senza toccare l’archivio Vini.
+- Home Spirits: filtro rapido `Soglia` riabilitato e allineato alla stessa logica dei Vini (`qty > 0 && qty <= threshold`).
+- Archivio Spirits: badge/filtro `Soglia` riabilitato; `Provenienza` e `Anno` restano esclusi dalla UI perché non appartengono al dataset Spirits.
+- Modal Archivio Spirits: soglia riaggiunta nel form; campi attivi `Categoria`, `Nome`, `Produttore`, `Soglia`, `Q.tà`, `Acquisto`, `Vendita`.
+- Test di regressione eseguiti dopo il refactor UI Spirits: `npm run test`, `npm run typecheck`, `npm run build` tutti verdi.
+- Palette Spirits aggiornata: sfondo sezione portato da verde naturale ad azzurro naturale per tutte le viste domain-aware.
+- Switch dominio Home/Archivio: stato attivo `Spirits` aggiornato con tonalità azzurro scuro coerente al dominio.
+- Home mobile: CTA apertura sessione accorciata in `Nuovo Scarico` per evitare il testo a capo.
+- Home: avvio sessione reso esplicito con modale scelta dominio (`Vini` / `Spirits`) prima dello scarico.
+- Home: durante una sessione attiva lo switch dominio viene nascosto, per evitare cambi contesto nel mezzo dello scarico.
+- Repository Spirits esteso con supporto `threshold` end-to-end (read/write/import/update massivo soglie).
+- SQL Spirits aggiornato: schema base include `threshold`; aggiunta anche migrazione incrementale per installazioni già create senza colonna soglia.
+- Allineata la documentazione al tab Google reale `Spirits` (`NOME`, `PRODUTTORE`, `ACQUISTO`, `VENDITA`, `Q.tà`, `MAGAZZINO`).
+- Verificato via SQL Editor lo stato reale di Supabase Spirits: tabelle, colonne, RLS, policies, indici, trigger e funzioni tutti coerenti.
+- Attivato lato DB il trigger `trg_spirits_notify_google_sheets` con funzione `integration.notify_google_sheets_spirits()`.
+- Config webhook Google verificata in `integration.runtime_config`: URL e secret presenti.
+- Repository `Vini` e `Spirits` allineati con fallback applicativo prudente: se `salePrice` manca viene derivata da `purchasePrice * 1.3`, senza sovrascrivere automaticamente valori storici già presenti.
+- Apps Script unico del foglio sostituito e salvato con versione `Vini + Spirits`; eseguiti `setupAllSheets`, `syncWinesFromSupabaseToSheet` e `syncSpiritsFromSupabaseToSheet` senza errori.
+- Stato operativo verificato il `04/05/2026`: tab `Spirits` e Archivio Spirits restano vuoti se `public.spirits_products` non contiene ancora record. L'assenza dati in foglio/app, in questo scenario, non indica errore di sync.
+- Verifica SQL eseguita dopo il tentativo di push dal foglio: `select count(*) from public.spirits_products` restituisce `0`.
+- Conseguenza confermata: ogni `syncSpiritsFromSupabaseToSheet` svuota il tab `Spirits`, perché il database è attualmente l'origine autorevole ma non contiene ancora righe.
+- Diagnosi Apps Script completata: erano ancora presenti due vecchi trigger installabili (`syncFromSheetToSupabase`, `syncFromSupabaseToSheet`) riferiti a funzioni non più esistenti nel nuovo script.
+- Azione eseguita: i due trigger legacy sono stati rimossi manualmente dall'utente per evitare esecuzioni automatiche incoerenti e reset del tab `Spirits`.
+- Esito operativo verificato: il caricamento Spirits funziona correttamente se si usa il comando giusto `syncSpiritsFromSheetToSupabase`; il comando opposto `syncSpiritsFromSupabaseToSheet` va usato solo quando il DB è già la fonte autorevole.
+- Stato attuale: Archivio Spirits popolato correttamente in app dopo push dal foglio; il problema principale non era il repository, ma l'uso del comando di pull al posto del push.

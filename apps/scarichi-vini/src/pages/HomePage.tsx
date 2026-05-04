@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { Logo } from '@/components/Logo';
 import { Toast } from '@/components/Toast';
+import type { AppDomain } from '@/app/appDomain';
 import { ResultsList } from '@/pages/home/ResultsList';
 import { SessionConfirmModal } from '@/pages/home/SessionConfirmModal';
+import { StartSessionDomainModal } from '@/pages/home/StartSessionDomainModal';
 import { StockEditorModal } from '@/pages/home/StockEditorModal';
 import { SummaryList } from '@/pages/home/SummaryList';
 import { useHomePage } from '@/pages/home/useHomePage';
@@ -15,6 +18,8 @@ export function HomePage({
   onIntroVisibilityChange?: (visible: boolean) => void;
 }) {
   const { activeDomain, setActiveDomain } = useAppDomain();
+  const [startDomainModalOpen, setStartDomainModalOpen] = useState(false);
+  const [pendingStartDomain, setPendingStartDomain] = useState<AppDomain | null>(null);
   const {
     showIntro,
     introVisible,
@@ -55,6 +60,33 @@ export function HomePage({
     cancelLeaveSession,
     forceRefreshHome
   } = useHomePage({ onIntroVisibilityChange, domain: activeDomain });
+
+  useEffect(() => {
+    if (!pendingStartDomain) return;
+    if (sessionOpen) {
+      setPendingStartDomain(null);
+      return;
+    }
+    if (activeDomain !== pendingStartDomain) return;
+    startSession();
+    setPendingStartDomain(null);
+  }, [activeDomain, pendingStartDomain, sessionOpen, startSession]);
+
+  const requestStartSession = () => {
+    if (sessionOpen) return;
+    setStartDomainModalOpen(true);
+  };
+
+  const handleSelectStartDomain = (domain: AppDomain) => {
+    setStartDomainModalOpen(false);
+    if (sessionOpen) return;
+    if (activeDomain === domain) {
+      startSession();
+      return;
+    }
+    setPendingStartDomain(domain);
+    setActiveDomain(domain);
+  };
 
   if (showIntro) {
     return (
@@ -109,31 +141,33 @@ export function HomePage({
           <button
             className="button homeSessionMainButton"
             type="button"
-            onClick={startSession}
+            onClick={requestStartSession}
           >
-            Inizia sessione di scarico
+            Nuovo Scarico
           </button>
         )}
-        <div className="homeDomainSwitch" role="group" aria-label="Seleziona modalità">
-          <button
-            type="button"
-            className={`homeDomainSwitchButton ${activeDomain === 'wine' ? 'homeDomainSwitchButtonActive' : ''}`}
-            onClick={() => setActiveDomain('wine')}
-            aria-pressed={activeDomain === 'wine'}
-          >
-            Vini
-          </button>
-          <button
-            type="button"
-            className={`homeDomainSwitchButton ${
-              activeDomain === 'spirits' ? 'homeDomainSwitchButtonActive' : ''
-            }`}
-            onClick={() => setActiveDomain('spirits')}
-            aria-pressed={activeDomain === 'spirits'}
-          >
-            Spirits
-          </button>
-        </div>
+        {!sessionOpen ? (
+          <div className="homeDomainSwitch" role="group" aria-label="Seleziona modalità">
+            <button
+              type="button"
+              className={`homeDomainSwitchButton ${activeDomain === 'wine' ? 'homeDomainSwitchButtonActive' : ''}`}
+              onClick={() => setActiveDomain('wine')}
+              aria-pressed={activeDomain === 'wine'}
+            >
+              Vini
+            </button>
+            <button
+              type="button"
+              className={`homeDomainSwitchButton ${
+                activeDomain === 'spirits' ? 'homeDomainSwitchButtonActive' : ''
+              }`}
+              onClick={() => setActiveDomain('spirits')}
+              aria-pressed={activeDomain === 'spirits'}
+            >
+              Spirits
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt12 searchRow">
@@ -168,6 +202,7 @@ export function HomePage({
       <div className={sessionOpen ? 'homeResultsArea homeResultsAreaSession' : 'homeResultsArea'}>
         {showResults ? (
           <ResultsList
+            domain={activeDomain}
             wines={visibleWines}
             sessionOpen={sessionOpen}
             interactive={sessionOpen}
@@ -181,6 +216,7 @@ export function HomePage({
 
       {sessionOpen ? (
         <SummaryList
+          domain={activeDomain}
           items={sessionList}
           wines={inventory}
           onIncrement={incrementItem}
@@ -215,6 +251,13 @@ export function HomePage({
         cancelLabel="Annulla"
         onConfirm={confirmLeaveSession}
         onCancel={cancelLeaveSession}
+      />
+
+      <StartSessionDomainModal
+        open={startDomainModalOpen}
+        activeDomain={activeDomain}
+        onSelect={handleSelectStartDomain}
+        onClose={() => setStartDomainModalOpen(false)}
       />
 
       {toast ? <Toast message={toast} onClose={() => setToast(null)} /> : null}

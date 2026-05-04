@@ -98,6 +98,14 @@
   min-width: 0;
 }
 
+.archiveFiltersSpirits {
+  grid-template-columns: auto minmax(280px, 1fr) minmax(340px, 0.95fr) auto auto auto auto;
+}
+
+.archiveFilterGroupSpirits {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .archiveFilterField {
   min-width: 0;
   position: relative;
@@ -353,7 +361,7 @@
 }
 
 .archiveDomainSwitchButtonActive:last-child {
-  background: #166534;
+  background: #2f86bb;
   color: #ffffff;
 }
 
@@ -385,6 +393,10 @@
   background: transparent;
   border-radius: 0;
   padding: 0;
+}
+
+.archiveStatsBoxSpirits {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .archiveStatsBox .archiveStatLabel {
@@ -550,6 +562,10 @@
   .archiveFilters {
     grid-template-columns: auto minmax(220px, 0.85fr) minmax(420px, 1.2fr) auto auto auto auto;
   }
+
+  .archiveFiltersSpirits {
+    grid-template-columns: auto minmax(220px, 0.95fr) minmax(320px, 1fr) auto auto auto auto;
+  }
 }
 
 .archiveTableSection {
@@ -628,6 +644,44 @@
 .archiveTable th:nth-child(11),
 .archiveTable td:nth-child(11) {
   width: 8.6%;
+}
+
+.archiveTableSpirits th:nth-child(1),
+.archiveTableSpirits td:nth-child(1) {
+  width: 14%;
+}
+
+.archiveTableSpirits th:nth-child(2),
+.archiveTableSpirits td:nth-child(2) {
+  width: 31%;
+}
+
+.archiveTableSpirits th:nth-child(3),
+.archiveTableSpirits td:nth-child(3) {
+  width: 16%;
+}
+
+.archiveTableSpirits th:nth-child(4),
+.archiveTableSpirits td:nth-child(4),
+.archiveTableSpirits th:nth-child(5),
+.archiveTableSpirits td:nth-child(5),
+.archiveTableSpirits th:nth-child(7),
+.archiveTableSpirits td:nth-child(7),
+.archiveTableSpirits th:nth-child(8),
+.archiveTableSpirits td:nth-child(8) {
+  width: 8.5%;
+}
+
+.archiveTableSpirits th:nth-child(6),
+.archiveTableSpirits td:nth-child(6) {
+  width: 3.8%;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.archiveTableSpirits th:nth-child(9),
+.archiveTableSpirits td:nth-child(9) {
+  width: 10.2%;
 }
 
 .archiveTable thead th {

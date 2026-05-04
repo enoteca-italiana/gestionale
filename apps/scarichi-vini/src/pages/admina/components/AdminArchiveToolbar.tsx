@@ -149,6 +149,7 @@ export function AdminArchiveToolbar({
   onOpenTotals
 }: Props) {
   const { activeDomain, setActiveDomain } = useAppDomain();
+  const isWineDomain = activeDomain === 'wine';
   const entityLabel = activeDomain === 'wine' ? 'vino' : 'spirit';
   const setStockFilter = (stock: StockFilter) => onFiltersChange({ ...filters, stock });
   const hasActiveFilters = hasActiveArchiveFilters(filters);
@@ -180,7 +181,7 @@ export function AdminArchiveToolbar({
         </div>
       </div>
 
-      <div className="archiveFilters">
+      <div className={`archiveFilters ${isWineDomain ? '' : 'archiveFiltersSpirits'}`}>
         <button className="button buttonAuto archiveAddButton" type="button" onClick={onOpenCreate}>
           {`Aggiungi ${entityLabel}`}
         </button>
@@ -192,7 +193,11 @@ export function AdminArchiveToolbar({
           onChange={(e) => onFiltersChange({ ...filters, term: e.target.value })}
         />
 
-        <div className="archiveFilterGroup" role="group" aria-label="Filtri archivio">
+        <div
+          className={`archiveFilterGroup ${isWineDomain ? '' : 'archiveFilterGroupSpirits'}`}
+          role="group"
+          aria-label="Filtri archivio"
+        >
           <StickyFilterSelect
             label="Categoria"
             ariaLabel="Filtro categoria"
@@ -229,26 +234,28 @@ export function AdminArchiveToolbar({
             onChange={(nextValue) => onFiltersChange({ ...filters, producer: nextValue })}
           />
 
-          <StickyFilterSelect
-            label="Provenienza"
-            ariaLabel="Filtro provenienza"
-            value={filters.origin}
-            allValue="all"
-            allLabel="Tutte"
-            addLabel="+ Aggiungi provenienza..."
-            options={origins}
-            active={filters.origin !== 'all'}
-            onAdd={() => {
-              onRequestAddOrigin((created) => {
-                if (!created) return;
-                onFiltersChange({ ...filters, origin: 'all' });
-              });
-            }}
-            onChange={(nextValue) => onFiltersChange({ ...filters, origin: nextValue })}
-          />
+          {isWineDomain ? (
+            <StickyFilterSelect
+              label="Provenienza"
+              ariaLabel="Filtro provenienza"
+              value={filters.origin}
+              allValue="all"
+              allLabel="Tutte"
+              addLabel="+ Aggiungi provenienza..."
+              options={origins}
+              active={filters.origin !== 'all'}
+              onAdd={() => {
+                onRequestAddOrigin((created) => {
+                  if (!created) return;
+                  onFiltersChange({ ...filters, origin: 'all' });
+                });
+              }}
+              onChange={(nextValue) => onFiltersChange({ ...filters, origin: nextValue })}
+            />
+          ) : null}
         </div>
 
-        <div className="archiveStatsBox" aria-label="Riepilogo vini">
+        <div className="archiveStatsBox" aria-label={activeDomain === 'wine' ? 'Riepilogo vini' : 'Riepilogo spirits'}>
           <button
             type="button"
             className={`archiveStatsItem archiveStatsItemTotal ${

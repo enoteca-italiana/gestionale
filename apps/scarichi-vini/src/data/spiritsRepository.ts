@@ -2,6 +2,12 @@ import type { Wine } from '@/domain/types';
 import type { ArchiveCsvWineInput } from '@/data/archiveCsv';
 import { supabase } from '@/lib/supabase';
 import { newId } from '@/data/localDb';
+import { syncSpiritDelete, syncSpiritUpsert } from '@/integrations/googleSheetsSync';
+import {
+  deriveMarginValue,
+  deriveSalePrice,
+  deriveWarehouseValue
+} from '@/domain/pricing';
 import {
   normalizeWineCategory,
   normalizeWineName,
@@ -11,6 +17,8 @@ import {
 type SpiritsRow = {
   id?: string | null;
   category?: string | null;
+  threshold?: number | string | null;
+  soglia?: number | string | null;
   nome?: string | null;
   name?: string | null;
   producer?: string | null;
@@ -59,18 +67,23 @@ function toQty(value: unknown): number {
   return Math.max(0, Math.round(qty as number));
 }
 
+function normalizeThreshold(value: unknown): number | undefined {
+  const parsed = toNumber(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  const rounded = Math.round(parsed as number);
+  if (rounded < 1) return undefined;
+  return Math.min(99, rounded);
+}
+
 function toSpirit(row: SpiritsRow, index: number): Wine {
   const nameRaw = row.name ?? row.nome ?? '';
   const producerRaw = row.producer ?? row.produttore ?? '';
   const purchasePrice = toNumber(row.purchase_price ?? row.acquisto);
-  const salePrice = toNumber(row.sale_price ?? row.vendita);
+  const salePrice = toNumber(row.sale_price ?? row.vendita) ?? deriveSalePrice(purchasePrice);
   const qty = toQty(row.qty ?? row.quantita_magazzino);
-  const margin =
-    purchasePrice !== undefined && salePrice !== undefined
-      ? Number((salePrice - purchasePrice).toFixed(2))
-      : undefined;
-  const warehouse =
-    purchasePrice !== undefined ? Number((purchasePrice * qty).toFixed(2)) : undefined;
+  const threshold = normalizeThreshold(row.threshold ?? row.soglia);
+  const margin = deriveMarginValue(purchasePrice, salePrice);
+  const warehouse = deriveWarehouseValue(purchasePrice, qty);
 
   return {
     id: row.id?.trim() ? row.id.trim() : `spirit-${index + 1}`,
@@ -78,6 +91,7 @@ function toSpirit(row: SpiritsRow, index: number): Wine {
     name: normalizeWineName(nameRaw || `SPIRIT ${index + 1}`),
     producer: normalizeWineProducer(producerRaw || 'N/D'),
     origin: '',
+    threshold,
     qty,
     purchasePrice,
     salePrice,
@@ -88,37 +102,45 @@ function toSpirit(row: SpiritsRow, index: number): Wine {
 
 function toSpiritInput(row: ArchiveCsvWineInput, fallbackId?: string): Partial<Wine> {
   const candidateId = row.id?.trim();
+  const purchasePrice = row.purchasePrice;
+  const salePrice =
+    typeof row.salePrice === 'number' ? row.salePrice : deriveSalePrice(purchasePrice);
   return {
     id: candidateId || fallbackId || newId('spirit'),
     category: row.category ? normalizeWineCategory(row.category) : undefined,
     name: normalizeWineName(row.name),
     producer: normalizeWineProducer(row.producer),
-    purchasePrice: row.purchasePrice,
-    salePrice: row.salePrice,
+    threshold: normalizeThreshold(row.threshold),
+    purchasePrice,
+    salePrice,
     qty: Number.isFinite(row.qty) ? Math.max(0, Math.round(row.qty)) : 0
   };
 }
 
 function toEnglishPayload(input: Partial<Wine> & { id?: string }) {
+  const salePrice = input.salePrice ?? deriveSalePrice(input.purchasePrice);
   return {
     id: input.id,
     category: input.category ? normalizeWineCategory(input.category) : null,
     name: normalizeWineName(input.name ?? ''),
     producer: normalizeWineProducer(input.producer ?? ''),
+    threshold: normalizeThreshold(input.threshold) ?? null,
     purchase_price: input.purchasePrice ?? null,
-    sale_price: input.salePrice ?? null,
+    sale_price: salePrice ?? null,
     qty: Number.isFinite(input.qty) ? Math.max(0, Math.round(input.qty as number)) : 0
   };
 }
 
 function toItalianPayload(input: Partial<Wine> & { id?: string }) {
+  const salePrice = input.salePrice ?? deriveSalePrice(input.purchasePrice);
   return {
     id: input.id,
     category: input.category ? normalizeWineCategory(input.category) : null,
     nome: normalizeWineName(input.name ?? ''),
     produttore: normalizeWineProducer(input.producer ?? ''),
+    soglia: normalizeThreshold(input.threshold) ?? null,
     acquisto: input.purchasePrice ?? null,
-    vendita: input.salePrice ?? null,
+    vendita: salePrice ?? null,
     quantita_magazzino: Number.isFinite(input.qty) ? Math.max(0, Math.round(input.qty as number)) : 0
   };
 }
@@ -177,7 +199,9 @@ export async function createSpirit(input: Partial<Wine>): Promise<Wine> {
     createdRow = first.data as SpiritsRow;
   }
 
-  return toSpirit(createdRow ?? { ...englishPayload, id }, 0);
+  const created = toSpirit(createdRow ?? { ...englishPayload, id }, 0);
+  await syncSpiritUpsert(created);
+  return created;
 }
 
 export async function updateSpirit(input: Partial<Wine> & { id: string }): Promise<Wine> {
@@ -207,13 +231,16 @@ export async function updateSpirit(input: Partial<Wine> & { id: string }): Promi
     updatedRow = first.data as SpiritsRow;
   }
 
-  return toSpirit(updatedRow ?? { ...englishPayload, id: input.id }, 0);
+  const updated = toSpirit(updatedRow ?? { ...englishPayload, id: input.id }, 0);
+  await syncSpiritUpsert(updated);
+  return updated;
 }
 
 export async function deleteSpirit(id: string): Promise<void> {
   if (!supabase) throw new Error('Supabase non configurato');
   const { error } = await supabase.from(SPIRITS_TABLE).delete().eq('id', id);
   if (error) throw error;
+  await syncSpiritDelete(id);
 }
 
 export async function clearSpiritsArchive(): Promise<number> {
@@ -224,6 +251,34 @@ export async function clearSpiritsArchive(): Promise<number> {
   return before.length;
 }
 
+export async function updateThresholdForAllSpirits(rawThreshold: number): Promise<number> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const threshold = normalizeThreshold(rawThreshold);
+  if (threshold === undefined) throw new Error('Valore soglia non valido');
+
+  const current = await listSpirits();
+  if (current.length === 0) return 0;
+
+  const { error } = await supabase
+    .from(SPIRITS_TABLE)
+    .update({ threshold })
+    .not('id', 'is', null);
+
+  if (error && !isSchemaColumnError(error)) throw error;
+  if (error && isSchemaColumnError(error)) {
+    throw new Error(
+      'Schema Spirits senza colonna soglia. Esegui la migrazione SQL per abilitare le soglie su spirits_products.'
+    );
+  }
+
+  const updated = sortSpirits(current.map((spirit) => ({ ...spirit, threshold })));
+  for (const spirit of updated) {
+    await syncSpiritUpsert(spirit);
+  }
+
+  return updated.length;
+}
+
 export async function replaceAllSpirits(inputRows: ArchiveCsvWineInput[]): Promise<Wine[]> {
   if (!supabase) throw new Error('Supabase non configurato');
 
@@ -231,7 +286,11 @@ export async function replaceAllSpirits(inputRows: ArchiveCsvWineInput[]): Promi
   const { error: deleteError } = await supabase.from(SPIRITS_TABLE).delete().not('id', 'is', null);
   if (deleteError) throw deleteError;
 
-  return insertSpiritsToSupabase(normalized);
+  const inserted = await insertSpiritsToSupabase(normalized);
+  for (const spirit of inserted) {
+    await syncSpiritUpsert(spirit);
+  }
+  return inserted;
 }
 
 export async function appendSpirits(inputRows: ArchiveCsvWineInput[]): Promise<Wine[]> {
@@ -254,6 +313,10 @@ export async function appendSpirits(inputRows: ArchiveCsvWineInput[]): Promise<W
     if (!isUniqueViolation(error)) throw error;
     const retried = normalized.map((item) => ({ ...item, id: newId('spirit') }));
     inserted = await insertSpiritsToSupabase(retried);
+  }
+
+  for (const spirit of inserted) {
+    await syncSpiritUpsert(spirit);
   }
 
   return sortSpirits([...current, ...inserted]);

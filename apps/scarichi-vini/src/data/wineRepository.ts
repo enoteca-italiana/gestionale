@@ -9,6 +9,11 @@ import { clearManagedOrigins } from '@/data/originRepository';
 import { clearManagedProducers } from '@/data/producerRepository';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
 import {
+  deriveMarginValue,
+  deriveSalePrice,
+  deriveWarehouseValue
+} from '@/domain/pricing';
+import {
   normalizeWineCategory,
   normalizeWineName,
   normalizeWineProducer
@@ -76,20 +81,17 @@ function enrichThresholdsFromFallback(source: Wine[], fallback: Wine[]): Wine[] 
 
 function toWine(row: WineRow): Wine {
   const purchase = typeof row.purchase_price === 'number' ? row.purchase_price : undefined;
-  const sale = typeof row.sale_price === 'number' ? row.sale_price : undefined;
+  const rawSale = typeof row.sale_price === 'number' ? row.sale_price : undefined;
+  const sale = rawSale ?? deriveSalePrice(purchase);
   const qty = Number(row.qty ?? 0);
   const margin =
     typeof row.margin === 'number'
       ? row.margin
-      : purchase !== undefined && sale !== undefined
-        ? sale - purchase
-        : undefined;
+      : deriveMarginValue(purchase, sale);
   const warehouse =
     typeof row.warehouse === 'number'
       ? row.warehouse
-      : purchase !== undefined && Number.isFinite(qty)
-        ? purchase * qty
-        : undefined;
+      : deriveWarehouseValue(purchase, qty);
 
   return {
     id: row.id,
@@ -110,14 +112,9 @@ function toWine(row: WineRow): Wine {
 }
 
 function toRowPayload(wine: Wine) {
-  const computedMargin =
-    wine.purchasePrice !== undefined && wine.salePrice !== undefined
-      ? Number((wine.salePrice - wine.purchasePrice).toFixed(2))
-      : null;
-  const computedWarehouse =
-    wine.purchasePrice !== undefined
-      ? Number((wine.purchasePrice * Math.max(0, Math.round(wine.qty))).toFixed(2))
-      : null;
+  const computedSalePrice = wine.salePrice ?? deriveSalePrice(wine.purchasePrice);
+  const computedMargin = deriveMarginValue(wine.purchasePrice, computedSalePrice) ?? null;
+  const computedWarehouse = deriveWarehouseValue(wine.purchasePrice, wine.qty) ?? null;
 
   return {
     id: wine.id,
@@ -128,7 +125,7 @@ function toRowPayload(wine: Wine) {
     origin: normalizeOrigin(wine.origin),
     threshold: normalizeThreshold(wine.threshold) ?? null,
     purchase_price: wine.purchasePrice ?? null,
-    sale_price: wine.salePrice ?? null,
+    sale_price: computedSalePrice ?? null,
     vintage: wine.vintage ?? null,
     qty: wine.qty,
     warehouse: computedWarehouse,
@@ -421,14 +418,15 @@ export type WineInput = {
 
 function normalizeInput(input: WineInput): Wine {
   const purchasePrice = Number(input.purchasePrice);
-  const salePrice = Number(input.salePrice);
+  const rawSalePrice = Number(input.salePrice);
   const qty = Number.isFinite(input.qty) ? Math.max(0, Math.round(input.qty)) : 0;
   const threshold = normalizeThreshold(input.threshold);
   const hasPurchase = Number.isFinite(purchasePrice);
-  const hasSale = Number.isFinite(salePrice);
-  const margin =
-    hasPurchase && hasSale ? Number((salePrice - purchasePrice).toFixed(2)) : undefined;
-  const warehouse = hasPurchase ? Number((purchasePrice * qty).toFixed(2)) : undefined;
+  const salePrice = Number.isFinite(rawSalePrice)
+    ? rawSalePrice
+    : deriveSalePrice(hasPurchase ? purchasePrice : undefined);
+  const margin = deriveMarginValue(hasPurchase ? purchasePrice : undefined, salePrice);
+  const warehouse = deriveWarehouseValue(hasPurchase ? purchasePrice : undefined, qty);
 
   return {
     id: input.id ?? newId('wine'),
@@ -439,7 +437,7 @@ function normalizeInput(input: WineInput): Wine {
     origin: normalizeOrigin(input.origin),
     threshold,
     purchasePrice: hasPurchase ? purchasePrice : undefined,
-    salePrice: hasSale ? salePrice : undefined,
+    salePrice,
     vintage: input.vintage?.trim() || undefined,
     qty,
     warehouse,

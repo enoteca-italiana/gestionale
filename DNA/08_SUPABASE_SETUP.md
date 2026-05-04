@@ -13,9 +13,15 @@ Ultimo aggiornamento: **04/05/2026 — CEST**.
 
 ### Nota free tier
 
-Il progetto viene messo in **pausa automatica** dopo 7 giorni senza attività.
-Soluzione implementata: keepalive doppio (hook React ogni 24h + GitHub Actions cron ogni 3 giorni).
-Se l'app mostra `ERR_NAME_NOT_RESOLVED`: riattivare manualmente dal dashboard Supabase.
+Vincoli operativi rilevanti del piano Free per questo progetto:
+
+- `500 MB` database per progetto
+- `1 GB` storage
+- compute `Nano`
+- `60` connessioni DB dirette / `200` pooler
+- progetto free pausabile; è attivo un keepalive applicativo/infrastrutturale per ridurre il rischio di pausa da inattività
+
+Soluzione implementata: keepalive doppio (hook React periodico + GitHub Actions cron ogni 3 giorni).
 
 ---
 
@@ -152,6 +158,47 @@ Tabelle legacy vuote (0 righe). RLS policy `DENY ALL` per anon e authenticated.
 Non usate dal frontend (produttori e provenienze gestiti in localStorage).
 Mantenute per compatibilità schema.
 
+### `public.spirits_products`
+
+Stato verificato via SQL Editor il `04/05/2026`.
+
+| Colonna          | Tipo                   | Note                                             |
+| ---------------- | ---------------------- | ------------------------------------------------ |
+| `id`             | uuid                   | PK, default `gen_random_uuid()`                  |
+| `category`       | text nullable          | Initcap (trigger)                                |
+| `name`           | text NOT NULL          | UPPERCASE (trigger)                              |
+| `producer`       | text NOT NULL          | Initcap (trigger)                                |
+| `purchase_price` | numeric nullable       | CHECK: >= 0                                      |
+| `sale_price`     | numeric nullable       | CHECK: >= 0                                      |
+| `qty`            | integer NOT NULL       | CHECK: >= 0, default 0                           |
+| `warehouse`      | numeric nullable       | calcolato: purchase_price × qty (trigger)        |
+| `margin`         | numeric nullable       | calcolato: sale_price − purchase_price (trigger) |
+| `updated_at`     | timestamptz NOT NULL   | aggiornato automaticamente da trigger            |
+| `threshold`      | integer nullable       | presente e verificato in produzione              |
+
+### `public.spirits_sessions`
+
+| Colonna        | Tipo                 | Note                                      |
+| -------------- | -------------------- | ----------------------------------------- |
+| `id`           | uuid                 | PK                                        |
+| `status`       | text                 | `'pending'`, `'submitted'`, `'cancelled'` |
+| `created_at`   | timestamptz          |                                           |
+| `submitted_at` | timestamptz nullable | impostato da RPC                          |
+| `total_qty`    | integer nullable     | somma bottiglie (calcolato da RPC)        |
+| `source`       | text                 | default `'web'`                           |
+
+### `public.spirits_session_items`
+
+| Colonna           | Tipo          | Note                                  |
+| ----------------- | ------------- | ------------------------------------- |
+| `id`              | uuid          | PK                                    |
+| `session_id`      | uuid          | FK → `spirits_sessions.id`            |
+| `spirit_id`       | uuid nullable | FK → `spirits_products.id`            |
+| `qty`             | integer       | CHECK: > 0                            |
+| `spirit_name`     | text nullable | snapshot al momento scarico           |
+| `spirit_producer` | text nullable | snapshot                              |
+| `spirit_category` | text nullable | snapshot                              |
+
 ---
 
 ## RPC
@@ -165,6 +212,15 @@ Procedura atomica eseguita alla conferma sessione:
 3. Imposta `status = 'submitted'`, `submitted_at = now()`, `total_qty = sum(items.qty)`
 4. Risultato: la sessione è definitivamente inviata
 
+### `submit_spirits_session(p_session_id uuid)`
+
+Stato verificato via SQL Editor il `04/05/2026`.
+
+1. Verifica che la sessione Spirits esista e sia `pending`
+2. Blocca il submit se lo stock andrebbe in negativo
+3. Aggiorna `spirits_products.qty` sottraendo le quantità degli item
+4. Imposta `status = 'submitted'`, `submitted_at = now()`, `total_qty = sum(items.qty)`
+
 ---
 
 ## Trigger DB
@@ -175,6 +231,16 @@ Procedura atomica eseguita alla conferma sessione:
 - Normalizza `category`, `producer` → `INITCAP(LOWER(TRIM(...)))`
 - Calcola `warehouse = purchase_price * qty`
 - Calcola `margin = sale_price - purchase_price`
+- Non forza ancora `sale_price = purchase_price * 1.3`: questa regola è oggi garantita lato app/repository, non ancora dal trigger DB
+- Aggiorna `updated_at = now()`
+
+### `BEFORE INSERT OR UPDATE` su `public.spirits_products`
+
+- Normalizza `name` → `UPPER(TRIM(...))`
+- Normalizza `category`, `producer` → `INITCAP(LOWER(TRIM(...)))`
+- Calcola `warehouse = purchase_price * qty`
+- Calcola `margin = sale_price - purchase_price`
+- Non forza ancora `sale_price = purchase_price * 1.3`: questa regola è oggi garantita lato app/repository, non ancora dal trigger DB
 - Aggiorna `updated_at = now()`
 
 ---
@@ -189,6 +255,9 @@ Procedura atomica eseguita alla conferma sessione:
 | `public.categories`              | Abilitata | SELECT, INSERT, UPDATE, DELETE  | UPDATE grant aggiunto 03/05 |
 | `public.origins`                 | Abilitata | Deny ALL (chiusa, legacy vuota) |                             |
 | `public.suppliers`               | Abilitata | Deny ALL (chiusa, legacy vuota) |                             |
+| `public.spirits_products`        | Abilitata | SELECT, INSERT, UPDATE, DELETE  | verificata 04/05            |
+| `public.spirits_sessions`        | Abilitata | SELECT, INSERT, UPDATE, DELETE  | verificata 04/05            |
+| `public.spirits_session_items`   | Abilitata | SELECT, INSERT, UPDATE, DELETE  | verificata 04/05            |
 
 Security advisor: `search_path` fix applicato il 03/05/2026 via psql. Grant UPDATE corretti.
 
@@ -206,6 +275,26 @@ Google Apps Script configurato in `integration.runtime_config`:
 
 Se l'URL è vuoto, emette un WARNING e continua senza errore (fail-safe).
 
+### `AFTER INSERT OR UPDATE OR DELETE` su `public.spirits_products` — Google Sheets
+
+Stato verificato/applicato il `04/05/2026`.
+
+Funzione: `integration.notify_google_sheets_spirits()`.
+
+Trigger attivo:
+
+- `trg_spirits_notify_google_sheets`
+
+Config condivisa in `integration.runtime_config`:
+
+- `google_sheets_webhook_url`: presente
+- `google_sheets_webhook_secret`: presente
+
+Nota:
+
+- lato Supabase il webhook Spirits è attivo;
+- lato Google Apps Script serve uno script unico che distingua `wines` da `spirits_products`.
+
 ---
 
 ## Indici
@@ -213,6 +302,21 @@ Se l'URL è vuoto, emette un WARNING e continua senza errore (fail-safe).
 Indici B-Tree su campi filtro principali: `category`, `producer`, `origin`, `qty`, `threshold`.
 Indice funzionale su `lower(name)` per ricerche case-insensitive.
 Indici compositi su `discharge_sessions(status, created_at DESC)` e `(status, submitted_at DESC)`.
+
+Per `spirits_products` sono verificati:
+
+- `idx_spirits_products_category`
+- `idx_spirits_products_producer`
+- `idx_spirits_products_qty`
+- `idx_spirits_products_threshold`
+- `idx_spirits_products_name_lower`
+
+Per `spirits_sessions` / `spirits_session_items` sono verificati:
+
+- `idx_spirits_sessions_status_created`
+- `idx_spirits_sessions_status_submitted`
+- `idx_spirits_session_items_session`
+- `idx_spirits_session_items_spirit`
 
 Dimensione totale DB (pubblico): ~3.4 MB — di cui `wines` ~3.2 MB (dati + indici).
 
@@ -227,6 +331,7 @@ Script cleanup indici duplicati: `scripts/sql/supabase_enterprise_index_cleanup.
 | `scripts/sql/supabase_enterprise_index_cleanup.sql` | Rimuove indici duplicati su session items, esegue ANALYZE |
 | `scripts/sql/supabase_text_casing_policy.sql`       | Trigger normalizzazione campi + retroattivo su wines      |
 | `scripts/sql/2026-05-04_spirits_domain_setup.sql`   | Setup tabelle Spirits (`spirits_products`, `spirits_sessions`, `spirits_session_items`) + RPC `submit_spirits_session` + RLS/GRANT |
+| `scripts/sql/2026-05-04_spirits_threshold_enable.sql` | Migrazione incrementale: aggiunge `threshold` a `spirits_products` + CHECK + indice |
 
 ---
 

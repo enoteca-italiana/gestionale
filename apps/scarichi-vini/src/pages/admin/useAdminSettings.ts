@@ -8,7 +8,12 @@ import {
   replaceAllWines,
   updateThresholdForAllWines
 } from '@/data/wineRepository';
-import { appendSpirits, listSpirits, replaceAllSpirits } from '@/data/spiritsRepository';
+import {
+  appendSpirits,
+  listSpirits,
+  replaceAllSpirits,
+  updateThresholdForAllSpirits
+} from '@/data/spiritsRepository';
 import { exportArchiveExcel, exportArchivePdf } from '@/pages/admina/utils/archiveExport';
 import { sha256Base64 } from '@/pages/admin/crypto';
 
@@ -243,10 +248,6 @@ export function useAdminSettings({
 
   const confirmBulkThresholdWithPin = async () => {
     if (thresholdBusy) return;
-    if (activeDomain !== 'wine') {
-      setThresholdPinError('Operazione disponibile solo in modalità Vini.');
-      return;
-    }
     const nextThreshold = parseThresholdValue();
     if (nextThreshold === null) {
       setThresholdError('Inserisci una soglia valida (numero intero >= 1).');
@@ -265,7 +266,11 @@ export function useAdminSettings({
         setThresholdPinError('PIN non corretto');
         return;
       }
-      await updateThresholdForAllWines(nextThreshold);
+      if (activeDomain === 'wine') {
+        await updateThresholdForAllWines(nextThreshold);
+      } else {
+        await updateThresholdForAllSpirits(nextThreshold);
+      }
       setThresholdConfirm2(false);
       setThresholdModalOpen(false);
       setThresholdValue('');

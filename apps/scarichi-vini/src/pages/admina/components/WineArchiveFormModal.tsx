@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import { AlertTriangle } from 'lucide-react';
 import type { Mode, WineFormState } from '@/pages/admina/types';
+import { deriveSalePrice } from '@/domain/pricing';
 
 type Props = {
+  domain: AppDomain;
   open: boolean;
   mode: Mode;
   busy: boolean;
@@ -48,7 +51,8 @@ function normalizePriceInput(rawValue: string): string {
 function buildAutoSalePriceInput(purchaseInput: string): string {
   const purchase = asNumber(purchaseInput);
   if (purchase === undefined) return '';
-  const sale = Number((purchase * 1.3).toFixed(2));
+  const sale = deriveSalePrice(purchase);
+  if (sale === undefined) return '';
   return formatNumberForPriceInput(sale);
 }
 
@@ -60,6 +64,7 @@ function normalizeYear(value?: string) {
 }
 
 export function WineArchiveFormModal({
+  domain,
   open,
   mode,
   busy,
@@ -73,6 +78,7 @@ export function WineArchiveFormModal({
   onSubmit,
   onCancel
 }: Props) {
+  const isWineDomain = domain === 'wine';
   const [state, setState] = useState<WineFormState>(initial);
   const [purchasePriceInput, setPurchasePriceInput] = useState('');
   const [salePriceInput, setSalePriceInput] = useState('');
@@ -111,12 +117,10 @@ export function WineArchiveFormModal({
   }, [open, initial]);
 
   const canSubmit = useMemo(() => {
-    return (
-      state.name.trim().length > 0 &&
-      state.producer.trim().length > 0 &&
-      state.origin.trim().length > 0
-    );
-  }, [state.name, state.origin, state.producer]);
+    if (!state.name.trim() || !state.producer.trim()) return false;
+    if (!isWineDomain) return true;
+    return state.origin.trim().length > 0;
+  }, [isWineDomain, state.name, state.origin, state.producer]);
 
   if (!open) return null;
 
@@ -138,7 +142,10 @@ export function WineArchiveFormModal({
       const salePriceForSubmitInput = buildAutoSalePriceInput(purchasePriceInput);
       await onSubmit({
         ...state,
-        age: normalizeYear(state.age),
+        age: isWineDomain ? normalizeYear(state.age) : '',
+        origin: isWineDomain ? state.origin : '',
+        threshold: state.threshold,
+        notes: isWineDomain ? state.notes : '',
         purchasePrice: asNumber(purchasePriceInput),
         salePrice: asNumber(salePriceForSubmitInput),
         qty: Number.isFinite(state.qty) ? Math.max(0, Math.round(state.qty)) : 0
@@ -152,7 +159,15 @@ export function WineArchiveFormModal({
   return (
     <div className="modalOverlay" role="dialog" aria-modal="true">
       <div className="modalCard archiveModalCard">
-        <div className="modalTitle">{mode === 'create' ? 'Aggiungi vino' : 'Modifica vino'}</div>
+        <div className="modalTitle">
+          {mode === 'create'
+            ? isWineDomain
+              ? 'Aggiungi vino'
+              : 'Aggiungi spirit'
+            : isWineDomain
+              ? 'Modifica vino'
+              : 'Modifica spirit'}
+        </div>
 
         <div className="archiveFormGrid mt12">
           <label className="modalLabel">
@@ -188,21 +203,23 @@ export function WineArchiveFormModal({
               onChange={(e) => setField('name', e.target.value)}
             />
           </label>
-          <label className="modalLabel">
-            Anno
-            <select
-              className="input mt4"
-              value={state.age ?? ''}
-              onChange={(e) => setField('age', e.target.value)}
-            >
-              <option value="">Vuoto</option>
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </label>
+          {isWineDomain ? (
+            <label className="modalLabel">
+              Anno
+              <select
+                className="input mt4"
+                value={state.age ?? ''}
+                onChange={(e) => setField('age', e.target.value)}
+              >
+                <option value="">Vuoto</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <label className="modalLabel">
             Produttore
@@ -229,33 +246,8 @@ export function WineArchiveFormModal({
               ))}
             </select>
           </label>
-          <div className="archiveFormInlineOriginThreshold">
+          {!isWineDomain ? (
             <label className="modalLabel">
-              Provenienza
-              <select
-                className="input mt4"
-                value={state.origin}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '__add_origin__') {
-                    onRequestAddOrigin((created) => {
-                      if (created) setField('origin', created);
-                    });
-                    return;
-                  }
-                  setField('origin', value);
-                }}
-              >
-                <option value="__add_origin__">+ Aggiungi provenienza…</option>
-                <option value="">Seleziona provenienza</option>
-                {origins.map((origin) => (
-                  <option key={origin} value={origin}>
-                    {origin}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="modalLabel archiveFormThresholdLabel">
               <span className="archiveThresholdTitle">
                 Soglia
                 <AlertTriangle className="archiveThresholdWarning" size={14} strokeWidth={1.8} />
@@ -282,7 +274,63 @@ export function WineArchiveFormModal({
                 ))}
               </select>
             </label>
-          </div>
+          ) : null}
+          {isWineDomain ? (
+            <div className="archiveFormInlineOriginThreshold">
+              <label className="modalLabel">
+                Provenienza
+                <select
+                  className="input mt4"
+                  value={state.origin}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '__add_origin__') {
+                      onRequestAddOrigin((created) => {
+                        if (created) setField('origin', created);
+                      });
+                      return;
+                    }
+                    setField('origin', value);
+                  }}
+                >
+                  <option value="__add_origin__">+ Aggiungi provenienza…</option>
+                  <option value="">Seleziona provenienza</option>
+                  {origins.map((origin) => (
+                    <option key={origin} value={origin}>
+                      {origin}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="modalLabel archiveFormThresholdLabel">
+                <span className="archiveThresholdTitle">
+                  Soglia
+                  <AlertTriangle className="archiveThresholdWarning" size={14} strokeWidth={1.8} />
+                </span>
+                <select
+                  className="input mt4"
+                  value={state.threshold === undefined ? '' : String(state.threshold)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (!value) {
+                      setState((prev) => ({ ...prev, threshold: undefined }));
+                      return;
+                    }
+                    const parsed = Number(value);
+                    if (!Number.isFinite(parsed)) return;
+                    setState((prev) => ({ ...prev, threshold: Math.max(1, Math.round(parsed)) }));
+                  }}
+                >
+                  <option value="">Vuoto</option>
+                  {thresholdOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
           <div className="archiveFormInline3">
             <label className="modalLabel archiveFormQtyLabel">
               Q.tà
@@ -337,15 +385,17 @@ export function WineArchiveFormModal({
               </div>
             </label>
           </div>
-          <label className="modalLabel archiveFormSpan2">
-            Note
-            <textarea
-              className="input mt4 archiveNotesInput"
-              value={state.notes ?? ''}
-              onChange={(e) => setField('notes', e.target.value)}
-              rows={2}
-            />
-          </label>
+          {isWineDomain ? (
+            <label className="modalLabel archiveFormSpan2">
+              Note
+              <textarea
+                className="input mt4 archiveNotesInput"
+                value={state.notes ?? ''}
+                onChange={(e) => setField('notes', e.target.value)}
+                rows={2}
+              />
+            </label>
+          ) : null}
         </div>
 
         {error ? <div className="errorText mt8">{error}</div> : null}

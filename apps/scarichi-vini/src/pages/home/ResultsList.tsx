@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import type { Wine } from '@/domain/types';
 import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
 
@@ -11,6 +12,7 @@ export function ResultsList({
   onDecrement,
   onSelectWine,
   sessionOpen,
+  domain = 'wine',
   interactive = true
 }: {
   wines: Wine[];
@@ -19,8 +21,10 @@ export function ResultsList({
   onDecrement?: (wineId: string) => void;
   onSelectWine?: (wine: Wine) => void;
   sessionOpen: boolean;
+  domain?: AppDomain;
   interactive?: boolean;
 }) {
+  const entityLabelPlural = domain === 'wine' ? 'vini' : 'spirits';
   const showActions = interactive && sessionOpen;
   const [selectedWineId, setSelectedWineId] = useState<string | null>(null);
   const [selectedWineSnapshot, setSelectedWineSnapshot] = useState<Wine | null>(null);
@@ -94,7 +98,11 @@ export function ResultsList({
   if (!interactive) {
     return (
       <>
-        <div className="mt12 consultiveList" role="list" aria-label="Lista vini consultiva">
+        <div
+          className="mt12 consultiveList"
+          role="list"
+          aria-label={`Lista ${entityLabelPlural} consultiva`}
+        >
           {renderedWines.map((w, idx) => (
             <button
               key={w.id}
@@ -131,7 +139,7 @@ export function ResultsList({
               type="button"
               onClick={() => setVisibleCount((prev) => prev + LIST_RENDER_BATCH)}
             >
-              Carica altri vini ({wines.length - renderedWines.length})
+              {`Carica altri ${entityLabelPlural} (${wines.length - renderedWines.length})`}
             </button>
           </div>
         ) : null}
@@ -141,7 +149,11 @@ export function ResultsList({
 
   return (
     <>
-      <div className="mt12 consultiveList" role="list" aria-label="Lista vini sessione">
+      <div
+        className="mt12 consultiveList"
+        role="list"
+        aria-label={`Lista ${entityLabelPlural} sessione`}
+      >
         {renderedWines.map((w, idx) => (
           <button
             key={w.id}
@@ -180,7 +192,7 @@ export function ResultsList({
             type="button"
             onClick={() => setVisibleCount((prev) => prev + LIST_RENDER_BATCH)}
           >
-            Carica altri vini ({wines.length - renderedWines.length})
+            {`Carica altri ${entityLabelPlural} (${wines.length - renderedWines.length})`}
           </button>
         </div>
       ) : null}

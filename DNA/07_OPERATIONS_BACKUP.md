@@ -170,7 +170,7 @@ bash backup/make_backup.sh "Backup_2 Maggio_16.00"
 
 Esempio: `Backup_2 Maggio_16.30.tar.gz`
 
-Ultimo backup creato: **`Backup_4 Maggio_14.36.tar.gz`** (872K)
+Ultimo backup creato: **`Backup_4 Maggio_16.24.tar.gz`** (880K)
 
 ### Esclusioni
 
@@ -182,9 +182,9 @@ Quando viene richiesto un nuovo backup:
 
 1. Calcola nome: `Backup_<giorno> <MeseItaliano>_<HH.MM>`
 2. Esegui: `bash backup/make_backup.sh "Backup_<nome>"`
-3. Elimina backup vecchi, lascia solo l'ultimo
+3. Non sovrascrivere i backup precedenti, salvo richiesta esplicita dell'utente
 4. Aggiorna voce "Ultimo backup creato" in questo file
-5. Risposta: solo nome file e dimensione. Nessuna spiegazione aggiuntiva.
+5. Risposta: nome file e dimensione
 
 ---
 
