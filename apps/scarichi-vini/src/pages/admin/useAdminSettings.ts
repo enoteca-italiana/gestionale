@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getBool, storageKeys } from '@/pages/admin/storage';
 import { parseArchiveCsv, type ArchiveCsvWineInput } from '@/data/archiveCsv';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import {
   appendWines,
   listWines,

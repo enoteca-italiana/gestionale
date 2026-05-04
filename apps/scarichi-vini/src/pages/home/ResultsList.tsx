@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import type { Wine } from '@/domain/types';
 import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
 

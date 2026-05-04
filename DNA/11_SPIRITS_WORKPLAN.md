@@ -250,10 +250,14 @@ Decisione UI già approvata:
 - Config webhook Google verificata in `integration.runtime_config`: URL e secret presenti.
 - Repository `Vini` e `Spirits` allineati con fallback applicativo prudente: se `salePrice` manca viene derivata da `purchasePrice * 1.3`, senza sovrascrivere automaticamente valori storici già presenti.
 - Apps Script unico del foglio sostituito e salvato con versione `Vini + Spirits`; eseguiti `setupAllSheets`, `syncWinesFromSupabaseToSheet` e `syncSpiritsFromSupabaseToSheet` senza errori.
-- Stato operativo verificato il `04/05/2026`: tab `Spirits` e Archivio Spirits restano vuoti se `public.spirits_products` non contiene ancora record. L'assenza dati in foglio/app, in questo scenario, non indica errore di sync.
-- Verifica SQL eseguita dopo il tentativo di push dal foglio: `select count(*) from public.spirits_products` restituisce `0`.
-- Conseguenza confermata: ogni `syncSpiritsFromSupabaseToSheet` svuota il tab `Spirits`, perché il database è attualmente l'origine autorevole ma non contiene ancora righe.
+- Stato operativo verificato il `04/05/2026`: dopo il push corretto `syncSpiritsFromSheetToSupabase`, Archivio Spirits e tab Google si popolano correttamente dal DB.
 - Diagnosi Apps Script completata: erano ancora presenti due vecchi trigger installabili (`syncFromSheetToSupabase`, `syncFromSupabaseToSheet`) riferiti a funzioni non più esistenti nel nuovo script.
 - Azione eseguita: i due trigger legacy sono stati rimossi manualmente dall'utente per evitare esecuzioni automatiche incoerenti e reset del tab `Spirits`.
 - Esito operativo verificato: il caricamento Spirits funziona correttamente se si usa il comando giusto `syncSpiritsFromSheetToSupabase`; il comando opposto `syncSpiritsFromSupabaseToSheet` va usato solo quando il DB è già la fonte autorevole.
-- Stato attuale: Archivio Spirits popolato correttamente in app dopo push dal foglio; il problema principale non era il repository, ma l'uso del comando di pull al posto del push.
+- Audit diretto via API con service-role locale:
+  - `wines`: `6382` record
+  - `spirits_products`: `1684` record
+  - `spirits_sessions`: `0`
+  - `spirits_session_items`: `0`
+- Campionamento diretto su `spirits_products` conferma record persistiti con `name` maiuscolo, `producer` normalizzato, `sale_price`, `warehouse` e `margin` coerenti.
+- Quality pass completato sul codice applicativo: `test`, `typecheck`, `lint` e `build` verdi dopo split di `appDomainContext` e normalizzazione difensiva di `VITE_SUPABASE_URL` nel client frontend.

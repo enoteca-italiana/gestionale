@@ -111,8 +111,12 @@ apps/scarichi-vini/
       formatWineInfoLine.ts     — riga info vino: "Produttore • Anno • Provenienza"
 
     lib/
-      supabase.ts               — client Supabase (nullable se env vars assenti)
+      supabase.ts               — client Supabase (normalizza URL anche se env contiene `/rest/v1/`)
       useSupabaseKeepalive.ts   — hook ping Supabase ogni 24h via localStorage TTL
+
+    app/
+      appDomain.tsx             — provider React del dominio attivo (`wine` / `spirits`)
+      appDomainContext.ts       — tipo/hook/contesto dominio, separati dal provider per Fast Refresh pulito
 
     data/
       localDb.ts                — DB locale (localStorage), tipi, seed, notifiche cross-tab

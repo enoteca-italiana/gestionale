@@ -96,6 +96,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 
 Configurazione: secret Replit `SUPABASE_URL` + `SUPABASE_ANON_KEY`. In produzione: variabili ambiente Cloudflare Pages.
 Riferimento codice: `src/lib/supabase.ts` — crea il client Supabase, restituisce `null` se le variabili sono assenti (fallback localStorage puro).
+Nota aggiornata `04/05/2026`: il client frontend normalizza automaticamente URL configurate con suffisso errato `/rest/v1/`, così evita path REST duplicati in locale.
 
 ---
 

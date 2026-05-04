@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import {
   clearSubmittedHistoryByRetentionDomain,
   deleteSubmittedDischargeSessionByDomain,

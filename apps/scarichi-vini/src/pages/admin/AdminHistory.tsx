@@ -2,7 +2,7 @@ import type {
   DischargeSessionSummary,
   SubmittedHistoryRetention
 } from '@/data/dischargeRepository';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { RefreshCcw, Trash2 } from 'lucide-react';
 import { formatDateTime, formatDateTimeLabel } from '@/pages/admin/historyUtils';

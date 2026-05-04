@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import type { Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { FileText, Pencil, Trash2 } from 'lucide-react';

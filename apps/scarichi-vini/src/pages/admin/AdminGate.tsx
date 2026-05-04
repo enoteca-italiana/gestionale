@@ -5,7 +5,7 @@ import { AdminHome, type AdminRootSection } from '@/pages/admin/AdminHome';
 import { AdminLogin } from '@/pages/admin/AdminLogin';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { useAdminAuth } from '@/pages/admin/useAdminAuth';
-import { useAppDomain } from '@/app/appDomain';
+import { useAppDomain } from '@/app/appDomainContext';
 
 type AdminSection = 'home' | 'history' | 'registryManager';
 type SettingsAction =

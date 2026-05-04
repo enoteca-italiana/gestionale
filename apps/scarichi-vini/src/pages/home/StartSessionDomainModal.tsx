@@ -1,4 +1,4 @@
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 
 export function StartSessionDomainModal({
   open,

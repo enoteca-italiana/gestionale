@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import type { SessionItem, Wine } from '@/domain/types';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { ChevronDown } from 'lucide-react';

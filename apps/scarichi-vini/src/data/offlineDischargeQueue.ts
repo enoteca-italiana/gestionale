@@ -1,5 +1,5 @@
 import type { DischargeItemInput } from '@/data/dischargeRepository';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 
 const DISCHARGE_QUEUE_STORAGE_KEY = 'scarichi.dischargeQueue.v1';
 export const dischargeQueueChangedEvent = 'scarichi:dischargeQueueChanged';

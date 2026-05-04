@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { Logo } from '@/components/Logo';
 import { Toast } from '@/components/Toast';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { ResultsList } from '@/pages/home/ResultsList';
 import { SessionConfirmModal } from '@/pages/home/SessionConfirmModal';
 import { StartSessionDomainModal } from '@/pages/home/StartSessionDomainModal';
 import { StockEditorModal } from '@/pages/home/StockEditorModal';
 import { SummaryList } from '@/pages/home/SummaryList';
 import { useHomePage } from '@/pages/home/useHomePage';
-import { useAppDomain } from '@/app/appDomain';
+import { useAppDomain } from '@/app/appDomainContext';
 import { RefreshCcw } from 'lucide-react';
 
 export function HomePage({

@@ -73,8 +73,17 @@ export const supabase: SupabaseClient | null;
 ```
 
 - Crea il client Supabase con `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+- Se `VITE_SUPABASE_URL` contiene per errore il suffisso `/rest/v1/`, lo rimuove prima di creare il client.
 - Restituisce `null` se una delle due variabili è assente → l'app funziona in modalità solo-locale.
 - Tutto il codice che usa Supabase controlla `if (supabase)` prima di chiamare.
+
+---
+
+## `src/app/appDomainContext.ts`
+
+- Espone `AppDomain`, `AppDomainContextValue`, `useAppDomain()`.
+- Contiene anche persistenza `localStorage` del dominio attivo (`scarichi.activeDomain.v1`).
+- È stato separato da `appDomain.tsx` per eliminare warning Fast Refresh e mantenere il provider React in un file che esporta solo componenti.
 
 ---
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { AlertTriangle } from 'lucide-react';
 import type { Mode, WineFormState } from '@/pages/admina/types';
 import { deriveSalePrice } from '@/domain/pricing';

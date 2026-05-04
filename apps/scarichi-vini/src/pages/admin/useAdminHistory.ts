@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { sha256Base64 } from '@/pages/admin/crypto';
 import { storageKeys } from '@/pages/admin/storage';
 import {

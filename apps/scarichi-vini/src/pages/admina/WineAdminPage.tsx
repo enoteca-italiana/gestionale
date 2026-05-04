@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { useAppDomain } from '@/app/appDomain';
+import { useAppDomain } from '@/app/appDomainContext';
 import { AdminArchiveToolbar } from '@/pages/admina/components/AdminArchiveToolbar';
 import { AdminArchiveTable } from '@/pages/admina/components/AdminArchiveTable';
 import { BulkEditFilteredModal } from '@/pages/admina/components/BulkEditFilteredModal';

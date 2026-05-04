@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import type { DischargeQueueStatusDetail } from '@/data/offlineDischargeQueue';
 import {

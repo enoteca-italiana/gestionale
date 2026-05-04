@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import type { Wine } from '@/domain/types';
 import type { LocalDbState } from '@/data/localDb';
 import {
@@ -99,7 +99,7 @@ export function useLocalDb(domain: AppDomain = 'wine') {
     [flushPending]
   );
 
-  const inventory = isWineDomain ? db.inventory : [];
+  const inventory = useMemo(() => (isWineDomain ? db.inventory : []), [db.inventory, isWineDomain]);
   const history = db.history;
 
   const setInventory = useCallback(

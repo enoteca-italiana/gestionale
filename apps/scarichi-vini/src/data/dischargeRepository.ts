@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
 import {
   normalizeWineCategory,

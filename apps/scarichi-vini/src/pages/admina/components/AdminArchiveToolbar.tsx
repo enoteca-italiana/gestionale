@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { hasActiveArchiveFilters, type Filters, type StockFilter } from '@/pages/admina/types';
-import { useAppDomain } from '@/app/appDomain';
+import { useAppDomain } from '@/app/appDomainContext';
 import { ChevronDown, RefreshCcw } from 'lucide-react';
 
 type Props = {

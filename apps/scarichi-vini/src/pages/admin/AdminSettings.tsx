@@ -6,7 +6,7 @@ import { ResetModal } from './settings/ResetModal';
 import { ImportModal } from './settings/ImportModal';
 import { ExportModal } from './settings/ExportModal';
 import { useAdminSettings } from '@/pages/admin/useAdminSettings';
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 
 export function AdminSettings({
   onChangePassword,

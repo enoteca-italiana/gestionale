@@ -1,4 +1,4 @@
-import type { AppDomain } from '@/app/appDomain';
+import type { AppDomain } from '@/app/appDomainContext';
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react';
 import type { SortDir, SortKey } from './archiveTableUtils';
 
