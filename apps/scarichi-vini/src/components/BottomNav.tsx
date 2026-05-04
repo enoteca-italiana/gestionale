@@ -91,7 +91,6 @@ export function BottomNav({
           <House size={26} strokeWidth={1.4} />
           <span>Home</span>
         </Link>
-<<<<<<< HEAD
         <Link
           href={APP_ROUTES.ARCHIVE}
           className={`navNavItem navNavItemArchive ${isArchive ? 'navNavItemActive' : ''}`}
