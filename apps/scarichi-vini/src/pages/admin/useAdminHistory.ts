@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import { sha256Base64 } from '@/pages/admin/crypto';
 import { storageKeys } from '@/pages/admin/storage';
 import {
-  listSubmittedDischargeSessionItems,
+  listSubmittedDischargeSessionItemsByDomain,
   type DischargeSessionItemDetail,
   type DischargeSessionSummary,
   type SubmittedHistoryRetention
@@ -16,10 +17,12 @@ import {
 
 export function useAdminHistory({
   history,
+  domain,
   onReset,
   onDeleteSession
 }: {
   history: DischargeSessionSummary[];
+  domain: AppDomain;
   onReset: (retention: SubmittedHistoryRetention) => void;
   onDeleteSession: (sessionId: string) => Promise<void>;
 }) {
@@ -91,7 +94,7 @@ export function useAdminHistory({
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const items = await listSubmittedDischargeSessionItems(session.id);
+      const items = await listSubmittedDischargeSessionItemsByDomain(domain, session.id);
       setDetailItems(items);
     } catch (error) {
       console.error('[AdminHistory] load session detail failed', error);

@@ -54,7 +54,7 @@ export function HomePage({
     confirmLeaveSession,
     cancelLeaveSession,
     forceRefreshHome
-  } = useHomePage({ onIntroVisibilityChange });
+  } = useHomePage({ onIntroVisibilityChange, domain: activeDomain });
 
   if (showIntro) {
     return (
@@ -106,7 +106,11 @@ export function HomePage({
             Conferma Scarico
           </button>
         ) : (
-          <button className="button homeSessionMainButton" type="button" onClick={startSession}>
+          <button
+            className="button homeSessionMainButton"
+            type="button"
+            onClick={startSession}
+          >
             Inizia sessione di scarico
           </button>
         )}
@@ -135,7 +139,7 @@ export function HomePage({
       <div className="mt12 searchRow">
         <input
           className="input inputSearch inputSearchCompact"
-          placeholder="Cerca vino..."
+          placeholder={activeDomain === 'wine' ? 'Cerca vino...' : 'Cerca spirit...'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

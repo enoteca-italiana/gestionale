@@ -938,48 +938,6 @@
   margin: 0 auto;
 }
 
-.adminHistoryHeaderRow {
-  position: relative;
-  min-height: 36px;
-  margin-bottom: 10px;
-}
-
-.adminHistoryDomainSwitch {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  border: 1px solid #b57a9a;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #ffffff;
-  min-width: 136px;
-  height: 35px;
-}
-
-.adminHistoryDomainSwitchButton {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: #7c164a;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 0 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.adminHistoryDomainSwitchButtonActive {
-  background: #7c164a;
-  color: #ffffff;
-}
-
-.adminHistoryDomainSwitchButtonActive:last-child {
-  background: #166534;
-  color: #ffffff;
-}
-
 .adminHistoryDateRangeWrap {
   display: flex;
   justify-content: center;
@@ -1134,6 +1092,19 @@
 
 .adminHistoryResetSpacer {
   height: 96px;
+}
+
+.adminDomainContextBadge {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (min-width: 769px) {
@@ -1312,15 +1283,4 @@
     align-self: center;
   }
 
-  .adminHistoryHeaderRow {
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .adminHistoryDomainSwitch {
-    position: static;
-    align-self: flex-end;
-  }
 }

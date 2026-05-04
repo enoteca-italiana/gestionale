@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import type { AppDomain } from '@/app/appDomain';
 import { normalizeOrigin } from '@/domain/normalizeOrigin';
 import {
   normalizeWineCategory,
@@ -19,6 +20,10 @@ export type DischargeSessionSummary = {
 
 export type DischargeItemInput = {
   wineId: string;
+  qty: number;
+};
+export type SpiritsDischargeItemInput = {
+  spiritId: string;
   qty: number;
 };
 
@@ -65,6 +70,7 @@ type SessionRow = {
   total_qty?: number | null;
   status: DischargeStatus;
   discharge_session_items?: Array<{ count: number | null }> | null;
+  spirits_session_items?: Array<{ count: number | null }> | null;
 };
 
 type SessionItemRow = {
@@ -139,6 +145,35 @@ export async function listDischargeSessions(
   const rows = (sessions ?? []) as SessionRow[];
   if (rows.length === 0) return [];
 
+  return rows.map((row) => ({
+    id: row.id,
+    createdAt: new Date(row.created_at).getTime(),
+    submittedAt: row.submitted_at ? new Date(row.submitted_at).getTime() : undefined,
+    totalQty: Number(row.total_qty ?? 0),
+    itemsCount: Number(row.spirits_session_items?.[0]?.count ?? 0),
+    status: row.status
+  }));
+}
+
+export async function listDischargeSessionsByDomain(
+  domain: AppDomain,
+  status: DischargeStatus,
+  options?: { limit?: number }
+): Promise<DischargeSessionSummary[]> {
+  if (domain === 'wine') return listDischargeSessions(status, options);
+  const client = requireSupabase();
+  const limit = Math.max(1, Math.min(options?.limit ?? 300, 2000));
+  const { data, error } = await client
+    .from('spirits_sessions')
+    .select('id, created_at, submitted_at, total_qty, status, spirits_session_items(count)')
+    .eq('status', status)
+    .order(status === 'submitted' ? 'submitted_at' : 'created_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.error('[dischargeRepository] spirits sessions list error', error);
+    return [];
+  }
+  const rows = (data ?? []) as SessionRow[];
   return rows.map((row) => ({
     id: row.id,
     createdAt: new Date(row.created_at).getTime(),
@@ -252,9 +287,63 @@ export async function createDischargeSession(input: {
   return session.id as string;
 }
 
+export async function createSpiritsDischargeSession(input: {
+  items: SpiritsDischargeItemInput[];
+  source?: string;
+}): Promise<string> {
+  const client = requireSupabase();
+  const cleanItems = input.items.filter((item) => item.qty > 0);
+  if (cleanItems.length === 0) throw new Error('Sessione vuota');
+
+  const { data: session, error: sessionError } = await client
+    .from('spirits_sessions')
+    .insert({
+      status: 'pending',
+      source: input.source ?? 'web'
+    })
+    .select('id')
+    .single();
+  if (sessionError) throw sessionError;
+
+  const spiritIds = [...new Set(cleanItems.map((item) => item.spiritId))];
+  let snapshotsById = new Map<string, { id: string; name?: string | null; producer?: string | null; category?: string | null }>();
+  if (spiritIds.length > 0) {
+    const { data: snapshotRows, error: snapshotError } = await client
+      .from('spirits_products')
+      .select('id, name, producer, category')
+      .in('id', spiritIds);
+    if (snapshotError) throw snapshotError;
+    snapshotsById = new Map((snapshotRows ?? []).map((row) => [row.id, row] as const));
+  }
+
+  const rows = cleanItems.map((item) => {
+    const snap = snapshotsById.get(item.spiritId);
+    return {
+      session_id: session.id,
+      spirit_id: item.spiritId,
+      qty: item.qty,
+      spirit_name: snap?.name ? normalizeWineName(snap.name) : null,
+      spirit_producer: snap?.producer ? normalizeWineProducer(snap.producer) : null,
+      spirit_category: snap?.category ? normalizeWineCategory(snap.category) : null
+    };
+  });
+
+  const { error: itemsError } = await client.from('spirits_session_items').insert(rows);
+  if (itemsError) throw itemsError;
+  return session.id as string;
+}
+
 export async function submitDischargeSession(sessionId: string): Promise<void> {
   const client = requireSupabase();
   const { error } = await client.rpc('submit_discharge_session', {
+    p_session_id: sessionId
+  });
+  if (error) throw error;
+}
+
+export async function submitSpiritsDischargeSession(sessionId: string): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client.rpc('submit_spirits_session', {
     p_session_id: sessionId
   });
   if (error) throw error;
@@ -268,6 +357,15 @@ export async function createAndSubmitDischargeSession(input: {
   const sessionId = await createDischargeSession(input);
   await submitDischargeSession(sessionId);
   await reconcileSubmittedSessionStock(input.items, input.expectedQtyByWineId);
+  return sessionId;
+}
+
+export async function createAndSubmitSpiritsDischargeSession(input: {
+  items: SpiritsDischargeItemInput[];
+  source?: string;
+}): Promise<string> {
+  const sessionId = await createSpiritsDischargeSession(input);
+  await submitSpiritsDischargeSession(sessionId);
   return sessionId;
 }
 
@@ -318,6 +416,23 @@ export async function deleteSubmittedDischargeSession(sessionId: string): Promis
   if (error) throw error;
 }
 
+export async function deleteSubmittedDischargeSessionByDomain(
+  domain: AppDomain,
+  sessionId: string
+): Promise<void> {
+  if (domain === 'wine') {
+    await deleteSubmittedDischargeSession(sessionId);
+    return;
+  }
+  const client = requireSupabase();
+  const { error } = await client
+    .from('spirits_sessions')
+    .delete()
+    .eq('id', sessionId)
+    .eq('status', 'submitted');
+  if (error) throw error;
+}
+
 export type SubmittedHistoryRetention = 'all' | '7d' | '30d' | '3m' | '12m' | '18m' | '2y' | '3y';
 
 function computeRetentionCutoffIso(retention: Exclude<SubmittedHistoryRetention, 'all'>): string {
@@ -345,6 +460,29 @@ export async function clearSubmittedHistoryByRetention(
   const cutoffIso = computeRetentionCutoffIso(retention);
   const { error } = await client
     .from('discharge_sessions')
+    .delete()
+    .eq('status', 'submitted')
+    .lt('submitted_at', cutoffIso);
+  if (error) throw error;
+}
+
+export async function clearSubmittedHistoryByRetentionDomain(
+  domain: AppDomain,
+  retention: SubmittedHistoryRetention
+): Promise<void> {
+  if (domain === 'wine') {
+    await clearSubmittedHistoryByRetention(retention);
+    return;
+  }
+  const client = requireSupabase();
+  if (retention === 'all') {
+    const { error } = await client.from('spirits_sessions').delete().eq('status', 'submitted');
+    if (error) throw error;
+    return;
+  }
+  const cutoffIso = computeRetentionCutoffIso(retention);
+  const { error } = await client
+    .from('spirits_sessions')
     .delete()
     .eq('status', 'submitted')
     .lt('submitted_at', cutoffIso);
@@ -496,6 +634,48 @@ export async function listSubmittedDischargeSessionItems(
   if (error) throw error;
 
   const rows = ((data ?? []) as SessionItemRow[]).map((row) => mapSessionItemRow(row));
+
+  rows.sort((a, b) => b.qty - a.qty || a.wineName.localeCompare(b.wineName, 'it-IT'));
+  return rows;
+}
+
+export async function listSubmittedDischargeSessionItemsByDomain(
+  domain: AppDomain,
+  sessionId: string
+): Promise<DischargeSessionItemDetail[]> {
+  if (domain === 'wine') return listSubmittedDischargeSessionItems(sessionId);
+  const client = requireSupabase();
+
+  const { data, error } = await client
+    .from('spirits_session_items')
+    .select(
+      'session_id, spirit_id, qty, spirit_name, spirit_producer, spirit_category, spirits_sessions!inner(status, created_at, submitted_at)'
+    )
+    .eq('session_id', sessionId)
+    .eq('spirits_sessions.status', 'submitted');
+  if (error) throw error;
+
+  const rows = ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+    const session = Array.isArray(row.spirits_sessions)
+      ? (row.spirits_sessions[0] as Record<string, unknown> | undefined)
+      : (row.spirits_sessions as Record<string, unknown> | undefined);
+    const fallbackId = String(row.spirit_id ?? 'spirit-rimosso');
+    const spiritNameRaw = String(row.spirit_name ?? '').trim();
+    const producerRaw = String(row.spirit_producer ?? '').trim();
+    const categoryRaw = String(row.spirit_category ?? '').trim();
+
+    return {
+      sessionId: String(row.session_id ?? sessionId),
+      sessionStatus: (session?.status as DischargeStatus | undefined) ?? 'submitted',
+      createdAt: session?.created_at ? new Date(String(session.created_at)).getTime() : Date.now(),
+      submittedAt: session?.submitted_at ? new Date(String(session.submitted_at)).getTime() : undefined,
+      wineId: fallbackId,
+      wineName: spiritNameRaw ? normalizeWineName(spiritNameRaw) : fallbackId,
+      producer: producerRaw ? normalizeWineProducer(producerRaw) : undefined,
+      category: categoryRaw ? normalizeWineCategory(categoryRaw) : undefined,
+      qty: Math.max(0, Number(row.qty ?? 0))
+    } satisfies DischargeSessionItemDetail;
+  });
 
   rows.sort((a, b) => b.qty - a.qty || a.wineName.localeCompare(b.wineName, 'it-IT'));
   return rows;

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { useAppDomain } from '@/app/appDomain';
 import { AdminArchiveToolbar } from '@/pages/admina/components/AdminArchiveToolbar';
 import { AdminArchiveTable } from '@/pages/admina/components/AdminArchiveTable';
 import { BulkEditFilteredModal } from '@/pages/admina/components/BulkEditFilteredModal';
@@ -8,6 +9,7 @@ import { WineArchiveFormModal } from '@/pages/admina/components/WineArchiveFormM
 import { useWineAdminPage } from '@/pages/admina/useWineAdminPage';
 
 export function WineAdminPage() {
+  const { activeDomain } = useAppDomain();
   const [totalsOpen, setTotalsOpen] = useState(false);
   const {
     loading,
@@ -54,7 +56,7 @@ export function WineAdminPage() {
     handleInlineFieldsUpdate,
     handleBulkEditConfirm,
     resetFilters
-  } = useWineAdminPage();
+  } = useWineAdminPage(activeDomain);
 
   const totals = useMemo(() => {
     let totalQty = 0;

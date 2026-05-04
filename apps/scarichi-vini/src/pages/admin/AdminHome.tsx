@@ -8,10 +8,19 @@ export type AdminRootSection =
   | 'pinRequest'
   | 'reset';
 
-export function AdminHome({ onOpen }: { onOpen: (section: AdminRootSection) => void }) {
+export function AdminHome({
+  onOpen,
+  activeDomain
+}: {
+  onOpen: (section: AdminRootSection) => void;
+  activeDomain: 'wine' | 'spirits';
+}) {
   return (
     <div className="adminCenterSection">
       <div className="title centered mt6 adminHomeTitle">Impostazioni</div>
+      <div className="adminDomainContextBadge mt8">
+        Modalità attiva: {activeDomain === 'spirits' ? 'Spirits' : 'Vini'}
+      </div>
       <div className="list mt12">
         <button className="button adminHomeAction" type="button" onClick={() => onOpen('history')}>
           Sessioni storico

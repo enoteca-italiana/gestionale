@@ -1,4 +1,5 @@
 import type { DischargeItemInput } from '@/data/dischargeRepository';
+import type { AppDomain } from '@/app/appDomain';
 
 const DISCHARGE_QUEUE_STORAGE_KEY = 'scarichi.dischargeQueue.v1';
 export const dischargeQueueChangedEvent = 'scarichi:dischargeQueueChanged';
@@ -13,6 +14,7 @@ type PendingDischargeQueueRaw = {
   attempts?: unknown;
   lastError?: unknown;
   lastAttemptAt?: unknown;
+  domain?: unknown;
 };
 
 export type PendingDischargeQueueItem = {
@@ -24,6 +26,7 @@ export type PendingDischargeQueueItem = {
   attempts: number;
   lastError?: string;
   lastAttemptAt?: number;
+  domain: AppDomain;
 };
 
 export type DischargeQueueStatusDetail =
@@ -116,6 +119,8 @@ function toQueueItem(raw: PendingDischargeQueueRaw): PendingDischargeQueueItem |
       ? Math.round(lastAttemptAtRaw)
       : undefined;
   const lastErrorRaw = String(raw.lastError ?? '').trim();
+  const domainRaw = String(raw.domain ?? 'wine').trim().toLowerCase();
+  const domain: AppDomain = domainRaw === 'spirits' ? 'spirits' : 'wine';
 
   return {
     id,
@@ -125,7 +130,8 @@ function toQueueItem(raw: PendingDischargeQueueRaw): PendingDischargeQueueItem |
     expectedQtyByWineId: sanitizeExpectedQtyByWineId(raw.expectedQtyByWineId),
     attempts,
     lastError: lastErrorRaw || undefined,
-    lastAttemptAt
+    lastAttemptAt,
+    domain
   };
 }
 
@@ -231,6 +237,7 @@ export function enqueuePendingDischargeSession(input: {
   items: DischargeItemInput[];
   expectedQtyByWineId?: Record<string, number>;
   source?: string;
+  domain?: AppDomain;
 }): PendingDischargeQueueItem {
   const items = sanitizeItems(input.items);
   if (items.length === 0) {
@@ -242,7 +249,8 @@ export function enqueuePendingDischargeSession(input: {
     source: input.source?.trim() || 'web',
     items,
     expectedQtyByWineId: sanitizeExpectedQtyByWineId(input.expectedQtyByWineId),
-    attempts: 0
+    attempts: 0,
+    domain: input.domain ?? 'wine'
   };
   const queue = readQueue();
   const next = [...queue, item].sort((a, b) => a.createdAt - b.createdAt);
@@ -298,11 +306,18 @@ export async function flushPendingDischargeQueue(options?: {
 
       const head = queue[0];
       try {
-        await dischargeRepository.createAndSubmitDischargeSession({
-          items: head.items,
-          source: head.source,
-          expectedQtyByWineId: head.expectedQtyByWineId
-        });
+        if (head.domain === 'spirits') {
+          await dischargeRepository.createAndSubmitSpiritsDischargeSession({
+            items: head.items.map((item) => ({ spiritId: item.wineId, qty: item.qty })),
+            source: head.source
+          });
+        } else {
+          await dischargeRepository.createAndSubmitDischargeSession({
+            items: head.items,
+            source: head.source,
+            expectedQtyByWineId: head.expectedQtyByWineId
+          });
+        }
         const queueAfterSuccess = removeQueueItemById(readQueue(), head.id);
         writeQueue(queueAfterSuccess);
         processed += 1;

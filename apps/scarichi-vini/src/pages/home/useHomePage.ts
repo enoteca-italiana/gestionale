@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
+import type { AppDomain } from '@/app/appDomain';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import type { DischargeQueueStatusDetail } from '@/data/offlineDischargeQueue';
 import {
@@ -64,9 +65,11 @@ function consumeForcedHomeNavigation() {
 }
 
 export function useHomePage({
-  onIntroVisibilityChange
+  onIntroVisibilityChange,
+  domain = 'wine'
 }: {
   onIntroVisibilityChange?: (visible: boolean) => void;
+  domain?: AppDomain;
 }) {
   const [forceHomeOnMount] = useState(() => consumeForcedHomeNavigation());
   const [shouldShowIntroOnMount] = useState(() => !forceHomeOnMount && !hasSeenIntroInSession());
@@ -87,7 +90,7 @@ export function useHomePage({
   const online = useOnlineStatus();
   const previousOnlineRef = useRef(online);
 
-  const { inventory, setInventory, refreshInventory } = useLocalDb();
+  const { inventory, setInventory, refreshInventory } = useLocalDb(domain);
 
   const {
     sessionOpen,
@@ -105,6 +108,16 @@ export function useHomePage({
     deleteItem
   } = useLocalSession({ inventory, setInventory });
 
+  useEffect(() => {
+    if (domain === 'wine') return;
+    if (!sessionOpen) return;
+    setConfirmOpen(false);
+    setLeaveSessionConfirmOpen(false);
+    setPendingNavPath(null);
+    resetSession();
+    setToast('Modalità Spirits: sessione vino chiusa');
+  }, [domain, resetSession, sessionOpen]);
+
   const {
     editingStockWine,
     editingStockQty,
@@ -113,7 +126,12 @@ export function useHomePage({
     closeStockEditor,
     confirmStockSave,
     setEditingStockQty
-  } = useStockEditor({ sessionOpen, onToast: setToast, onRefreshInventory: refreshInventory });
+  } = useStockEditor({
+    domain,
+    sessionOpen,
+    onToast: setToast,
+    onRefreshInventory: refreshInventory
+  });
 
   useEffect(() => {
     if (!shouldShowIntroOnMount) return;
@@ -275,12 +293,17 @@ export function useHomePage({
 
   const submitSession = async () => {
     const items = sessionList.map((item) => ({ wineId: item.wineId, qty: item.qty }));
+    const spiritItems = sessionList.map((item) => ({ spiritId: item.wineId, qty: item.qty }));
     const expectedQtyByWineId = Object.fromEntries(
       sessionList.map((item) => [item.wineId, inventoryQtyByWineId.get(item.wineId) ?? 0])
     );
 
     const enqueueSession = (message: string) => {
-      enqueuePendingDischargeSession({ items, expectedQtyByWineId });
+      enqueuePendingDischargeSession({
+        items,
+        expectedQtyByWineId,
+        domain
+      });
       setConfirmOpen(false);
       resetSession();
       setToast(message);
@@ -288,7 +311,9 @@ export function useHomePage({
 
     if (!online) {
       try {
-        enqueueSession('Offline: sessione salvata in coda');
+        enqueueSession(
+          domain === 'wine' ? 'Offline: sessione salvata in coda' : 'Offline: sessione Spirits salvata in coda'
+        );
       } catch (error) {
         console.error('[HomePage] enqueue offline session failed', error);
         setToast('Offline: errore salvataggio coda');
@@ -298,13 +323,21 @@ export function useHomePage({
 
     try {
       const dischargeRepository = await loadDischargeRepository();
-      await dischargeRepository.createAndSubmitDischargeSession({ items, expectedQtyByWineId });
+      if (domain === 'wine') {
+        await dischargeRepository.createAndSubmitDischargeSession({ items, expectedQtyByWineId });
+      } else {
+        await dischargeRepository.createAndSubmitSpiritsDischargeSession({ items: spiritItems });
+      }
       await refreshInventory();
       setToast('Sessione inviata');
     } catch (error) {
       if (isDischargeQueueRecoverableError(error)) {
         try {
-          enqueueSession('Rete instabile: sessione salvata in coda');
+          enqueueSession(
+            domain === 'wine'
+              ? 'Rete instabile: sessione salvata in coda'
+              : 'Rete instabile: sessione Spirits salvata in coda'
+          );
           return;
         } catch (enqueueError) {
           console.error('[HomePage] enqueue recoverable session failed', enqueueError);

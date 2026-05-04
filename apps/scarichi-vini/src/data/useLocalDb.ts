@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import type { Wine } from '@/domain/types';
 import type { LocalDbState } from '@/data/localDb';
 import {
@@ -12,13 +13,20 @@ import {
 
 const WRITE_COALESCE_MS = 120;
 let wineRepositoryModulePromise: Promise<typeof import('@/data/wineRepository')> | null = null;
+let spiritsRepositoryModulePromise: Promise<typeof import('@/data/spiritsRepository')> | null = null;
 
 async function loadWineRepositoryModule() {
   wineRepositoryModulePromise ??= import('@/data/wineRepository');
   return wineRepositoryModulePromise;
 }
 
-export function useLocalDb() {
+async function loadSpiritsRepositoryModule() {
+  spiritsRepositoryModulePromise ??= import('@/data/spiritsRepository');
+  return spiritsRepositoryModulePromise;
+}
+
+export function useLocalDb(domain: AppDomain = 'wine') {
+  const isWineDomain = domain === 'wine';
   const [db, setDb] = useState<LocalDbState>(() => loadDb());
   const sourceIdRef = useRef(`useLocalDb_${Math.random().toString(36).slice(2)}`);
   const pendingDbRef = useRef<LocalDbState | null>(null);
@@ -91,18 +99,19 @@ export function useLocalDb() {
     [flushPending]
   );
 
-  const inventory = db.inventory;
+  const inventory = isWineDomain ? db.inventory : [];
   const history = db.history;
 
   const setInventory = useCallback(
     (inv: Wine[] | ((prev: Wine[]) => Wine[])) => {
+      if (!isWineDomain) return;
       commit((prev) => {
         const nextInv =
           typeof inv === 'function' ? (inv as (p: Wine[]) => Wine[])(prev.inventory) : inv;
         return { ...prev, inventory: nextInv };
       });
     },
-    [commit]
+    [commit, isWineDomain]
   );
 
   const clearHistory = useCallback(() => {
@@ -122,14 +131,25 @@ export function useLocalDb() {
 
   const refreshInventory = useCallback(
     async (options?: { forceRemote?: boolean; skipTtl?: boolean }) => {
+      if (!isWineDomain) {
+        setDb((prev) => (prev.inventory.length === 0 ? prev : { ...prev, inventory: [] }));
+        return [];
+      }
       if (refreshInFlightRef.current) return refreshInFlightRef.current;
       const task = (async () => {
         try {
-          const { listWines } = await loadWineRepositoryModule();
-          const wines = await listWines({
-            forceRemote: options?.forceRemote,
-            skipTtl: options?.skipTtl
-          });
+          const wines = isWineDomain
+            ? await (async () => {
+                const { listWines } = await loadWineRepositoryModule();
+                return listWines({
+                  forceRemote: options?.forceRemote,
+                  skipTtl: options?.skipTtl
+                });
+              })()
+            : await (async () => {
+                const { listSpirits } = await loadSpiritsRepositoryModule();
+                return listSpirits();
+              })();
           setDb((prev) => (prev.inventory === wines ? prev : { ...prev, inventory: wines }));
           return wines;
         } catch (error) {
@@ -142,7 +162,7 @@ export function useLocalDb() {
       refreshInFlightRef.current = task;
       return task;
     },
-    []
+    [isWineDomain]
   );
 
   const summary = useMemo(() => {

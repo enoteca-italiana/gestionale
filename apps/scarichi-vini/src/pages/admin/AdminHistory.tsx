@@ -2,24 +2,26 @@ import type {
   DischargeSessionSummary,
   SubmittedHistoryRetention
 } from '@/data/dischargeRepository';
+import type { AppDomain } from '@/app/appDomain';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { RefreshCcw, Trash2 } from 'lucide-react';
 import { formatDateTime, formatDateTimeLabel } from '@/pages/admin/historyUtils';
 import { formatWineInfoLine } from '@/domain/formatWineInfoLine';
 import { useAdminHistory } from '@/pages/admin/useAdminHistory';
 import { HISTORY_RENDER_BATCH } from '@/pages/admin/historyUtils';
-import { useAppDomain } from '@/app/appDomain';
 
 export function AdminHistory({
   history,
+  domain,
   onReset,
   onDeleteSession
 }: {
   history: DischargeSessionSummary[];
+  domain: AppDomain;
   onReset: (retention: SubmittedHistoryRetention) => void;
   onDeleteSession: (sessionId: string) => Promise<void>;
 }) {
-  const { activeDomain, setActiveDomain } = useAppDomain();
+  const entityLabelPlural = domain === 'wine' ? 'vini' : 'spirits';
   const {
     datePreset,
     dateFrom,
@@ -59,36 +61,12 @@ export function AdminHistory({
     confirmResetWithPin,
     handlePresetChange,
     resetDateFilter
-  } = useAdminHistory({ history, onReset, onDeleteSession });
+  } = useAdminHistory({ history, domain, onReset, onDeleteSession });
 
   return (
     <>
       <div className="adminHistoryListSection">
-        <div className="adminHistoryHeaderRow">
-          <div className="title centered adminHistoryTitle">Storico Sessioni</div>
-          <div className="adminHistoryDomainSwitch" role="group" aria-label="Seleziona modalità">
-            <button
-              type="button"
-              className={`adminHistoryDomainSwitchButton ${
-                activeDomain === 'wine' ? 'adminHistoryDomainSwitchButtonActive' : ''
-              }`}
-              onClick={() => setActiveDomain('wine')}
-              aria-pressed={activeDomain === 'wine'}
-            >
-              Vini
-            </button>
-            <button
-              type="button"
-              className={`adminHistoryDomainSwitchButton ${
-                activeDomain === 'spirits' ? 'adminHistoryDomainSwitchButtonActive' : ''
-              }`}
-              onClick={() => setActiveDomain('spirits')}
-              aria-pressed={activeDomain === 'spirits'}
-            >
-              Spirits
-            </button>
-          </div>
-        </div>
+        <div className="title centered adminHistoryTitle">Storico Sessioni</div>
         <div className="adminHistoryDateRangeWrap mt12">
           <div className="adminHistoryDateField">
             <label className="adminHistoryDateFilterLabel" htmlFor="admin-history-date-preset">
@@ -195,7 +173,7 @@ export function AdminHistory({
                         <span className="adminHistoryTime">{formattedTime}</span>
                       </div>
                       <div className="subtle mt4">
-                        {s.itemsCount} vini • {s.totalQty} bottiglie
+                        {s.itemsCount} {entityLabelPlural} • {s.totalQty} bottiglie
                       </div>
                     </div>
                     <button
@@ -261,7 +239,8 @@ export function AdminHistory({
               </div>
               {selectedSession ? (
                 <div className="modalDescription adminHistoryModalSubtitle">
-                  {selectedSession.itemsCount} vini • {selectedSession.totalQty} bottiglie
+                  {selectedSession.itemsCount} {entityLabelPlural} • {selectedSession.totalQty}{' '}
+                  bottiglie
                 </div>
               ) : null}
             </div>

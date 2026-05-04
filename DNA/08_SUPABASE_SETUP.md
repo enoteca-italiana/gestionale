@@ -226,6 +226,7 @@ Script cleanup indici duplicati: `scripts/sql/supabase_enterprise_index_cleanup.
 | --------------------------------------------------- | --------------------------------------------------------- |
 | `scripts/sql/supabase_enterprise_index_cleanup.sql` | Rimuove indici duplicati su session items, esegue ANALYZE |
 | `scripts/sql/supabase_text_casing_policy.sql`       | Trigger normalizzazione campi + retroattivo su wines      |
+| `scripts/sql/2026-05-04_spirits_domain_setup.sql`   | Setup tabelle Spirits (`spirits_products`, `spirits_sessions`, `spirits_session_items`) + RPC `submit_spirits_session` + RLS/GRANT |
 
 ---
 

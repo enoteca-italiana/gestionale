@@ -24,6 +24,15 @@ body {
   color: var(--ink);
 }
 
+body[data-domain='spirits'] {
+  --bg: #eef6ed;
+}
+
+#root {
+  min-height: 100%;
+  background: var(--bg);
+}
+
 * {
   box-sizing: border-box;
 }

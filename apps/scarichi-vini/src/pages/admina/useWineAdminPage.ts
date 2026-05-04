@@ -1,5 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type { Wine } from '@/domain/types';
+import type { AppDomain } from '@/app/appDomain';
 import {
   listCategoryOptions,
   listSupabaseCategories,
@@ -18,13 +19,7 @@ import {
   upsertManagedProducer
 } from '@/data/producerRepository';
 import { loadDb } from '@/data/localDb';
-import {
-  archiveResetEvent,
-  createWine,
-  deleteWine,
-  listWines,
-  updateWine
-} from '@/data/wineRepository';
+import { archiveResetEvent } from '@/data/wineRepository';
 import { isInThreshold } from '@/pages/admina/utils/wineFilters';
 import {
   defaultFilters,
@@ -37,7 +32,38 @@ import {
 
 const BULK_UPDATE_BATCH_SIZE = 40;
 
-export function useWineAdminPage() {
+type DomainRepository = {
+  list: () => Promise<Wine[]>;
+  create: (payload: WineFormState) => Promise<unknown>;
+  update: (payload: WineFormState & { id: string }) => Promise<unknown>;
+  deleteOne: (id: string) => Promise<unknown>;
+};
+
+let wineRepositoryPromise: Promise<typeof import('@/data/wineRepository')> | null = null;
+let spiritsRepositoryPromise: Promise<typeof import('@/data/spiritsRepository')> | null = null;
+
+async function loadDomainRepository(domain: AppDomain): Promise<DomainRepository> {
+  if (domain === 'wine') {
+    wineRepositoryPromise ??= import('@/data/wineRepository');
+    const mod = await wineRepositoryPromise;
+    return {
+      list: () => mod.listWines({ forceRemote: true }),
+      create: (payload) => mod.createWine({ ...payload, id: undefined }),
+      update: (payload) => mod.updateWine(payload),
+      deleteOne: (id) => mod.deleteWine(id)
+    };
+  }
+  spiritsRepositoryPromise ??= import('@/data/spiritsRepository');
+  const mod = await spiritsRepositoryPromise;
+  return {
+    list: () => mod.listSpirits(),
+      create: (payload) => mod.createSpirit({ ...payload, id: undefined }),
+      update: (payload) => mod.updateSpirit(payload),
+      deleteOne: (id) => mod.deleteSpirit(id)
+    };
+}
+
+export function useWineAdminPage(domain: AppDomain = 'wine') {
   const [wines, setWines] = useState<Wine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +98,7 @@ export function useWineAdminPage() {
 
   const loadWines = useCallback(async () => {
     setError(null);
-    const local = loadDb().inventory;
+    const local = domain === 'wine' ? loadDb().inventory : [];
     const hasLocalData = local.length > 0;
     if (hasLocalData) {
       setWines(local);
@@ -81,7 +107,8 @@ export function useWineAdminPage() {
       setLoading(true);
     }
     try {
-      setWines(await listWines({ forceRemote: true }));
+      const repo = await loadDomainRepository(domain);
+      setWines(await repo.list());
     } catch (err) {
       console.error('[WineAdminPage] load error', err);
       if (!hasLocalData) {
@@ -90,7 +117,7 @@ export function useWineAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [domain]);
 
   const refreshCategoryRegistry = useCallback(async () => {
     const values = await listSupabaseCategories();
@@ -400,11 +427,15 @@ export function useWineAdminPage() {
     setBusy(true);
     try {
       if (modalMode === 'create') {
-        await createWine({ ...payload, id: undefined });
+        const repo = await loadDomainRepository(domain);
+        await repo.create(payload);
       } else {
-        await updateWine(payload);
+        if (!payload.id) throw new Error('Missing id for update');
+        const repo = await loadDomainRepository(domain);
+        await repo.update(payload as WineFormState & { id: string });
       }
-      setWines(loadDb().inventory);
+      const repo = await loadDomainRepository(domain);
+      setWines(await repo.list());
       closeForm();
     } catch (err) {
       console.error('[WineAdminPage] submit error', err);
@@ -418,8 +449,9 @@ export function useWineAdminPage() {
     if (!deleteId) return;
     setBusy(true);
     try {
-      await deleteWine(deleteId);
-      setWines(loadDb().inventory);
+      const repo = await loadDomainRepository(domain);
+      await repo.deleteOne(deleteId);
+      setWines(await repo.list());
     } catch (err) {
       console.error('[WineAdminPage] delete error', err);
       setError('Eliminazione non riuscita.');
@@ -432,7 +464,8 @@ export function useWineAdminPage() {
   const handleQuickQtyUpdate = async (wine: Wine, nextQty: number) => {
     setBusy(true);
     try {
-      await updateWine({
+      const repo = await loadDomainRepository(domain);
+      await repo.update({
         id: wine.id,
         category: wine.category ?? '',
         name: wine.name,
@@ -442,11 +475,10 @@ export function useWineAdminPage() {
         threshold: wine.threshold,
         purchasePrice: wine.purchasePrice,
         salePrice: wine.salePrice,
-        vintage: wine.vintage,
         qty: nextQty,
         notes: wine.notes
       });
-      setWines(loadDb().inventory);
+      setWines(await repo.list());
       return true;
     } catch (err) {
       console.error('[WineAdminPage] quick qty update error', err);
@@ -473,7 +505,8 @@ export function useWineAdminPage() {
       const nextPurchasePrice = Object.prototype.hasOwnProperty.call(patch, 'purchasePrice')
         ? patch.purchasePrice
         : wine.purchasePrice;
-      await updateWine({
+      const repo = await loadDomainRepository(domain);
+      await repo.update({
         id: wine.id,
         category: patch.category ?? wine.category ?? '',
         name: patch.name ?? wine.name,
@@ -483,11 +516,10 @@ export function useWineAdminPage() {
         threshold: wine.threshold,
         purchasePrice: nextPurchasePrice,
         salePrice: wine.salePrice,
-        vintage: wine.vintage,
         qty: wine.qty,
         notes: wine.notes
       });
-      setWines(loadDb().inventory);
+      setWines(await repo.list());
       return true;
     } catch (err) {
       console.error('[WineAdminPage] inline fields update error', err);
@@ -519,24 +551,27 @@ export function useWineAdminPage() {
           const chunk = targetWines.slice(i, i + BULK_UPDATE_BATCH_SIZE);
           await Promise.all(
             chunk.map((wine) =>
-              updateWine({
-                id: wine.id,
-                category: categoryToApply ?? wine.category ?? '',
-                name: wine.name,
-                age: wine.age ?? '',
-                producer: wine.producer,
-                origin: wine.origin,
-                threshold: wine.threshold,
-                purchasePrice: wine.purchasePrice,
-                salePrice: wine.salePrice,
-                vintage: wine.vintage,
-                qty: wine.qty,
-                notes: wine.notes
-              })
+              (async () => {
+                const repo = await loadDomainRepository(domain);
+                return repo.update({
+                  id: wine.id,
+                  category: categoryToApply ?? wine.category ?? '',
+                  name: wine.name,
+                  age: wine.age ?? '',
+                  producer: wine.producer,
+                  origin: wine.origin,
+                  threshold: wine.threshold,
+                  purchasePrice: wine.purchasePrice,
+                  salePrice: wine.salePrice,
+                  qty: wine.qty,
+                  notes: wine.notes
+                });
+              })()
             )
           );
         }
-        setWines(loadDb().inventory);
+        const repo = await loadDomainRepository(domain);
+        setWines(await repo.list());
         setBulkEditModalOpen(false);
       } catch (err) {
         console.error('[WineAdminPage] bulk edit error', err);
@@ -546,7 +581,7 @@ export function useWineAdminPage() {
         setBusy(false);
       }
     },
-    [filteredWines, handleAddCategory]
+    [domain, filteredWines, handleAddCategory]
   );
 
   const resetFilters = () => {

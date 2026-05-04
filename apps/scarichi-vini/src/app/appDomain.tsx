@@ -40,6 +40,15 @@ export function AppDomainProvider({ children }: { children: ReactNode }) {
     writeStoredDomain(activeDomain);
   }, [activeDomain]);
 
+  useEffect(() => {
+    document.body.dataset.domain = activeDomain;
+    return () => {
+      if (document.body.dataset.domain === activeDomain) {
+        delete document.body.dataset.domain;
+      }
+    };
+  }, [activeDomain]);
+
   const value = useMemo<AppDomainContextValue>(
     () => ({
       activeDomain,

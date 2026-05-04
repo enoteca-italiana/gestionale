@@ -1,20 +1,29 @@
 import { useState } from 'react';
+import type { AppDomain } from '@/app/appDomain';
 import type { Wine } from '@/domain/types';
 
 type UseStockEditorOptions = {
+  domain: AppDomain;
   sessionOpen: boolean;
   onToast: (message: string) => void;
   onRefreshInventory: () => Promise<unknown>;
 };
 
 let wineRepositoryPromise: Promise<typeof import('@/data/wineRepository')> | null = null;
+let spiritsRepositoryPromise: Promise<typeof import('@/data/spiritsRepository')> | null = null;
 
 async function loadWineRepository() {
   wineRepositoryPromise ??= import('@/data/wineRepository');
   return wineRepositoryPromise;
 }
 
+async function loadSpiritsRepository() {
+  spiritsRepositoryPromise ??= import('@/data/spiritsRepository');
+  return spiritsRepositoryPromise;
+}
+
 export function useStockEditor({
+  domain,
   sessionOpen,
   onToast,
   onRefreshInventory
@@ -44,21 +53,34 @@ export function useStockEditor({
     }
     setStockSaveBusy(true);
     try {
-      const wineRepository = await loadWineRepository();
-      await wineRepository.updateWine({
-        id: editingStockWine.id,
-        category: editingStockWine.category ?? '',
-        name: editingStockWine.name,
-        age: editingStockWine.age ?? '',
-        producer: editingStockWine.producer,
-        origin: editingStockWine.origin,
-        threshold: editingStockWine.threshold,
-        purchasePrice: editingStockWine.purchasePrice,
-        salePrice: editingStockWine.salePrice,
-        vintage: editingStockWine.vintage ?? '',
-        qty: nextQty,
-        notes: editingStockWine.notes ?? ''
-      });
+      if (domain === 'wine') {
+        const wineRepository = await loadWineRepository();
+        await wineRepository.updateWine({
+          id: editingStockWine.id,
+          category: editingStockWine.category ?? '',
+          name: editingStockWine.name,
+          age: editingStockWine.age ?? '',
+          producer: editingStockWine.producer,
+          origin: editingStockWine.origin,
+          threshold: editingStockWine.threshold,
+          purchasePrice: editingStockWine.purchasePrice,
+          salePrice: editingStockWine.salePrice,
+          vintage: editingStockWine.vintage ?? '',
+          qty: nextQty,
+          notes: editingStockWine.notes ?? ''
+        });
+      } else {
+        const spiritsRepository = await loadSpiritsRepository();
+        await spiritsRepository.updateSpirit({
+          id: editingStockWine.id,
+          category: editingStockWine.category ?? '',
+          name: editingStockWine.name,
+          producer: editingStockWine.producer,
+          purchasePrice: editingStockWine.purchasePrice,
+          salePrice: editingStockWine.salePrice,
+          qty: nextQty
+        });
+      }
       await onRefreshInventory();
       onToast('Giacenza aggiornata');
       setEditingStockWine(null);

@@ -5,6 +5,7 @@ import { AdminHome, type AdminRootSection } from '@/pages/admin/AdminHome';
 import { AdminLogin } from '@/pages/admin/AdminLogin';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { useAdminAuth } from '@/pages/admin/useAdminAuth';
+import { useAppDomain } from '@/app/appDomain';
 
 type AdminSection = 'home' | 'history' | 'registryManager';
 type SettingsAction =
@@ -24,6 +25,7 @@ const AdminRegistryManager = lazy(() =>
 );
 
 export function AdminGate() {
+  const { activeDomain } = useAppDomain();
   const { ready, isAuthed, login, logout, changePassword } = useAdminAuth();
   const [section, setSection] = useState<AdminSection>('home');
   const [settingsAction, setSettingsAction] = useState<SettingsAction>(null);
@@ -39,7 +41,7 @@ export function AdminGate() {
     error: sessionsError,
     clearHistory,
     deleteHistorySession
-  } = useDischargeSessions(section === 'history');
+  } = useDischargeSessions(section === 'history', activeDomain);
 
   useEffect(() => {
     const onOpenAdminHome = () => {
@@ -78,7 +80,7 @@ export function AdminGate() {
 
   return (
     <>
-      {section === 'home' ? <AdminHome onOpen={openRootSection} /> : null}
+      {section === 'home' ? <AdminHome onOpen={openRootSection} activeDomain={activeDomain} /> : null}
 
       {section === 'history' ? (
         sessionsLoading ? null : sessionsError ? (
@@ -90,6 +92,7 @@ export function AdminGate() {
           <Suspense fallback={<div className="card adminCard">Caricamento…</div>}>
             <AdminHistory
               history={history}
+              domain={activeDomain}
               onReset={(retention) => {
                 void clearHistory(retention).catch((error) => {
                   console.error('[AdminGate] clearHistory failed', error);
@@ -104,9 +107,18 @@ export function AdminGate() {
       ) : null}
 
       {section === 'registryManager' ? (
-        <Suspense fallback={<div className="card adminCard">Caricamento…</div>}>
-          <AdminRegistryManager />
-        </Suspense>
+        activeDomain === 'wine' ? (
+          <Suspense fallback={<div className="card adminCard">Caricamento…</div>}>
+            <AdminRegistryManager />
+          </Suspense>
+        ) : (
+          <div className="card adminCard">
+            <div className="title">Gestione voci filtri</div>
+            <div className="subtle mt8">
+              Sezione in attivazione per Spirits: al momento resta disponibile solo per Vini.
+            </div>
+          </div>
+        )
       ) : null}
 
       <AdminSettings
@@ -118,7 +130,12 @@ export function AdminGate() {
           logout();
         }}
         onHardReset={async () => {
-          await clearWineArchive();
+          if (activeDomain === 'wine') {
+            await clearWineArchive();
+            return;
+          }
+          const { clearSpiritsArchive } = await import('@/data/spiritsRepository');
+          await clearSpiritsArchive();
         }}
         onChangePassword={async (currentPwd, newPwd) => {
           return changePassword(currentPwd, newPwd);

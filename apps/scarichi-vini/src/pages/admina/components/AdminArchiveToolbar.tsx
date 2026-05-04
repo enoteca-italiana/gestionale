@@ -149,6 +149,7 @@ export function AdminArchiveToolbar({
   onOpenTotals
 }: Props) {
   const { activeDomain, setActiveDomain } = useAppDomain();
+  const entityLabel = activeDomain === 'wine' ? 'vino' : 'spirit';
   const setStockFilter = (stock: StockFilter) => onFiltersChange({ ...filters, stock });
   const hasActiveFilters = hasActiveArchiveFilters(filters);
 
@@ -181,7 +182,7 @@ export function AdminArchiveToolbar({
 
       <div className="archiveFilters">
         <button className="button buttonAuto archiveAddButton" type="button" onClick={onOpenCreate}>
-          Aggiungi vino
+          {`Aggiungi ${entityLabel}`}
         </button>
 
         <input

@@ -208,5 +208,27 @@ Decisione UI già approvata:
 - Home: switch `Vini/Spirits` nella stessa riga di `Reset` + `Inizia sessione`, con `Reset` in prima posizione.
 - Archivio: switch dimensionato come `Totali`, con stato attivo `Vini` bordeaux e `Spirits` verde.
 - Archivio: testo pulsante `Foglio Google` centrato orizzontalmente e verticalmente.
-- Storico Sessioni: switch `Vini/Spirits` in alto a destra sulla stessa riga del titolo.
 - Storico Sessioni: icona cestino rossa, senza contorno, posizionata a destra su ogni card.
+- Switch disponibile solo in **Home** e **Archivio**; in **Impostazioni/Admin** il dominio segue il contesto corrente e il cambio avviene tornando a Home/Archivio.
+- In **Impostazioni/Admin Home** è mostrato solo un indicatore testuale della modalità attiva (`Vini`/`Spirits`), senza controlli di switch.
+- Storico sessioni: hook reso domain-aware; in modalità `Spirits` non legge lo storico `Vini` (evita contaminazione finché non colleghiamo tabelle Spirits dedicate).
+- Home: `useLocalDb` reso domain-aware (in modalità `Spirits` inventario isolato, nessun refresh da `wines`).
+- Archivio: guard-rail attivo in modalità `Spirits` (placeholder informativo, CRUD Vini non montato).
+- Rollback tecnico predisposto prima step inventory/domain: tag Git `rollback/pre-domain-inventory-2026-05-04`.
+- Aggiunto `spiritsRepository` read-only (`spirits_products`) con mapping tollerante colonne e fallback sicuro a lista vuota.
+- `useLocalDb.refreshInventory()` instrada ora per dominio: `listWines` (wine) / `listSpirits` (spirits).
+- Home in modalità `Spirits`: start/confirm sessione disabilitati e click edit giacenza disattivato (nessuna scrittura su flusso vino).
+- `spiritsRepository` esteso con CRUD base (`list/create/update/delete`) + `clearSpiritsArchive` per reset dominio Spirits.
+- Archivio collegato al dominio: `useWineAdminPage(activeDomain)` usa repository corretto (`wine` o `spirits`) per load/CRUD.
+- Hard reset in Impostazioni ora domain-aware: su `wine` pulisce `wines`, su `spirits` pulisce `spirits_products`.
+- Storico sessioni domain-aware completo: `list/clear/delete` instradati per dominio (`discharge_sessions` vs `spirits_sessions`) con fallback sicuro.
+- Preparata migrazione SQL versionata: `scripts/sql/2026-05-04_spirits_domain_setup.sql` (schema Spirits + RPC submit + RLS/GRANT).
+- Home: session submit domain-aware completato (`createAndSubmitDischargeSession` per wine, `createAndSubmitSpiritsDischargeSession` per spirits).
+- Modalità offline: queue automatica mantenuta su Wine; su Spirits (fase attuale) invio consentito solo online.
+- Dettaglio storico sessione (modale) reso domain-aware: query `discharge_session_items` per Wine e `spirits_session_items` per Spirits.
+- UI labels domain-aware: Home placeholder ricerca, Archivio CTA creazione, Storico conteggi (`vini`/`spirits`) allineati al contesto attivo.
+- Sfondo Spirits globale applicato via `body[data-domain='spirits']` con tono verde naturale (`#eef6ed`), senza alterare la palette del dominio Vini.
+- `#root` allineato a `--bg` per garantire resa visibile dello sfondo Spirits anche in locale/dev.
+- Coda offline resa domain-aware (`offlineDischargeQueue`): supporta enqueue/flush sia `wine` che `spirits`.
+- Home: editing giacenza domain-aware (update su `wineRepository` o `spiritsRepository` in base al contesto).
+- Admin > Gestione voci filtri protetta per evitare contaminazione: in modalità Spirits mostra placeholder (manager legacy attivo solo su Vini).
