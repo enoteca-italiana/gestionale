@@ -1,6 +1,6 @@
 # 12 — Handoff / Stato Corrente
 
-Ultimo aggiornamento: **04/05/2026 — CEST**.
+Ultimo aggiornamento: **11/05/2026 — CEST**.
 
 ---
 
@@ -20,7 +20,7 @@ Se un nuovo agent legge solo il DNA, deve capire subito:
 ## Stato validato
 
 - Branch di riferimento: `main`
-- Ultimo commit validato nel repo: `4926861`
+- Ultimo commit validato nel repo: `f47d36c`
 - App locale: `http://localhost:5001/`
 - Dominio `Vini`: operativo
 - Dominio `Spirits`: operativo
@@ -61,10 +61,10 @@ Nota: i conteggi DB possono cambiare nel tempo. Sono una fotografia utile per ve
 - stesso spreadsheet, tab separati
 - Apps Script unico aggiornato per `wines` + `spirits_products`
 - flusso corretto documentato:
-  - `sync...FromSheetToSupabase` = foglio -> DB, oggi manuale da menu Apps Script
+  - `sync...FromSheetToSupabase` = foglio -> DB, manuale da menu o automatico (trigger attivi)
   - `sync...FromSupabaseToSheet` = DB -> foglio
 - rimossi i vecchi trigger installabili legacy che puntavano a funzioni non più esistenti
-- audit 11/05/2026: Apps Script mostra `0 attivatori`; quindi Google Sheet -> Supabase non e' automatico
+- 11/05/2026: installati trigger Apps Script `onSheetEdit_` + `processPendingSync_` (ogni 5 min) → Google Sheet → Supabase ora automatico con debounce 60s
 - audit 11/05/2026: CSV esportati dai tab Google non includono `__ID__`, requisito necessario per sync bidirezionale sicura
 
 4. Runtime app

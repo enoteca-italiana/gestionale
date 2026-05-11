@@ -255,7 +255,7 @@ Decisione UI già approvata:
 - Azione eseguita: i due trigger legacy sono stati rimossi manualmente dall'utente per evitare esecuzioni automatiche incoerenti e reset del tab `Spirits`.
 - Esito operativo verificato: il caricamento Spirits funziona correttamente se si usa il comando giusto `syncSpiritsFromSheetToSupabase`; il comando opposto `syncSpiritsFromSupabaseToSheet` va usato solo quando il DB è già la fonte autorevole.
 - Audit diretto via API con service-role locale:
-  - `wines`: `6382` record *(audit 04/05/2026; al 11/05/2026 il conteggio è 7234)*
+  - `wines`: `6382` record _(audit 04/05/2026; al 11/05/2026 il conteggio è 7234)_
   - `spirits_products`: `1684` record
   - `spirits_sessions`: `0`
   - `spirits_session_items`: `0`
@@ -264,7 +264,7 @@ Decisione UI già approvata:
 - Fix runtime Home `Spirits`: `useLocalDb` non forza più `inventory = []` sul dominio spirits e `refreshInventory()` esegue correttamente `listSpirits()`, ripristinando il popolamento della Home.
 - Audit sync Google/Supabase del 11/05/2026:
   - lato Supabase -> Google risultano configurati URL Web App `/exec`, secret, trigger DB e funzioni `integration.notify_google_sheets_*`;
-  - lato Apps Script risultano `0 attivatori`, quindi Google Sheet -> Supabase non e' automatico;
+  - 11/05/2026: installati trigger `onSheetEdit_` + `processPendingSync_` (ogni 5 min) → Google Sheet → Supabase automatico con debounce 60s;
   - CSV foglio esportati senza colonna `__ID__`;
   - `Vini`: 7234 righe dati, 72 righe con campi critici vuoti, 27 duplicati naturali;
   - `Spirits`: 1692 righe dati, 6 righe con nome/produttore vuoto, 6 duplicati naturali;

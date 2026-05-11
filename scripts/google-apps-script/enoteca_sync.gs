@@ -43,7 +43,7 @@ const TABLES = {
 // ─── SYNC AUTOMATICO: debounce Sheet → Supabase ────────────────────────────
 // Chiavi Script Properties usate per coordinare l'auto-sync
 var PENDING_KEY_TABLE = 'autoSync_table';
-var PENDING_KEY_TS    = 'autoSync_ts';
+var PENDING_KEY_TS = 'autoSync_ts';
 // Tempo minimo di silenzio prima di inviare a Supabase (1 minuto)
 var DEBOUNCE_MS = 60 * 1000;
 
@@ -51,7 +51,7 @@ var DEBOUNCE_MS = 60 * 1000;
 // Non contatta mai Supabase: si limita a registrare un "flag in attesa".
 function onSheetEdit_(e) {
   try {
-    var changeType = (e && e.changeType) ? e.changeType : 'EDIT';
+    var changeType = e && e.changeType ? e.changeType : 'EDIT';
     // Ignora cambi strutturali non rilevanti (formato, freeze, ecc.)
     var relevantTypes = ['EDIT', 'INSERT_ROW', 'DELETE_ROW', 'REMOVE_ROW'];
     if (relevantTypes.indexOf(changeType) === -1) return;
@@ -63,7 +63,9 @@ function onSheetEdit_(e) {
       // Ignora modifiche alla riga header
       if (e.range.getRow() === 1) return;
     } else if (e && e.source) {
-      try { sheetName = e.source.getActiveSheet().getName(); } catch (_) {}
+      try {
+        sheetName = e.source.getActiveSheet().getName();
+      } catch (_) {}
     }
 
     // Mappa nome foglio → chiave tabella
@@ -86,7 +88,7 @@ function onSheetEdit_(e) {
 function processPendingSync_() {
   var props = PropertiesService.getScriptProperties();
   var tableKey = props.getProperty(PENDING_KEY_TABLE);
-  var tsStr    = props.getProperty(PENDING_KEY_TS);
+  var tsStr = props.getProperty(PENDING_KEY_TS);
 
   if (!tableKey || !tsStr) return; // Nulla in attesa
 
@@ -126,10 +128,7 @@ function installTriggers() {
     .create();
 
   // Trigger time-based ogni 2 minuti → processa il pending sync
-  ScriptApp.newTrigger('processPendingSync_')
-    .timeBased()
-    .everyMinutes(5)
-    .create();
+  ScriptApp.newTrigger('processPendingSync_').timeBased().everyMinutes(5).create();
 
   toast_('✅ Attivatori installati (onChange + timer 2 min)');
 }

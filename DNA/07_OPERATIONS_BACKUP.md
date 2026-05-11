@@ -1,6 +1,6 @@
 # Operatività (dev) + Backup
 
-Ultimo aggiornamento: **04/05/2026 — CEST**.
+Ultimo aggiornamento: **11/05/2026 — CEST**.
 
 ---
 
@@ -69,13 +69,7 @@ Variabili ambiente obbligatorie in Cloudflare (Settings → Environment variable
 
 `vite.config.ts` accetta anche il nome con prefisso `VITE_` come fallback (ad es. `VITE_SUPABASE_URL`).
 
-> ~~⚠ **CRITICO — API key mismatch (03/05/2026):** I secret Replit `SUPABASE_ANON_KEY` e
-> `SUPABASE_SERVICE_ROLE_KEY` risultavano appartenere al **vecchio progetto** `kuigzaqaewgcosfhahkv`
-> invece dell'attuale `aezqtgadyaxdcptwlpci`. Causa: 401 su tutte le chiamate REST.~~
->
-> ✅ **Risolto (verificare nella propria istanza):** aggiornare i secret Replit con le chiavi
-> `anon public` e `service_role` dal dashboard Supabase progetto `aezqtgadyaxdcptwlpci`.
-> Stesso aggiornamento in Cloudflare Pages env vars e `.env.local` locale.
+✅ **Secret Replit aggiornati l'11/05/2026:** `SUPABASE_ANON_KEY`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` allineati al progetto `aezqtgadyaxdcptwlpci`. Stessa operazione da replicare in Cloudflare Pages env vars al prossimo deploy.
 
 ---
 
@@ -149,10 +143,12 @@ Il sorgente aggiornato del progetto Google Apps Script è ora salvato anche nel 
 
 `scripts/google-apps-script/enoteca_sync.gs`
 
-Questo file va considerato la fonte di verità lato foglio Google. Nel progetto Apps Script reale restano da configurare solo:
+Questo file va considerato la fonte di verità lato foglio Google. Nel progetto Apps Script reale sono già configurati:
 
-- Script Properties
-- eventuali trigger installabili non-legacy se mai richiesti in futuro
+- Script Properties (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, WEBHOOK_SECRET, SHEET_NAME_WINES, SHEET_NAME_SPIRITS)
+- Trigger `onSheetEdit_` (onChange) + `processPendingSync_` (ogni 5 min) — installati l'11/05/2026 tramite `installTriggers()`
+
+Flusso auto-sync attivo: modifica foglio → debounce 60s → push automatico a Supabase (max ~6 min di ritardo).
 
 ---
 
@@ -178,7 +174,7 @@ bash backup/make_backup.sh "Backup_2 Maggio_16.00"
 
 Esempio: `Backup_2 Maggio_16.30.tar.gz`
 
-Ultimo backup creato: **`Backup_4 Maggio_16.49.tar.gz`** (880K)
+Ultimo backup creato: **`Backup_11 Maggio_15.55.tar.gz`** (4.9M)
 
 ### Esclusioni
 
