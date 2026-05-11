@@ -44,8 +44,8 @@ const TABLES = {
 // Chiavi Script Properties usate per coordinare l'auto-sync
 var PENDING_KEY_TABLE = 'autoSync_table';
 var PENDING_KEY_TS = 'autoSync_ts';
-// Tempo minimo di silenzio prima di inviare a Supabase (1 minuto)
-var DEBOUNCE_MS = 60 * 1000;
+// Tempo minimo di silenzio prima di inviare a Supabase (10 secondi)
+var DEBOUNCE_MS = 10 * 1000;
 
 // Chiamato dal trigger onChange installabile.
 // Non contatta mai Supabase: si limita a registrare un "flag in attesa".
@@ -127,10 +127,10 @@ function installTriggers() {
     .onChange()
     .create();
 
-  // Trigger time-based ogni 2 minuti → processa il pending sync
-  ScriptApp.newTrigger('processPendingSync_').timeBased().everyMinutes(5).create();
+  // Trigger time-based ogni 1 minuto → processa il pending sync
+  ScriptApp.newTrigger('processPendingSync_').timeBased().everyMinutes(1).create();
 
-  toast_('✅ Attivatori installati (onChange + timer 2 min)');
+  toast_('✅ Attivatori installati (onChange + timer 1 min)');
 }
 
 // Rimuove i trigger installati (utile per manutenzione).
