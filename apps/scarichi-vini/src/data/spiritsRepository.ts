@@ -29,6 +29,7 @@ type SpiritsRow = {
 
 const SPIRITS_TABLE = 'spirits_products';
 const SPIRITS_NAME_COLLATOR = new Intl.Collator('it', { sensitivity: 'base' });
+const SPIRITS_WRITE_CHUNK_SIZE = 500;
 
 function isSchemaColumnError(error: unknown): boolean {
   const message = String(
@@ -44,6 +45,14 @@ function isUniqueViolation(error: unknown): boolean {
     (error as { message?: unknown } | null | undefined)?.message ?? ''
   ).toLowerCase();
   return message.includes('duplicate key') || message.includes('unique');
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
 }
 
 function toNumber(value: unknown): number | undefined {
@@ -147,22 +156,63 @@ function sortSpirits(items: Wine[]): Wine[] {
   return [...items].sort((a, b) => SPIRITS_NAME_COLLATOR.compare(a.name, b.name));
 }
 
-async function insertSpiritsToSupabase(input: Partial<Wine>[]): Promise<Wine[]> {
+async function writeSpiritsToSupabase(
+  input: Partial<Wine>[],
+  mode: 'insert' | 'upsert'
+): Promise<Wine[]> {
   if (input.length === 0) return [];
   if (!supabase) throw new Error('Supabase non configurato');
 
-  const englishPayload = input.map((spirit) => toEnglishPayload(spirit));
-  const first = await supabase.from(SPIRITS_TABLE).insert(englishPayload).select('*');
-  if (first.error && isSchemaColumnError(first.error)) {
-    const italianPayload = input.map((spirit) => toItalianPayload(spirit));
-    const legacy = await supabase.from(SPIRITS_TABLE).insert(italianPayload).select('*');
-    if (legacy.error) throw legacy.error;
-    const legacyRows = (legacy.data ?? []) as SpiritsRow[];
-    return sortSpirits(legacyRows.map((row, index) => toSpirit(row, index)));
+  const inserted: Wine[] = [];
+
+  for (const chunk of chunkArray(input, SPIRITS_WRITE_CHUNK_SIZE)) {
+    const englishPayload = chunk.map((spirit) => toEnglishPayload(spirit));
+    const first =
+      mode === 'upsert'
+        ? await supabase
+            .from(SPIRITS_TABLE)
+            .upsert(englishPayload, { onConflict: 'id' })
+            .select('*')
+        : await supabase.from(SPIRITS_TABLE).insert(englishPayload).select('*');
+
+    if (first.error && isSchemaColumnError(first.error)) {
+      const italianPayload = chunk.map((spirit) => toItalianPayload(spirit));
+      const legacy =
+        mode === 'upsert'
+          ? await supabase
+              .from(SPIRITS_TABLE)
+              .upsert(italianPayload, { onConflict: 'id' })
+              .select('*')
+          : await supabase.from(SPIRITS_TABLE).insert(italianPayload).select('*');
+      if (legacy.error) throw legacy.error;
+      const legacyRows = (legacy.data ?? []) as SpiritsRow[];
+      inserted.push(...legacyRows.map((row, index) => toSpirit(row, index)));
+      continue;
+    }
+
+    if (first.error) throw first.error;
+    const rows = (first.data ?? []) as SpiritsRow[];
+    inserted.push(...rows.map((row, index) => toSpirit(row, index)));
   }
-  if (first.error) throw first.error;
-  const rows = (first.data ?? []) as SpiritsRow[];
-  return sortSpirits(rows.map((row, index) => toSpirit(row, index)));
+
+  return sortSpirits(inserted);
+}
+
+async function insertSpiritsToSupabase(input: Partial<Wine>[]): Promise<Wine[]> {
+  return writeSpiritsToSupabase(input, 'insert');
+}
+
+async function upsertSpiritsToSupabase(input: Partial<Wine>[]): Promise<Wine[]> {
+  return writeSpiritsToSupabase(input, 'upsert');
+}
+
+async function deleteSpiritsByIds(ids: string[]): Promise<void> {
+  if (!supabase || ids.length === 0) return;
+
+  for (const chunk of chunkArray(ids, SPIRITS_WRITE_CHUNK_SIZE)) {
+    const { error } = await supabase.from(SPIRITS_TABLE).delete().in('id', chunk);
+    if (error) throw error;
+  }
 }
 
 export async function listSpirits(): Promise<Wine[]> {
@@ -277,11 +327,13 @@ export async function updateThresholdForAllSpirits(rawThreshold: number): Promis
 export async function replaceAllSpirits(inputRows: ArchiveCsvWineInput[]): Promise<Wine[]> {
   if (!supabase) throw new Error('Supabase non configurato');
 
+  const current = await listSpirits();
+  const previousIds = current.map((spirit) => spirit.id);
   const normalized = inputRows.map((row) => toSpiritInput(row));
-  const { error: deleteError } = await supabase.from(SPIRITS_TABLE).delete().not('id', 'is', null);
-  if (deleteError) throw deleteError;
-
-  const inserted = await insertSpiritsToSupabase(normalized);
+  const inserted = await upsertSpiritsToSupabase(normalized);
+  const nextIds = new Set(inserted.map((spirit) => spirit.id));
+  const staleIds = previousIds.filter((id) => !nextIds.has(id));
+  await deleteSpiritsByIds(staleIds);
   for (const spirit of inserted) {
     await syncSpiritUpsert(spirit);
   }

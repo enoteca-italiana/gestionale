@@ -37,6 +37,7 @@ export type WineRegistryField = 'category' | 'producer' | 'origin';
 // Keep page size aligned to common Supabase API max rows (1000)
 // so pagination never stops early on capped responses.
 const WINES_PAGE_SIZE = 1000;
+const WINES_WRITE_CHUNK_SIZE = 500;
 const WINE_SELECT_COLUMNS =
   'id,category,name,age,producer,origin,threshold,purchase_price,sale_price,vintage,qty,warehouse,margin,notes';
 const WINE_NAME_COLLATOR = new Intl.Collator('it', { sensitivity: 'base' });
@@ -142,6 +143,14 @@ function isSchemaColumnError(error: unknown): boolean {
     (error as { message?: unknown } | null | undefined)?.message ?? ''
   ).toLowerCase();
   return message.includes('column') && message.includes('does not exist');
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
 }
 
 function isForeignKeyViolation(error: unknown): boolean {
@@ -521,23 +530,95 @@ export async function deleteWine(id: string): Promise<void> {
 async function insertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
   if (!supabase || input.length === 0) return input;
 
-  const { data, error } = await supabase.from('wines').insert(input.map(toRowPayload)).select('*');
+  const inserted: Wine[] = [];
 
-  if (error && isSchemaColumnError(error)) {
-    const legacy = await supabase.from('wines').insert(input.map(toLegacyPayload)).select('*');
-    if (legacy.error) {
-      console.error('[wineRepository] Supabase insert legacy error', legacy.error);
-      throw legacy.error;
+  for (const chunk of chunkArray(input, WINES_WRITE_CHUNK_SIZE)) {
+    const { data, error } = await supabase.from('wines').insert(chunk.map(toRowPayload)).select('*');
+
+    if (error && isSchemaColumnError(error)) {
+      const legacy = await supabase.from('wines').insert(chunk.map(toLegacyPayload)).select('*');
+      if (legacy.error) {
+        console.error('[wineRepository] Supabase insert legacy error', legacy.error);
+        throw legacy.error;
+      }
+      inserted.push(...((legacy.data ?? []).map(toWine)));
+      continue;
     }
-    return (legacy.data ?? []).map(toWine);
+
+    if (error) {
+      console.error('[wineRepository] Supabase insert error', error);
+      throw error;
+    }
+
+    inserted.push(...((data ?? []).map(toWine)));
   }
 
-  if (error) {
-    console.error('[wineRepository] Supabase insert error', error);
-    throw error;
+  return inserted;
+}
+
+async function upsertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
+  if (!supabase || input.length === 0) return input;
+
+  const upserted: Wine[] = [];
+
+  for (const chunk of chunkArray(input, WINES_WRITE_CHUNK_SIZE)) {
+    const { data, error } = await supabase
+      .from('wines')
+      .upsert(chunk.map(toRowPayload), { onConflict: 'id' })
+      .select('*');
+
+    if (error && isSchemaColumnError(error)) {
+      const legacy = await supabase
+        .from('wines')
+        .upsert(chunk.map(toLegacyPayload), { onConflict: 'id' })
+        .select('*');
+      if (legacy.error) {
+        console.error('[wineRepository] Supabase upsert legacy error', legacy.error);
+        throw legacy.error;
+      }
+      upserted.push(...((legacy.data ?? []).map(toWine)));
+      continue;
+    }
+
+    if (error) {
+      console.error('[wineRepository] Supabase upsert error', error);
+      throw error;
+    }
+
+    upserted.push(...((data ?? []).map(toWine)));
   }
 
-  return (data ?? []).map(toWine);
+  return upserted;
+}
+
+async function listSupabaseWineIds(): Promise<string[]> {
+  if (!supabase) return [];
+
+  const ids: string[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + WINES_PAGE_SIZE - 1;
+    const { data, error } = await supabase.from('wines').select('id').range(from, to);
+    if (error) throw error;
+
+    const rows = data ?? [];
+    ids.push(...rows.map((row) => row.id).filter(Boolean));
+
+    if (rows.length < WINES_PAGE_SIZE) break;
+    from += WINES_PAGE_SIZE;
+  }
+
+  return ids;
+}
+
+async function deleteSupabaseWinesByIds(ids: string[]): Promise<void> {
+  if (!supabase || ids.length === 0) return;
+
+  for (const chunk of chunkArray(ids, WINES_WRITE_CHUNK_SIZE)) {
+    const { error } = await supabase.from('wines').delete().in('id', chunk);
+    if (error) throw error;
+  }
 }
 
 export async function replaceAllWines(inputRows: ArchiveCsvWineInput[]): Promise<Wine[]> {
@@ -560,13 +641,11 @@ export async function replaceAllWines(inputRows: ArchiveCsvWineInput[]): Promise
   let persisted = normalized;
 
   if (supabase) {
-    const { error: deleteError } = await supabase.from('wines').delete().not('id', 'is', null);
-    if (deleteError) {
-      console.error('[wineRepository] Supabase replace delete error', deleteError);
-      throw deleteError;
-    }
-
-    persisted = await insertWinesToSupabase(normalized);
+    const previousIds = await listSupabaseWineIds();
+    persisted = await upsertWinesToSupabase(normalized);
+    const nextIds = new Set(persisted.map((wine) => wine.id));
+    const staleIds = previousIds.filter((id) => !nextIds.has(id));
+    await deleteSupabaseWinesByIds(staleIds);
   }
 
   const sorted = sortWines(persisted);
