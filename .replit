@@ -32,3 +32,10 @@ outputType = "webview"
 [[ports]]
 localPort = 5001
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+SUPABASE_URL = "https://aezqtgadyaxdcptwlpci.supabase.co"
+VITE_SUPABASE_URL = "https://aezqtgadyaxdcptwlpci.supabase.co"
+GITHUB_URL = "https://github.com/enoteca-italiana/gestionale.git"
