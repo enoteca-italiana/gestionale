@@ -93,6 +93,7 @@ apps/scarichi-vini/
 
     app/
       routes.ts                 — costanti route + helper isSettingsPath/isArchivePath
+      events.ts                 — costanti nomi eventi custom e chiavi sessionStorage condivise
       appDomain.tsx             — contesto dominio attivo (`wine` | `spirits`) + persistenza localStorage
       useOfflineDischargeQueueSync.ts  — hook flush coda offline (startup/online/focus/visibility)
       useOnlineStatus.ts        — hook navigator.onLine + eventi online/offline
@@ -164,14 +165,14 @@ apps/scarichi-vini/
           ExportModal.tsx       — export CSV/Excel/PDF archivio
 
       admina/
-        WineAdminPage.tsx       — pagina archivio vini (orchestratore, ~689 righe)
+        WineAdminPage.tsx       — pagina archivio vini (orchestratore, ~264 righe — logica in useWineAdminPage.ts)
         types.ts                — tipi locali admina (SortField, FilterState, ecc.)
         utils/
           archiveExport.ts      — export Excel (exceljs, lazy) e PDF (jspdf, lazy)
           archiveTableUtils.ts  — costanti tabella, helper calcoli, TABLE_RENDER_BATCH
         components/
           AdminArchiveToolbar.tsx    — toolbar filtri su singola riga desktop (+ Foglio Google + Totali)
-          AdminArchiveTable.tsx      — tabella inline-editable con rendering progressivo (~1219 righe)
+          AdminArchiveTable.tsx      — tabella inline-editable con rendering progressivo (~713 righe)
           WineArchiveFormModal.tsx   — modale aggiungi/modifica vino
           InlineStickyAddSelect.tsx  — dropdown con "+ Aggiungi …" sempre in cima
           BulkEditFilteredModal.tsx  — modifica massiva su filtri attivi (categoria)

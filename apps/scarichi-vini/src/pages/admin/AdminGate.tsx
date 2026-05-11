@@ -6,6 +6,7 @@ import { AdminLogin } from '@/pages/admin/AdminLogin';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { useAdminAuth } from '@/pages/admin/useAdminAuth';
 import { useAppDomain } from '@/app/appDomainContext';
+import { ADMIN_SECTION_CHANGE_EVENT, OPEN_ADMIN_HOME_EVENT } from '@/app/events';
 
 type AdminSection = 'home' | 'history' | 'registryManager';
 type SettingsAction =
@@ -31,7 +32,7 @@ export function AdminGate() {
   const [settingsAction, setSettingsAction] = useState<SettingsAction>(null);
 
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('scarichi:adminSectionChange', { detail: { section } }));
+    window.dispatchEvent(new CustomEvent(ADMIN_SECTION_CHANGE_EVENT, { detail: { section } }));
   }, [section]);
   const {
     history,
@@ -46,8 +47,8 @@ export function AdminGate() {
       setSection('home');
       setSettingsAction(null);
     };
-    window.addEventListener('scarichi:openAdminHome', onOpenAdminHome);
-    return () => window.removeEventListener('scarichi:openAdminHome', onOpenAdminHome);
+    window.addEventListener(OPEN_ADMIN_HOME_EVENT, onOpenAdminHome);
+    return () => window.removeEventListener(OPEN_ADMIN_HOME_EVENT, onOpenAdminHome);
   }, []);
 
   const openRootSection = (target: AdminRootSection) => {

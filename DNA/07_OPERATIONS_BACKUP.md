@@ -23,7 +23,7 @@ Workflow Replit configurato: `npm install && npm run dev`
 ```bash
 npm run typecheck    # TypeScript strict — zero errori
 npm run lint         # ESLint --max-warnings 0
-npm run test         # Vitest — 10/10 test
+npm run test         # Vitest — 14/14 test
 npm run format:check # Prettier — zero diff
 npm run build        # build produzione completa
 ```

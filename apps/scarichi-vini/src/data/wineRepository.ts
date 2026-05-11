@@ -131,6 +131,10 @@ function toRowPayload(wine: Wine) {
   };
 }
 
+// Schema legacy: payload minimo per DB senza le colonne estese (purchase_price,
+// sale_price, threshold, warehouse, margin, notes). Usato come fallback automatico
+// in createWine/updateWine se Supabase risponde con "column does not exist".
+// Mantenere finché non si è certi che tutti gli ambienti abbiano lo schema completo.
 function toLegacyPayload(wine: Wine) {
   return {
     id: wine.id,
@@ -143,6 +147,8 @@ function toLegacyPayload(wine: Wine) {
   };
 }
 
+// Rileva l'errore Supabase "column does not exist" (schema incompleto/legacy).
+// Attiva automaticamente il fallback a toLegacyPayload per compatibilità.
 function isSchemaColumnError(error: unknown): boolean {
   const message = String(
     (error as { message?: unknown } | null | undefined)?.message ?? ''
@@ -538,7 +544,10 @@ async function insertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
   const inserted: Wine[] = [];
 
   for (const chunk of chunkArray(input, WINES_WRITE_CHUNK_SIZE)) {
-    const { data, error } = await supabase.from('wines').insert(chunk.map(toRowPayload)).select('*');
+    const { data, error } = await supabase
+      .from('wines')
+      .insert(chunk.map(toRowPayload))
+      .select('*');
 
     if (error && isSchemaColumnError(error)) {
       const legacy = await supabase.from('wines').insert(chunk.map(toLegacyPayload)).select('*');
@@ -546,7 +555,7 @@ async function insertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
         console.error('[wineRepository] Supabase insert legacy error', legacy.error);
         throw legacy.error;
       }
-      inserted.push(...((legacy.data ?? []).map(toWine)));
+      inserted.push(...(legacy.data ?? []).map(toWine));
       continue;
     }
 
@@ -555,7 +564,7 @@ async function insertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
       throw error;
     }
 
-    inserted.push(...((data ?? []).map(toWine)));
+    inserted.push(...(data ?? []).map(toWine));
   }
 
   return inserted;
@@ -581,7 +590,7 @@ async function upsertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
         console.error('[wineRepository] Supabase upsert legacy error', legacy.error);
         throw legacy.error;
       }
-      upserted.push(...((legacy.data ?? []).map(toWine)));
+      upserted.push(...(legacy.data ?? []).map(toWine));
       continue;
     }
 
@@ -590,7 +599,7 @@ async function upsertWinesToSupabase(input: Wine[]): Promise<Wine[]> {
       throw error;
     }
 
-    upserted.push(...((data ?? []).map(toWine)));
+    upserted.push(...(data ?? []).map(toWine));
   }
 
   return upserted;

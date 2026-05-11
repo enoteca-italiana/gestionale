@@ -2,6 +2,7 @@ import { Route, Switch, useLocation } from 'wouter';
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { BottomNav } from '@/components/BottomNav';
 import { APP_ROUTES, isSettingsPath } from '@/app/routes';
+import { ADMIN_SECTION_CHANGE_EVENT } from '@/app/events';
 import { AppDomainProvider } from '@/app/appDomain';
 import { useOfflineDischargeQueueSync } from '@/app/useOfflineDischargeQueueSync';
 import { useSupabaseKeepalive } from '@/lib/useSupabaseKeepalive';
@@ -82,8 +83,8 @@ export function App() {
     const onSectionChange = (e: Event) => {
       setAdminSection((e as CustomEvent<{ section: string }>).detail?.section ?? 'home');
     };
-    window.addEventListener('scarichi:adminSectionChange', onSectionChange);
-    return () => window.removeEventListener('scarichi:adminSectionChange', onSectionChange);
+    window.addEventListener(ADMIN_SECTION_CHANGE_EVENT, onSectionChange);
+    return () => window.removeEventListener(ADMIN_SECTION_CHANGE_EVENT, onSectionChange);
   }, []);
 
   useEffect(() => {

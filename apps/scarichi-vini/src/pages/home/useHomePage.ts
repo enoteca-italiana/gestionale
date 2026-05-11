@@ -13,12 +13,14 @@ import {
 import { useLocalDb } from '@/data/useLocalDb';
 import { useLocalSession } from '@/pages/home/useLocalSession';
 import { useStockEditor } from '@/pages/home/useStockEditor';
+import {
+  BEFORE_NAV_EVENT,
+  FORCE_HOME_ONCE_SESSION_KEY,
+  INTRO_SEEN_SESSION_KEY
+} from '@/app/events';
 
 type StockFilter = 'all' | 'threshold' | 'out';
 
-const INTRO_SEEN_SESSION_KEY = 'scarichi:intro-seen';
-const FORCE_HOME_ONCE_SESSION_KEY = 'scarichi:force-home-once';
-const BEFORE_NAV_EVENT = 'scarichi:beforeNav';
 let dischargeRepositoryPromise: Promise<typeof import('@/data/dischargeRepository')> | null = null;
 
 async function loadDischargeRepository() {

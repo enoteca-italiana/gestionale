@@ -1,9 +1,7 @@
 import { Link } from 'wouter';
 import { Archive, CircleArrowLeft, House, Settings } from 'lucide-react';
 import { APP_ROUTES, isArchivePath, isSettingsPath } from '@/app/routes';
-
-const FORCE_HOME_ONCE_SESSION_KEY = 'scarichi:force-home-once';
-const BEFORE_NAV_EVENT = 'scarichi:beforeNav';
+import { BEFORE_NAV_EVENT, FORCE_HOME_ONCE_SESSION_KEY, OPEN_ADMIN_HOME_EVENT } from '@/app/events';
 
 function canNavigateTo(href: string) {
   const evt = new CustomEvent(BEFORE_NAV_EVENT, {
@@ -40,7 +38,7 @@ export function BottomNav({
           className="navNavItem navNavItemBack"
           aria-label="Torna a Impostazioni"
           onClick={() => {
-            window.dispatchEvent(new CustomEvent('scarichi:openAdminHome'));
+            window.dispatchEvent(new CustomEvent(OPEN_ADMIN_HOME_EVENT));
           }}
         >
           <CircleArrowLeft size={26} strokeWidth={1.4} />
@@ -59,7 +57,7 @@ export function BottomNav({
             event.preventDefault();
             return;
           }
-          window.dispatchEvent(new CustomEvent('scarichi:openAdminHome'));
+          window.dispatchEvent(new CustomEvent(OPEN_ADMIN_HOME_EVENT));
         }}
       >
         <Settings size={26} strokeWidth={1.4} />

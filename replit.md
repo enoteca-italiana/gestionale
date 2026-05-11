@@ -57,8 +57,11 @@ apps/scarichi-vini/
         utils/
           wineFilters.ts
           archiveExport.ts
+    app/
+      routes.ts                       — costanti route + helper isSettingsPath/isArchivePath
+      events.ts                       — costanti nomi eventi custom e chiavi sessionStorage condivise
     data/                             — repository Supabase + localDb
-      wineRepository.ts               — CRUD vini (~724 righe)
+      wineRepository.ts               — CRUD vini (~824 righe)
       dischargeRepository.ts          — CRUD scarichi (~492 righe)
       categoryRepository.ts
       originRepository.ts
@@ -127,7 +130,7 @@ Tutti i gate devono passare prima di ogni merge/deploy:
 ```bash
 npm run typecheck   # TypeScript strict — zero errori
 npm run lint        # ESLint --max-warnings 0
-npm run test        # Vitest — 10/10 test
+npm run test        # Vitest — 14/14 test
 npm run format:check # Prettier — zero warning sui file progetto
 npm run build       # Build produzione completa
 ```
@@ -144,8 +147,9 @@ I chunk `vendor_excel` (938 KB) e `vendor_pdf` (422 KB) superano i 500 KB — co
 
 ## Navigazione admin sub-sezioni
 
-`AdminGate` emette `scarichi:adminSectionChange` via `CustomEvent` ogni volta che `section` cambia.
+`AdminGate` emette `ADMIN_SECTION_CHANGE_EVENT` (`scarichi:adminSectionChange`) via `CustomEvent` ogni volta che `section` cambia.
 `App.tsx` ascolta l'evento e traccia `adminSection` → passa `adminInSubSection` a `BottomNav`.
+Costanti centralizzate in `src/app/events.ts` (import da tutti i consumer).
 
 Logica tab sinistra navbar (mobile):
 
@@ -153,7 +157,7 @@ Logica tab sinistra navbar (mobile):
 | ----------------------------------------- | ------------------------------------------------------ |
 | Pagina qualsiasi (Home, Archivio, ecc.)   | `Settings` ⚙️ + testo "Impostazioni" → `/impostazioni` |
 | Home impostazioni (`!adminInSubSection`)  | nascosto — solo `Home` centrato                        |
-| Sotto-sezione admin (`adminInSubSection`) | `CircleArrowLeft` button → `scarichi:openAdminHome`    |
+| Sotto-sezione admin (`adminInSubSection`) | `CircleArrowLeft` button → `OPEN_ADMIN_HOME_EVENT`     |
 
 CSS: `.navbarInnerCentered` (flex, justify-content: center) applicata quando `settingsHomeOnly=true`.
 

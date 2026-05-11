@@ -98,7 +98,7 @@ Hook React montato in `App.tsx`. Previene la pausa automatica del progetto Supab
 - Chiave localStorage: `supabase_keepalive_ts` → epoch ms ultimo ping.
 - All'avvio: se `Date.now() - lastTs >= 24h` → esegue ping immediato.
 - Ogni 24h: `setInterval(() => ping(), 24h)`.
-- `ping()`: `SELECT id FROM vini LIMIT 1` — silenzioso su errore, non interrompe l'app.
+- `ping()`: `supabase.from('wines').select('id').limit(1)` — silenzioso su errore, non interrompe l'app.
 - Ritorna `void`, non espone stato.
 
 ---
