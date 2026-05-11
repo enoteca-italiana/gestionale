@@ -25,10 +25,10 @@ Soluzione implementata: keepalive doppio (hook React periodico + GitHub Actions 
 
 ### Snapshot stato verificato
 
-Audit diretto validato il `04/05/2026`:
+Audit diretto validato il `11/05/2026` dopo import CSV controllato:
 
-- `wines`: `6382`
-- `spirits_products`: `1684`
+- `wines`: `7234`
+- `spirits_products`: `1692`
 - `spirits_sessions`: `0`
 - `spirits_session_items`: `0`
 
@@ -337,6 +337,13 @@ Audit CSV esportati dal foglio:
 
 - `Listino Ufficiale enoteca - Vini (1).csv`: 7234 righe dati, nessuna colonna `__ID__`, 72 righe con campi critici vuoti, 27 duplicati naturali;
 - `Listino Ufficiale enoteca - Spirits (2).csv`: 1692 righe dati, nessuna colonna `__ID__`, 6 righe con nome/produttore vuoto, 6 duplicati naturali.
+
+Import CSV controllato 11/05/2026:
+
+- importati in Supabase `7234` record Vini e `1692` record Spirits;
+- ID generati come UUID deterministici durante l'import controllato;
+- i campi DB obbligatori vuoti sono stati salvati come `N/D` per rispettare i vincoli `NOT NULL` (`name`, `producer`, `origin` su Vini; `name`, `producer` su Spirits);
+- il codice applicativo e' stato allineato allo stesso comportamento per evitare errori `23502` nei futuri import da UI.
 
 Conclusione tecnica:
 

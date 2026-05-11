@@ -28,10 +28,10 @@ Se un nuovo agent legge solo il DNA, deve capire subito:
 - Apps Script: unificato per `Vini` e `Spirits`
 - Supabase: progetto `aezqtgadyaxdcptwlpci`
 
-Snapshot verificato il `04/05/2026`:
+Snapshot verificato il `11/05/2026` dopo import CSV controllato:
 
-- `wines`: `6382`
-- `spirits_products`: `1684`
+- `wines`: `7234`
+- `spirits_products`: `1692`
 - `spirits_sessions`: `0`
 - `spirits_session_items`: `0`
 
