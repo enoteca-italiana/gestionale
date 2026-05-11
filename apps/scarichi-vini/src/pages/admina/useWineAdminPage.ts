@@ -593,6 +593,7 @@ export function useWineAdminPage(domain: AppDomain = 'wine') {
   const resetFilters = () => {
     setFilters(defaultFilters);
     setTableResetVersion((prev) => prev + 1);
+    void loadWines();
   };
 
   return {
